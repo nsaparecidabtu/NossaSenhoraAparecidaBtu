@@ -1,0 +1,342 @@
+// prisma/schema.prisma
+// Paróquia Nossa Senhora Aparecida (Botucatu) — schema consolidado
+// (ver overview: paroquia-overview.md)
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  //url      = env("DATABASE_URL")
+}
+
+// ============================================================
+// AUTH (Auth.js / NextAuth v5 — Google OAuth)
+// ============================================================
+
+enum StaffRole {
+  SUPER_ADMIN     // Dona Maria — acesso total, é quem delega o resto
+  MINISTRY_LEADER // acesso restrito ao que foi delegado via `permissions`
+}
+
+// Capacidades concedidas individualmente pela Dona Maria — a lista cresce
+// conforme surgir necessidade real (evita repetir o erro do enum de
+// roles genéricos sem lógica por trás, do outro projeto).
+enum StaffPermission {
+  VIEW_PRAYER_REQUESTS // ex: líder da Acolhida — vê pedidos de oração, inclusive os sigilosos
+  MANAGE_TITHE_RAFFLE  // ex: coordenadora do Dízimo — publica sorteio mensal
+  MANAGE_EVENTS
+  MANAGE_GALLERY
+  MANAGE_MASS_SCHEDULE
+  MANAGE_MINISTRIES
+  MANAGE_FAQ
+  MANAGE_LITURGICAL_THEME // NOVO — coordenador litúrgico
+}
+
+model User {
+  id            String    @id @default(cuid())
+  name          String?
+  email         String?   @unique
+  emailVerified DateTime?
+  image         String?
+
+  // null = paroquiano comum (só pode fazer pedidos/solicitações).
+  // SUPER_ADMIN = Dona Maria, acesso total, sem precisar checar `permissions`.
+  // MINISTRY_LEADER = acesso só ao que estiver em `permissions`.
+  staffRole   StaffRole?
+  ministryId  String?
+  ministry    Ministry?         @relation(fields: [ministryId], references: [id])
+  permissions StaffPermission[] @default([])
+
+  accounts Account[]
+  sessions Session[]
+  contactRequests ContactRequest[]
+
+  createdAt DateTime @default(now())
+}
+
+model Account {
+  id                String  @id @default(cuid())
+  userId            String
+  type              String
+  provider          String
+  providerAccountId String
+  refresh_token     String? @db.Text
+  access_token      String? @db.Text
+  expires_at        Int?
+  token_type        String?
+  scope             String?
+  id_token          String? @db.Text
+  session_state     String?
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([provider, providerAccountId])
+}
+
+model Session {
+  id           String   @id @default(cuid())
+  sessionToken String   @unique
+  userId       String
+  expires      DateTime
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+model VerificationToken {
+  identifier String
+  token      String   @unique
+  expires    DateTime
+
+  @@unique([identifier, token])
+}
+
+// ============================================================
+// DADOS INSTITUCIONAIS (singleton — sempre 1 linha só)
+// ============================================================
+
+model ParishSettings {
+  // Id fixo garante singleton: toda leitura/escrita usa
+  // where: { id: "singleton" }, nunca cria uma segunda linha.
+  id        String   @id @default("singleton")
+  
+  name           String @default("Paróquia Nossa Senhora Aparecida")
+  patronSaintName String @default("Nossa Senhora Aparecida")
+
+  address String?
+  phone   String?
+  email   String?
+  pixKey  String?
+
+  instagramUrl String?
+  facebookUrl  String?
+  youtubeUrl   String?
+
+  heroImageUrl String?
+  heroTagline  String? @default("Lar de fé, esperança e devoção")
+
+  aboutText     String? @db.Text
+  aboutImageUrl String?
+
+  // Seção dedicada ao padroeiro/história da imagem
+  patronStoryText String? @db.Text
+
+  // Toggles editáveis pelo admin — decide se cada formulário exige login
+  // Google ou aceita envio anônimo. Sem migration pra mudar de ideia depois.
+  requireLoginForPrayer        Boolean @default(false)
+  requireLoginForMassIntention Boolean @default(false)
+  requireLoginForSacrament     Boolean @default(true)
+  requireLoginForGeneral       Boolean @default(false)
+  liturgicalThemeMode LiturgicalThemeMode @default(DISCRETO)
+  updatedAt DateTime @updatedAt
+}
+
+// ============================================================
+// HORÁRIOS DE MISSA
+// ============================================================
+
+model MassSchedule {
+  id    String   @id @default(cuid())
+  label String   // ex: "Domingo", "Segunda a Sexta", "Adoração ao Santíssimo"
+  times String[] // ex: ["08h00", "10h00", "18h00"]
+  order Int      @default(0)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+// ============================================================
+// EVENTOS
+// ============================================================
+
+model Event {
+  id          String   @id @default(cuid())
+  title       String
+  description String?  @db.Text
+  eventDate   DateTime // data + horário juntos
+  location    String?
+  imageUrl    String?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+// ============================================================
+// GALERIA
+// ============================================================
+
+model GalleryImage {
+  id      String  @id @default(cuid())
+  imageUrl String
+  caption String?
+  order   Int     @default(0)
+
+  createdAt DateTime @default(now())
+}
+
+// ============================================================
+// PASTORAIS / MINISTÉRIOS
+// ============================================================
+
+model Ministry {
+  id              String  @id @default(cuid())
+  name            String
+  slug            String  @unique // ex: "acolhida", "dizimo" — vira a rota /admin/ministerio/[slug]
+  description     String? @db.Text
+  contactInfo     String?
+  meetingSchedule String?
+  order           Int     @default(0)
+
+  members User[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+// ============================================================
+// FAQ
+// ============================================================
+
+model FaqItem {
+  id       String  @id @default(cuid())
+  question String
+  answer   String  @db.Text
+  category String?
+  order    Int     @default(0)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+// ============================================================
+// PALAVRA DO DIA
+// (manual por enquanto — sem fonte externa confiável de leitura
+// litúrgica diária em pt-BR identificada ainda)
+// ============================================================
+
+model DailyWord {
+  id             String   @id @default(cuid())
+  date           DateTime @unique
+  verseReference String
+  text           String   @db.Text
+  reflection     String?  @db.Text
+
+  createdAt DateTime @default(now())
+}
+
+// ============================================================
+// TRANSMISSÃO AO VIVO
+// ============================================================
+
+enum LiveStreamMode {
+  MANUAL
+  AUTO // ainda não implementado — campo já existe pra não precisar migration depois
+}
+
+model LiveStreamSettings {
+  id String @id @default("singleton")
+
+  mode LiveStreamMode @default(MANUAL)
+
+  youtubeVideoId   String? // colado manualmente pela secretaria
+  youtubeChannelId String? // pronto pro dia que MODE=AUTO existir
+  isLiveNow        Boolean @default(false)
+
+  updatedAt DateTime @updatedAt
+}
+
+// ============================================================
+// SORTEIO MENSAL DO DÍZIMO
+// Mural público gerenciado pela coordenadora do dízimo, via permissão
+// MANAGE_TITHE_RAFFLE — não precisa passar pela Dona Maria pra publicar.
+// ============================================================
+
+model TitheRaffleWinner {
+  id          String   @id @default(cuid())
+  month       Int      // 1–12
+  year        Int
+  winnerName  String
+  photoUrl    String?
+  message     String?  @db.Text
+  publishedAt DateTime @default(now())
+
+  @@unique([month, year])
+}
+
+// ============================================================
+// SOLICITAÇÕES DE CONTATO
+// Unificado: Intenção de Missa, Pedido de Oração, Agendamento de
+// Sacramento e Contato Geral têm o mesmo formato real de solicitação —
+// por isso viram 1 modelo com "type", não 4 tabelas separadas.
+// ============================================================
+
+enum ContactRequestType {
+  PRAYER
+  MASS_INTENTION
+  SACRAMENT
+  GENERAL
+}
+
+enum SacramentType {
+  BAPTISM
+  MARRIAGE
+  CONFIRMATION
+  FIRST_COMMUNION
+}
+
+enum ContactRequestStatus {
+  PENDING
+  CONTACTED
+  RESOLVED
+}
+
+model ContactRequest {
+  id      String             @id @default(cuid())
+  type    ContactRequestType
+  name    String
+  contact String
+  message String             @db.Text
+
+  // Presente se o formulário exigia login (ou se a pessoa logada optou
+  // por se identificar mesmo sem ser obrigatório) — null = envio anônimo,
+  // permitido conforme o toggle correspondente em ParishSettings.
+  userId String?
+  user   User?   @relation(fields: [userId], references: [id])
+
+  preferredDate DateTime? // usado por MASS_INTENTION e SACRAMENT
+  sacramentType SacramentType? // só relevante se type = SACRAMENT
+
+  // Fluxo híbrido do mural de orações: pessoa opta por publicar, mas só
+  // vai ao ar depois que o admin aprovar — mesmo que wantsPublicWall
+  // seja true. Só relevante se type = PRAYER.
+  wantsPublicWall  Boolean @default(false)
+  approvedForWall  Boolean @default(false)
+
+  status ContactRequestStatus @default(PENDING)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([type, status])
+}
+
+enum LiturgicalThemeMode {
+  PADRAO
+  DISCRETO
+  FULLCOLOR
+}
+
+// NOVO model — cores manuais cadastradas pelo coordenador litúrgico:
+model LiturgicalOverride {
+  id        String   @id @default(cuid())
+  label     String
+  startDate DateTime
+  endDate   DateTime
+  colorHex  String
+  createdAt DateTime @default(now())
+ 
+  @@index([startDate, endDate])
+}
+ 
+ 

@@ -1,0 +1,23 @@
+{
+  "$schema": "https://repomix.com/schemas/latest/schema.json",
+  "output": {
+    "filePath": "repomix.txt",
+    "style": "plain"
+  },
+  "ignore": {
+    "customPatterns": [
+      ".agents/**",
+      ".claude/**",
+      ".next/**",
+      ".node_modules/**",
+      "node_modules/**",
+      ".env",
+      ".env.*",
+      "AGENTS.md",
+      "CLAUDE.md",
+      "README.md",
+      "repomix.txt",
+      "repomix-output.*"
+    ]
+  }
+}
