@@ -3,6 +3,9 @@
 import Link from 'next/link'
 import { auth } from '@/auth'
 import { redirect } from 'next/navigation'
+import { GenerateDailyWordButton } from '@/components/admin/GenerateDailyWordButton'
+
+
 
 const MENU = [
   { label: 'Horários de Missa', href: '/admin/horarios', ready: true },
@@ -31,6 +34,7 @@ export default async function AdminPage() {
           Bem-vinda, {session.user.name}.
         </p>
 
+<GenerateDailyWordButton />
         <div className="mt-8 grid gap-3 sm:grid-cols-2">
           {MENU.map((item) =>
             item.ready ? (

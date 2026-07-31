@@ -3,8 +3,19 @@
 import Link from 'next/link'
 import { prisma } from '@/lib/prisma'
 import { getLiturgicalSeason } from '@/lib/liturgical'
+import { CopyPixButton } from '@/components/CopyPixButton'
+import { Sun, Church, Cross, Flame, Clock, MapPin, ChevronDown } from 'lucide-react'
+import { FaInstagram, FaFacebook, FaYoutube } from "react-icons/fa6";
 
 export const dynamic = 'force-dynamic' // conteúdo editado no admin deve refletir na hora
+
+function scheduleIcon(label: string) {
+  const l = label.toLowerCase()
+  if (l.includes('domingo')) return Sun
+  if (l.includes('sábado') || l.includes('sabado')) return Cross
+  if (l.includes('adora')) return Flame
+  return Church
+}
 
 export default async function Home() {
   const [settings, massSchedules, events, gallery, ministries, faqs, dailyWord, liveStream, season] =
@@ -25,9 +36,11 @@ export default async function Home() {
     ])
 
   const themeMode = settings?.liturgicalThemeMode ?? 'DISCRETO'
+  const mapsUrl = settings?.address
+    ? `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(settings.address)}`
+    : null
 
- 
-    return (
+  return (
     <main className="min-h-screen bg-cream text-navy">
       {/* Barra de acento sazonal — some no modo Padrão */}
       {themeMode !== 'PADRAO' && (
@@ -35,8 +48,20 @@ export default async function Home() {
       )}
 
       {/* Hero */}
-      <section className="bg-navy px-6 py-20 text-center text-cream">
-        <div className="mx-auto max-w-3xl">
+      <section className="relative overflow-hidden bg-navy px-6 py-24 text-center text-cream sm:py-28">
+        {settings?.heroImageUrl && (
+          <>
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img
+              src={settings.heroImageUrl}
+              alt=""
+              className="absolute inset-0 h-full w-full object-cover"
+            />
+            <div className="absolute inset-0 bg-navy/80" />
+          </>
+        )}
+
+        <div className="relative mx-auto max-w-3xl">
           {themeMode !== 'PADRAO' && (
             <span
               className="inline-block rounded-full px-3 py-1 font-body text-xs font-semibold uppercase tracking-wide"
@@ -46,27 +71,45 @@ export default async function Home() {
               {season.specialNote ? ` — ${season.specialNote}` : ''}
             </span>
           )}
-          <h1 className="mt-4 font-display text-4xl font-bold sm:text-5xl">
+
+          <p className="mt-6 font-body text-sm font-semibold uppercase tracking-widest text-gold">
+            Bem-vindo à
+          </p>
+          <h1 className="mt-2 font-display text-4xl font-bold leading-tight sm:text-5xl">
             {settings?.name ?? 'Paróquia Nossa Senhora Aparecida'}
           </h1>
-          <p className="mt-3 font-body text-cream/80">
+
+          <div className="mx-auto mt-5 h-px w-16 bg-gold" />
+
+          <p className="mt-5 font-body text-lg text-cream/80">
             {settings?.heroTagline ?? 'Lar de fé, esperança e devoção'}
           </p>
-          <div className="mt-6 flex flex-wrap justify-center gap-3">
+
+          <div className="mt-8 flex flex-wrap justify-center gap-3">
             <a
               href="#horarios"
-              className="rounded-full bg-gold px-5 py-2.5 font-body text-sm font-semibold text-navy"
+              className="rounded-full bg-gold px-6 py-3 font-body text-sm font-semibold text-navy transition-opacity hover:opacity-90"
             >
               Horários das Missas
             </a>
             <a
-              href="#contato"
-              className="rounded-full border border-cream/40 px-5 py-2.5 font-body text-sm font-semibold text-cream"
+              href={mapsUrl ?? '#contato'}
+              target={mapsUrl ? '_blank' : undefined}
+              rel={mapsUrl ? 'noopener noreferrer' : undefined}
+              className="rounded-full border border-cream/40 px-6 py-3 font-body text-sm font-semibold text-cream transition-colors hover:bg-cream/10"
             >
-              Fale Conosco
+              Faça uma Visita
             </a>
           </div>
         </div>
+
+        <a
+          href="#horarios"
+          aria-label="Rolar para baixo"
+          className="relative mx-auto mt-14 flex h-8 w-8 items-center justify-center rounded-full border border-cream/30 text-cream/70 transition-colors hover:text-cream"
+        >
+          <ChevronDown className="h-4 w-4" />
+        </a>
       </section>
 
       {/* Transmissão ao vivo — só aparece se isLiveNow estiver ligado no admin */}
@@ -86,51 +129,55 @@ export default async function Home() {
 
       {/* Horários de Missa — label sempre segue a cor da estação (exceto Padrão); cards só tingem no Full color */}
       <section id="horarios" className="mx-auto max-w-3xl px-6 py-10">
-        <h2
-          className={`text-center font-display text-2xl font-bold ${
+        <p
+          className={`text-center font-body text-xs font-bold uppercase tracking-widest ${
             themeMode === 'PADRAO' ? 'text-gold' : ''
           }`}
           style={themeMode === 'PADRAO' ? undefined : { color: season.colorHex }}
         >
           Horários das Missas
-        </h2>
+        </p>
         {massSchedules.length === 0 ? (
           <p className="mt-4 text-center font-body text-sm text-navy/50">
             Horários em breve — cadastre no painel admin.
           </p>
         ) : (
           <div className="mt-6 grid grid-cols-2 gap-4 sm:grid-cols-4">
-            {massSchedules.map((m) => (
-              <div
-                key={m.id}
-                className={
-                  themeMode === 'FULLCOLOR'
-                    ? 'rounded-lg border p-4 text-center'
-                    : 'rounded-lg border border-line bg-white p-4 text-center'
-                }
-                style={
-                  themeMode === 'FULLCOLOR'
-                    ? { backgroundColor: `${season.colorHex}0d`, borderColor: `${season.colorHex}40` }
-                    : undefined
-                }
-              >
-                <p className="font-body text-xs font-bold uppercase tracking-wide text-navy/60">
-                  {m.label}
-                </p>
-                <div className="mt-2 space-y-1">
-                  {m.times.map((t) => (
-                    <p key={t} className="font-display text-lg font-semibold">
-                      {t}
-                    </p>
-                  ))}
+            {massSchedules.map((m) => {
+              const Icon = scheduleIcon(m.label)
+              return (
+                <div
+                  key={m.id}
+                  className={
+                    themeMode === 'FULLCOLOR'
+                      ? 'rounded-lg border p-4 text-center'
+                      : 'rounded-lg border border-line bg-white p-4 text-center'
+                  }
+                  style={
+                    themeMode === 'FULLCOLOR'
+                      ? { backgroundColor: `${season.colorHex}0d`, borderColor: `${season.colorHex}40` }
+                      : undefined
+                  }
+                >
+                  <Icon className="mx-auto h-5 w-5 text-gold" strokeWidth={1.75} />
+                  <p className="mt-2 font-body text-xs font-bold uppercase tracking-wide text-navy/60">
+                    {m.label}
+                  </p>
+                  <div className="mt-2 space-y-1">
+                    {m.times.map((t) => (
+                      <p key={t} className="font-display text-lg font-semibold">
+                        {t}
+                      </p>
+                    ))}
+                  </div>
                 </div>
-              </div>
-            ))}
+              )
+            })}
           </div>
         )}
       </section>
 
-{/* Sobre Nós — cor sazonal só no modo Full color */}
+      {/* Sobre Nós — cor sazonal só no modo Full color */}
       <section
         className="mx-auto max-w-3xl rounded-lg px-6 py-10"
         style={themeMode === 'FULLCOLOR' ? { backgroundColor: `${season.colorHex}0d` } : undefined}
@@ -145,6 +192,7 @@ export default async function Home() {
         </p>
         <div className="mt-6 grid gap-6 md:grid-cols-2 md:items-center md:gap-10">
           {settings?.aboutImageUrl && (
+            // eslint-disable-next-line @next/next/no-img-element
             <img
               src={settings.aboutImageUrl}
               alt={settings?.name ?? 'Nossa paróquia'}
@@ -167,27 +215,54 @@ export default async function Home() {
       </section>
 
       {/* Próximos Eventos */}
-      <section className="mx-auto max-w-3xl px-6 py-10">
-        <h2 className="font-display text-2xl font-bold text-gold">Próximos Eventos</h2>
+      <section id="eventos" className="mx-auto max-w-3xl px-6 py-10">
+        <p className="text-center font-body text-xs font-bold uppercase tracking-widest text-gold">
+          Próximos Eventos
+        </p>
         {events.length === 0 ? (
-          <p className="mt-4 font-body text-sm text-navy/50">
+          <p className="mt-4 text-center font-body text-sm text-navy/50">
             Nenhum evento agendado no momento.
           </p>
         ) : (
-          <div className="mt-6 grid gap-4 sm:grid-cols-3">
+          <div className="mt-6 grid gap-5 sm:grid-cols-3">
             {events.map((e) => (
-              <div key={e.id} className="overflow-hidden rounded-lg border border-line bg-white">
-                {e.imageUrl && (
-                  <img src={e.imageUrl} alt={e.title} className="h-32 w-full object-cover" />
-                )}
-                <div className="p-4">
-                  <p className="font-mono text-xs text-navy/50">
-                    {e.eventDate.toLocaleDateString('pt-BR', { day: '2-digit', month: 'short' })}
-                  </p>
-                  <p className="mt-1 font-display text-lg font-semibold">{e.title}</p>
-                  {e.location && (
-                    <p className="mt-1 font-body text-xs text-navy/60">{e.location}</p>
+              <div
+                key={e.id}
+                className="overflow-hidden rounded-lg border border-line bg-white transition-shadow hover:shadow-md"
+              >
+                <div className="relative h-36 w-full bg-navy/10">
+                  {e.imageUrl && (
+                    // eslint-disable-next-line @next/next/no-img-element
+                    <img src={e.imageUrl} alt={e.title} className="h-full w-full object-cover" />
                   )}
+                  <div className="absolute left-3 top-3 rounded bg-navy px-2.5 py-1.5 text-center leading-none text-cream">
+                    <p className="font-body text-[10px] font-bold uppercase tracking-wide">
+                      {e.eventDate.toLocaleDateString('pt-BR', { month: 'short' }).replace('.', '')}
+                    </p>
+                    <p className="font-display text-base font-bold">
+                      {e.eventDate.toLocaleDateString('pt-BR', { day: '2-digit' })}
+                    </p>
+                  </div>
+                </div>
+                <div className="p-4">
+                  <p className="font-display text-lg font-semibold leading-snug">{e.title}</p>
+                  {e.description && (
+                    <p className="mt-1 line-clamp-2 font-body text-sm text-navy/60">
+                      {e.description}
+                    </p>
+                  )}
+                  <div className="mt-3 space-y-1">
+                    <p className="flex items-center gap-1.5 font-body text-xs text-navy/50">
+                      <Clock className="h-3.5 w-3.5" />
+                      {e.eventDate.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })}
+                    </p>
+                    {e.location && (
+                      <p className="flex items-center gap-1.5 font-body text-xs text-navy/50">
+                        <MapPin className="h-3.5 w-3.5" />
+                        {e.location}
+                      </p>
+                    )}
+                  </div>
                 </div>
               </div>
             ))}
@@ -197,15 +272,18 @@ export default async function Home() {
 
       {/* Galeria */}
       {gallery.length > 0 && (
-        <section className="mx-auto max-w-3xl px-6 py-10">
-          <h2 className="font-display text-2xl font-bold text-gold">Galeria</h2>
+        <section id="galeria" className="mx-auto max-w-3xl px-6 py-10">
+          <p className="text-center font-body text-xs font-bold uppercase tracking-widest text-gold">
+            Galeria
+          </p>
           <div className="mt-6 grid grid-cols-3 gap-2">
             {gallery.map((g) => (
+              // eslint-disable-next-line @next/next/no-img-element
               <img
                 key={g.id}
                 src={g.imageUrl}
                 alt={g.caption ?? ''}
-                className="aspect-square w-full rounded-md object-cover"
+                className="aspect-square w-full rounded-md object-cover transition-opacity hover:opacity-80"
               />
             ))}
           </div>
@@ -234,13 +312,34 @@ export default async function Home() {
 
       {/* Doação PIX */}
       {settings?.pixKey && (
-        <section className="mx-auto max-w-3xl px-6 py-10">
-          <h2 className="font-display text-2xl font-bold text-gold">
-            Sua Doação Transforma Vidas
-          </h2>
-          <div className="mt-6 rounded-lg border border-line bg-white p-6">
-            <p className="font-body text-sm text-navy/70">Chave PIX:</p>
-            <p className="mt-1 font-mono text-lg font-semibold">{settings.pixKey}</p>
+        <section id="doacao" className="bg-[#f3ede0] px-6 py-14">
+          <div className="mx-auto grid max-w-3xl gap-8 md:grid-cols-2 md:items-center">
+            <div>
+              <p className="font-body text-xs font-bold uppercase tracking-widest text-gold">
+                Sua Doação Transforma Vidas
+              </p>
+              <p className="mt-4 font-body leading-relaxed text-navy/80">
+                Com sua ajuda, podemos continuar nossa missão de evangelizar, acolher e servir a
+                comunidade.
+              </p>
+              <p className="mt-2 font-display font-semibold">Doe com amor. Doe com fé.</p>
+            </div>
+
+            <div className="rounded-lg border border-line bg-white p-6 text-center">
+              <span className="inline-block rounded-full bg-gold px-3 py-1 font-body text-[10px] font-bold uppercase tracking-widest text-navy">
+                Chave PIX
+              </span>
+              <div className="mt-4 flex justify-center">
+                {/* eslint-disable-next-line @next/next/no-img-element */}
+                <img
+                  src={`https://api.qrserver.com/v1/create-qr-code/?size=180x180&data=${encodeURIComponent(settings.pixKey)}`}
+                  alt="QR Code da chave PIX"
+                  className="h-44 w-44"
+                />
+              </div>
+              <p className="mt-3 font-mono text-sm font-semibold text-navy/80">{settings.pixKey}</p>
+              <CopyPixButton pixKey={settings.pixKey} />
+            </div>
           </div>
         </section>
       )}
@@ -296,33 +395,103 @@ export default async function Home() {
       {/* Palavra do Dia */}
       {dailyWord && (
         <section className="mx-auto max-w-3xl px-6 py-10">
-          <h2 className="font-display text-2xl font-bold text-gold">Palavra do Dia</h2>
-          <div className="mt-4 rounded-lg border border-line bg-white p-6">
-            <p className="font-mono text-xs uppercase text-navy/50">
+          <p className="text-center font-body text-xs font-bold uppercase tracking-widest text-gold">
+            Palavra do Dia
+          </p>
+          <div className="mt-4 rounded-lg border border-line bg-white p-6 text-center">
+            <span className="inline-block rounded-full bg-navy px-3 py-1 font-mono text-[10px] font-bold uppercase tracking-widest text-cream">
+              {new Date().toLocaleDateString('pt-BR', { day: '2-digit', month: 'long' })}
+            </span>
+            <p className="mt-3 font-mono text-xs uppercase text-navy/50">
               {dailyWord.verseReference}
             </p>
             <p className="mt-2 font-display text-lg italic">&ldquo;{dailyWord.text}&rdquo;</p>
             {dailyWord.reflection && (
-              <p className="mt-3 font-body text-sm text-navy/70">{dailyWord.reflection}</p>
+              <p className="mx-auto mt-3 max-w-md font-body text-sm text-navy/70">
+                {dailyWord.reflection}
+              </p>
             )}
           </div>
         </section>
       )}
 
       {/* Footer */}
-      <footer className="border-t border-line bg-navy px-6 py-10 text-cream">
-        <div className="mx-auto max-w-3xl text-center">
-          <p className="font-display text-lg font-bold">
-            {settings?.name ?? 'Paróquia Nossa Senhora Aparecida'}
-          </p>
-          {settings?.address && (
-            <p className="mt-2 font-body text-sm text-cream/70">{settings.address}</p>
-          )}
-          {settings?.phone && <p className="font-body text-sm text-cream/70">{settings.phone}</p>}
-          <p className="mt-4 font-mono text-xs text-cream/40">
-            © {new Date().getFullYear()} Paróquia Nossa Senhora Aparecida — Botucatu
-          </p>
+      <footer className="border-t border-line bg-navy px-6 py-12 text-cream">
+        <div className="mx-auto grid max-w-3xl gap-8 sm:grid-cols-3">
+          <div>
+            <div className="flex items-center gap-2">
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img src="/favicon.svg" alt="" className="h-7 w-7" />
+              <p className="font-display text-base font-bold">
+                {settings?.name ?? 'Paróquia Nossa Senhora Aparecida'}
+              </p>
+            </div>
+            <p className="mt-3 font-body text-sm italic text-cream/60">
+              &ldquo;Fazei tudo o que Ele vos disser.&rdquo;
+              <br />
+              (João 2,5)
+            </p>
+          </div>
+
+          <div>
+            <p className="font-body text-xs font-bold uppercase tracking-widest text-gold">
+              Contato
+            </p>
+            <div className="mt-3 space-y-1.5 font-body text-sm text-cream/70">
+              {settings?.phone && <p>{settings.phone}</p>}
+              {settings?.email && <p>{settings.email}</p>}
+            </div>
+          </div>
+
+          <div>
+            <p className="font-body text-xs font-bold uppercase tracking-widest text-gold">
+              Endereço
+            </p>
+            <p className="mt-3 font-body text-sm text-cream/70">
+              {settings?.address ?? 'Endereço em breve'}
+            </p>
+
+            {(settings?.instagramUrl || settings?.facebookUrl || settings?.youtubeUrl) && (
+              <div className="mt-4 flex gap-3">
+                {settings?.instagramUrl && (
+                  <a
+                    href={settings.instagramUrl}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="flex h-8 w-8 items-center justify-center rounded-full border border-cream/30 text-cream/70 transition-colors hover:text-gold"
+                  >
+                    <FaInstagram className="h-4 w-4" />
+                  </a>
+                )}
+                {settings?.facebookUrl && (
+                  <a
+                    href={settings.facebookUrl}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="flex h-8 w-8 items-center justify-center rounded-full border border-cream/30 text-cream/70 transition-colors hover:text-gold"
+                  >
+                    <FaFacebook className="h-4 w-4" />
+                  </a>
+                )}
+                {settings?.youtubeUrl && (
+                  <a
+                    href={settings.youtubeUrl}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="flex h-8 w-8 items-center justify-center rounded-full border border-cream/30 text-cream/70 transition-colors hover:text-gold"
+                  >
+                    <FaYoutube className="h-4 w-4" />
+                  </a>
+                )}
+              </div>
+            )}
+          </div>
         </div>
+
+        <p className="mx-auto mt-10 max-w-3xl border-t border-cream/10 pt-6 text-center font-mono text-xs text-cream/40">
+          © {new Date().getFullYear()} {settings?.name ?? 'Paróquia Nossa Senhora Aparecida'}. Todos
+          os direitos reservados.
+        </p>
       </footer>
     </main>
   )
