@@ -47,6 +47,7 @@ export async function saveManualDailyWord(_prevState: unknown, formData: FormDat
         data: { text, verseReference, reflection, date: new Date() },
       })
     }
+const instagramReelUrl = (formData.get('instagramReelUrl') as string)?.trim() || null
 
     revalidatePath('/')
     revalidatePath('/admin/palavra-do-dia')

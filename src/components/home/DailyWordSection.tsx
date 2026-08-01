@@ -1,6 +1,8 @@
 // src/components/home/DailyWordSection.tsx
 
-type DailyWord = { verseReference: string; text: string; reflection: string | null }
+import { InstagramEmbed } from '@/components/InstagramEmbed'
+
+type DailyWord = { verseReference: string; text: string; reflection: string | null; instagramReelUrl?: string | null }
 
 export function DailyWordSection({ dailyWord }: { dailyWord: DailyWord | null }) {
   if (!dailyWord) return null
@@ -22,6 +24,19 @@ export function DailyWordSection({ dailyWord }: { dailyWord: DailyWord | null })
           </p>
         )}
       </div>
+      {dailyWord.instagramReelUrl && (
+  <div className="mt-6">
+    <InstagramEmbed url={dailyWord.instagramReelUrl} />
+    <a
+      href={dailyWord.instagramReelUrl}
+      target="_blank"
+      rel="noopener noreferrer"
+      className="mt-3 inline-block font-body text-xs font-semibold text-gold hover:underline"
+    >
+      Ver no Instagram →
+    </a>
+  </div>
+)}
     </section>
   )
 }

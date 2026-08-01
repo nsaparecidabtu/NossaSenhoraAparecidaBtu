@@ -54,6 +54,8 @@ prisma/
       migration.sql
     20260731213127_testimonials/
       migration.sql
+    20260801000041_dailyword_instagram_reel/
+      migration.sql
     migration_lock.toml
   schema.prisma
   seed.ts
@@ -111,6 +113,9 @@ src/
       ministerios/
         AdminMinistriesClient.tsx
         page.tsx
+      palavra-do-dia/
+        AdminDailyWordClient.tsx
+        page.tsx
       usuarios/
         AdminUsersClient.tsx
         page.tsx
@@ -118,6 +123,9 @@ src/
     api/
       auth/
         [...nextauth]/
+          route.ts
+      cron/
+        palavra-do-dia/
           route.ts
       upload/
         route.ts
@@ -148,10 +156,12 @@ src/
     layout/
       SiteHeader.tsx
     CopyPixButton.tsx
+    InstagramEmbed.tsx
     PalavraDoDia.tsx
     TestimonialForm.tsx
     TestimonialsSection.tsx
   lib/
+    dailyWord.ts
     gemini.ts
     liturgical.ts
     permissions.ts
@@ -169,978 +179,11 @@ prisma.config.ts
 repomix.config.json
 skills-lock.json
 tsconfig.json
+vercel.json
 
 ================================================================
 Files
 ================================================================
-
-================
-File: prisma/migrations/20260731213127_testimonials/migration.sql
-================
--- AlterEnum
-ALTER TYPE "StaffPermission" ADD VALUE 'MANAGE_TESTIMONIALS';
-
--- CreateTable
-CREATE TABLE "Testimonial" (
-    "id" TEXT NOT NULL,
-    "userId" TEXT NOT NULL,
-    "message" TEXT NOT NULL,
-    "approved" BOOLEAN NOT NULL DEFAULT false,
-    "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
-
-    CONSTRAINT "Testimonial_pkey" PRIMARY KEY ("id")
-);
-
--- CreateIndex
-CREATE INDEX "Testimonial_approved_idx" ON "Testimonial"("approved");
-
--- AddForeignKey
-ALTER TABLE "Testimonial" ADD CONSTRAINT "Testimonial_userId_fkey" FOREIGN KEY ("userId") REFERENCES "User"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
-
-================
-File: src/actions/testimonial.ts
-================
-// src/actions/testimonial.ts
-'use server'
-
-import { prisma } from '@/lib/prisma'
-import { revalidatePath } from 'next/cache'
-import { auth } from '@/auth'
-import { requirePermission } from '@/lib/permissions'
-
-// Qualquer pessoa logada (paroquiano comum, não precisa ser staff) pode
-// enviar — mas nasce com approved: false. Só aparece no site depois que
-// um admin/coordenador aprovar em /admin/depoimentos.
-export async function createTestimonial(_prevState: unknown, formData: FormData) {
-  try {
-    const session = await auth()
-    if (!session?.user?.id) {
-      throw new Error('Você precisa estar logado pra deixar um depoimento.')
-    }
-
-    const message = (formData.get('message') as string)?.trim()
-    if (!message) throw new Error('Escreva seu depoimento.')
-    if (message.length > 1000) throw new Error('Depoimento muito longo (máximo 1000 caracteres).')
-
-    await prisma.testimonial.create({
-      data: { userId: session.user.id, message },
-    })
-
-    revalidatePath('/')
-    return { success: true }
-  } catch (error: any) {
-    return { success: false, error: error.message || 'Falha ao enviar depoimento.' }
-  }
-}
-
-export async function approveTestimonial(id: string) {
-  try {
-    await requirePermission('MANAGE_TESTIMONIALS')
-    await prisma.testimonial.update({ where: { id }, data: { approved: true } })
-    revalidatePath('/admin/depoimentos')
-    revalidatePath('/')
-    return { success: true }
-  } catch (error: any) {
-    return { success: false, error: error.message || 'Falha ao aprovar.' }
-  }
-}
-
-export async function deleteTestimonial(id: string) {
-  try {
-    await requirePermission('MANAGE_TESTIMONIALS')
-    await prisma.testimonial.delete({ where: { id } })
-    revalidatePath('/admin/depoimentos')
-    revalidatePath('/')
-    return { success: true }
-  } catch (error: any) {
-    return { success: false, error: error.message || 'Falha ao excluir.' }
-  }
-}
-
-================
-File: src/app/admin/depoimentos/AdminTestimonialsClient.tsx
-================
-// src/app/admin/depoimentos/AdminTestimonialsClient.tsx
-'use client'
-
-import { approveTestimonial, deleteTestimonial } from '@/actions/testimonial'
-
-type Testimonial = {
-  id: string
-  message: string
-  approved: boolean
-  createdAt: Date
-  user: { name: string | null; image: string | null }
-}
-
-function fmtDate(date: Date) {
-  return new Date(date).toLocaleDateString('pt-BR')
-}
-
-export function AdminTestimonialsClient({ testimonials }: { testimonials: Testimonial[] }) {
-  const pending = testimonials.filter((t) => !t.approved)
-  const approved = testimonials.filter((t) => t.approved)
-
-  return (
-    <main className="min-h-screen bg-cream px-6 py-12 text-navy">
-      <div className="mx-auto max-w-2xl">
-        <h1 className="font-display text-3xl font-bold">Depoimentos</h1>
-        <p className="mt-1 font-body text-sm text-navy/60">
-          Só entram no ar depois de aprovados aqui.
-        </p>
-
-        <h2 className="mt-8 font-body text-xs font-bold uppercase tracking-wide text-navy/50">
-          Aguardando aprovação ({pending.length})
-        </h2>
-        <div className="mt-3 space-y-3">
-          {pending.length === 0 && (
-            <p className="font-body text-sm text-navy/40">Nada pendente. 🎉</p>
-          )}
-          {pending.map((t) => (
-            <div key={t.id} className="rounded-lg border border-line bg-white p-4">
-              <div className="flex items-start gap-3">
-                {t.user.image && (
-                  // eslint-disable-next-line @next/next/no-img-element
-                  <img src={t.user.image} alt="" className="h-8 w-8 shrink-0 rounded-full" />
-                )}
-                <div className="flex-1">
-                  <p className="font-body text-xs font-semibold text-navy/60">
-                    {t.user.name ?? 'Anônimo'} · {fmtDate(t.createdAt)}
-                  </p>
-                  <p className="mt-1 font-body text-sm text-navy/80">{t.message}</p>
-                  <div className="mt-3 flex gap-3">
-                    <form
-                      action={async () => {
-                        await approveTestimonial(t.id)
-                      }}
-                    >
-                      <button
-                        type="submit"
-                        className="rounded bg-navy px-3 py-1.5 font-body text-xs font-semibold uppercase tracking-wide text-cream"
-                      >
-                        Aprovar e publicar
-                      </button>
-                    </form>
-                    <form
-                      action={async () => {
-                        await deleteTestimonial(t.id)
-                      }}
-                    >
-                      <button
-                        type="submit"
-                        className="font-body text-xs font-semibold text-red-600 hover:underline"
-                      >
-                        Descartar
-                      </button>
-                    </form>
-                  </div>
-                </div>
-              </div>
-            </div>
-          ))}
-        </div>
-
-        <h2 className="mt-10 font-body text-xs font-bold uppercase tracking-wide text-navy/50">
-          Publicados ({approved.length})
-        </h2>
-        <div className="mt-3 space-y-3">
-          {approved.map((t) => (
-            <div key={t.id} className="rounded-lg border border-line bg-white p-4">
-              <div className="flex items-start justify-between gap-3">
-                <div>
-                  <p className="font-body text-xs font-semibold text-navy/60">
-                    {t.user.name ?? 'Anônimo'} · {fmtDate(t.createdAt)}
-                  </p>
-                  <p className="mt-1 font-body text-sm text-navy/80">{t.message}</p>
-                </div>
-                <form
-                  action={async () => {
-                    await deleteTestimonial(t.id)
-                  }}
-                >
-                  <button
-                    type="submit"
-                    className="shrink-0 font-body text-xs font-semibold text-red-600 hover:underline"
-                  >
-                    Remover
-                  </button>
-                </form>
-              </div>
-            </div>
-          ))}
-        </div>
-      </div>
-    </main>
-  )
-}
-
-================
-File: src/app/admin/depoimentos/page.tsx
-================
-// src/app/admin/depoimentos/page.tsx
-
-import { redirect } from 'next/navigation'
-import { auth } from '@/auth'
-import { prisma } from '@/lib/prisma'
-import { AdminTestimonialsClient } from './AdminTestimonialsClient'
-
-export default async function AdminTestimonialsPage() {
-  const session = await auth()
-
-  const canManage =
-    session?.user?.staffRole === 'SUPER_ADMIN' ||
-    (session?.user?.staffRole === 'MINISTRY_LEADER' &&
-      session.user.permissions.includes('MANAGE_TESTIMONIALS'))
-
-  if (!canManage) redirect('/')
-
-  const testimonials = await prisma.testimonial.findMany({
-    orderBy: [{ approved: 'asc' }, { createdAt: 'desc' }],
-    include: { user: { select: { name: true, image: true } } },
-  })
-
-  return <AdminTestimonialsClient testimonials={testimonials} />
-}
-
-================
-File: src/components/home/AboutSection.tsx
-================
-// src/components/home/AboutSection.tsx
-import Link from 'next/link'
-import type { LiturgicalSeason } from '@/lib/liturgical'
-
-type Props = {
-  name: string | null | undefined
-  aboutText: string | null | undefined
-  aboutImageUrl: string | null | undefined
-  themeMode: string
-  season: LiturgicalSeason
-}
-
-export function AboutSection({ name, aboutText, aboutImageUrl, themeMode, season }: Props) {
-  return (
-    <section
-      className="mx-auto max-w-3xl rounded-lg px-6 py-10"
-      style={themeMode === 'FULLCOLOR' ? { backgroundColor: `${season.colorHex}0d` } : undefined}
-    >
-      <p
-        className={`font-body text-xs font-bold uppercase tracking-widest ${
-          themeMode === 'FULLCOLOR' ? '' : 'text-gold'
-        }`}
-        style={themeMode === 'FULLCOLOR' ? { color: season.colorHex } : undefined}
-      >
-        Sobre Nós
-      </p>
-      <div className="mt-6 grid gap-6 md:grid-cols-2 md:items-center md:gap-10">
-        {aboutImageUrl && (
-          // eslint-disable-next-line @next/next/no-img-element
-          <img
-            src={aboutImageUrl}
-            alt={name ?? 'Nossa paróquia'}
-            className="aspect-[4/3] w-full rounded-lg object-cover"
-          />
-        )}
-        <div>
-          <p className="font-body leading-relaxed text-navy/80">
-            {aboutText ?? 'Em breve, a história da nossa comunidade.'}
-          </p>
-          <Link
-            href="/a-paroquia"
-            className="mt-4 inline-block rounded bg-navy px-5 py-2.5 font-body text-xs font-semibold uppercase tracking-wide text-cream transition-opacity hover:opacity-90"
-            style={themeMode === 'FULLCOLOR' ? { backgroundColor: season.colorHex } : undefined}
-          >
-            Saiba mais sobre nossa história →
-          </Link>
-        </div>
-      </div>
-    </section>
-  )
-}
-
-================
-File: src/components/home/ContactLinksSection.tsx
-================
-// src/components/home/ContactLinksSection.tsx
-import Link from 'next/link'
-
-const LINKS = [
-  { href: '/contato/oracao', label: 'Pedido de Oração' },
-  { href: '/contato/intencao', label: 'Intenção de Missa' },
-  { href: '/contato/sacramento', label: 'Agendar Sacramento' },
-  { href: '/contato/geral', label: 'Contato Geral' },
-]
-
-export function ContactLinksSection() {
-  return (
-    <section id="contato" className="mx-auto max-w-3xl px-6 py-10">
-      <h2 className="font-display text-2xl font-bold text-gold">Fale Conosco</h2>
-      <div className="mt-6 grid gap-3 sm:grid-cols-2">
-        {LINKS.map((link) => (
-          <Link
-            key={link.href}
-            href={link.href}
-            className="rounded-lg border border-line bg-white p-4 text-center font-body font-semibold transition-colors hover:border-gold"
-          >
-            {link.label}
-          </Link>
-        ))}
-      </div>
-    </section>
-  )
-}
-
-================
-File: src/components/home/DailyWordSection.tsx
-================
-// src/components/home/DailyWordSection.tsx
-
-type DailyWord = { verseReference: string; text: string; reflection: string | null }
-
-export function DailyWordSection({ dailyWord }: { dailyWord: DailyWord | null }) {
-  if (!dailyWord) return null
-
-  return (
-    <section className="mx-auto max-w-3xl px-6 py-10">
-      <p className="text-center font-body text-xs font-bold uppercase tracking-widest text-gold">
-        Palavra do Dia
-      </p>
-      <div className="mt-4 rounded-lg border border-line bg-white p-6 text-center">
-        <span className="inline-block rounded-full bg-navy px-3 py-1 font-mono text-[10px] font-bold uppercase tracking-widest text-cream">
-          {new Date().toLocaleDateString('pt-BR', { day: '2-digit', month: 'long' })}
-        </span>
-        <p className="mt-3 font-mono text-xs uppercase text-navy/50">{dailyWord.verseReference}</p>
-        <p className="mt-2 font-display text-lg italic">&ldquo;{dailyWord.text}&rdquo;</p>
-        {dailyWord.reflection && (
-          <p className="mx-auto mt-3 max-w-md font-body text-sm text-navy/70">
-            {dailyWord.reflection}
-          </p>
-        )}
-      </div>
-    </section>
-  )
-}
-
-================
-File: src/components/home/DonationSection.tsx
-================
-// src/components/home/DonationSection.tsx
-import { CopyPixButton } from '@/components/CopyPixButton'
-
-export function DonationSection({ pixKey }: { pixKey: string | null | undefined }) {
-  if (!pixKey) return null
-
-  return (
-    <section id="doacao" className="bg-[#f3ede0] px-6 py-14">
-      <div className="mx-auto grid max-w-3xl gap-8 md:grid-cols-2 md:items-center">
-        <div>
-          <p className="font-body text-xs font-bold uppercase tracking-widest text-gold">
-            Sua Doação Transforma Vidas
-          </p>
-          <p className="mt-4 font-body leading-relaxed text-navy/80">
-            Com sua ajuda, podemos continuar nossa missão de evangelizar, acolher e servir a
-            comunidade.
-          </p>
-          <p className="mt-2 font-display font-semibold">Doe com amor. Doe com fé.</p>
-        </div>
-
-        <div className="rounded-lg border border-line bg-white p-6 text-center">
-          <span className="inline-block rounded-full bg-gold px-3 py-1 font-body text-[10px] font-bold uppercase tracking-widest text-navy">
-            Chave PIX
-          </span>
-          <div className="mt-4 flex justify-center">
-            {/* eslint-disable-next-line @next/next/no-img-element */}
-            <img
-              src={`https://api.qrserver.com/v1/create-qr-code/?size=180x180&data=${encodeURIComponent(pixKey)}`}
-              alt="QR Code da chave PIX"
-              className="h-44 w-44"
-            />
-          </div>
-          <p className="mt-3 font-mono text-sm font-semibold text-navy/80">{pixKey}</p>
-          <CopyPixButton pixKey={pixKey} />
-        </div>
-      </div>
-    </section>
-  )
-}
-
-================
-File: src/components/home/EventsSection.tsx
-================
-// src/components/home/EventsSection.tsx
-import { Clock, MapPin } from 'lucide-react'
-
-type Event = {
-  id: string
-  title: string
-  description: string | null
-  eventDate: Date
-  location: string | null
-  imageUrl: string | null
-}
-
-export function EventsSection({ events }: { events: Event[] }) {
-  return (
-    <section id="eventos" className="mx-auto max-w-3xl px-6 py-10">
-      <p className="text-center font-body text-xs font-bold uppercase tracking-widest text-gold">
-        Próximos Eventos
-      </p>
-      {events.length === 0 ? (
-        <p className="mt-4 font-body text-sm text-navy/50">Nenhum evento agendado no momento.</p>
-      ) : (
-        <div className="mt-6 grid gap-5 sm:grid-cols-3">
-          {events.map((e) => (
-            <div
-              key={e.id}
-              className="overflow-hidden rounded-lg border border-line bg-white transition-shadow hover:shadow-md"
-            >
-              <div className="relative h-36 w-full bg-navy/10">
-                {e.imageUrl && (
-                  // eslint-disable-next-line @next/next/no-img-element
-                  <img src={e.imageUrl} alt={e.title} className="h-full w-full object-cover" />
-                )}
-                <div className="absolute left-3 top-3 rounded bg-navy px-2.5 py-1.5 text-center leading-none text-cream">
-                  <p className="font-body text-[10px] font-bold uppercase tracking-wide">
-                    {e.eventDate.toLocaleDateString('pt-BR', { month: 'short' }).replace('.', '')}
-                  </p>
-                  <p className="font-display text-base font-bold">
-                    {e.eventDate.toLocaleDateString('pt-BR', { day: '2-digit' })}
-                  </p>
-                </div>
-              </div>
-              <div className="p-4">
-                <p className="font-display text-lg font-semibold leading-snug">{e.title}</p>
-                {e.description && (
-                  <p className="mt-1 line-clamp-2 font-body text-sm text-navy/60">
-                    {e.description}
-                  </p>
-                )}
-                <div className="mt-3 space-y-1">
-                  <p className="flex items-center gap-1.5 font-body text-xs text-navy/50">
-                    <Clock className="h-3.5 w-3.5" />
-                    {e.eventDate.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })}
-                  </p>
-                  {e.location && (
-                    <p className="flex items-center gap-1.5 font-body text-xs text-navy/50">
-                      <MapPin className="h-3.5 w-3.5" />
-                      {e.location}
-                    </p>
-                  )}
-                </div>
-              </div>
-            </div>
-          ))}
-        </div>
-      )}
-    </section>
-  )
-}
-
-================
-File: src/components/home/FaqSection.tsx
-================
-// src/components/home/FaqSection.tsx
-
-type Faq = { id: string; question: string; answer: string }
-
-export function FaqSection({ faqs }: { faqs: Faq[] }) {
-  if (faqs.length === 0) return null
-
-  return (
-    <section className="mx-auto max-w-3xl px-6 py-10">
-      <h2 className="font-display text-2xl font-bold text-gold">Perguntas Frequentes</h2>
-      <div className="mt-6 space-y-3">
-        {faqs.map((f) => (
-          <details key={f.id} className="rounded-lg border border-line bg-white p-4">
-            <summary className="cursor-pointer font-body font-semibold">{f.question}</summary>
-            <p className="mt-2 font-body text-sm text-navy/70">{f.answer}</p>
-          </details>
-        ))}
-      </div>
-    </section>
-  )
-}
-
-================
-File: src/components/home/GallerySection.tsx
-================
-// src/components/home/GallerySection.tsx
-
-type GalleryImage = { id: string; imageUrl: string; caption: string | null }
-
-export function GallerySection({ gallery }: { gallery: GalleryImage[] }) {
-  if (gallery.length === 0) return null
-
-  return (
-    <section id="galeria" className="mx-auto max-w-3xl px-6 py-10">
-      <p className="text-center font-body text-xs font-bold uppercase tracking-widest text-gold">
-        Galeria
-      </p>
-      <div className="mt-6 grid grid-cols-3 gap-2">
-        {gallery.map((g) => (
-          // eslint-disable-next-line @next/next/no-img-element
-          <img
-            key={g.id}
-            src={g.imageUrl}
-            alt={g.caption ?? ''}
-            className="aspect-square w-full rounded-md object-cover transition-opacity hover:opacity-80"
-          />
-        ))}
-      </div>
-    </section>
-  )
-}
-
-================
-File: src/components/home/Hero.tsx
-================
-// src/components/home/Hero.tsx
-import type { LiturgicalSeason } from '@/lib/liturgical'
-import { ChevronDown } from 'lucide-react'
-
-type Props = {
-  name: string | null | undefined
-  heroImageUrl: string | null | undefined
-  heroTagline: string | null | undefined
-  themeMode: string
-  season: LiturgicalSeason
-  mapsUrl: string | null
-}
-
-export function Hero({ name, heroImageUrl, heroTagline, themeMode, season, mapsUrl }: Props) {
-  return (
-    <section className="relative overflow-hidden bg-navy px-6 py-24 text-center text-cream sm:py-28">
-      {heroImageUrl && (
-        <>
-          {/* eslint-disable-next-line @next/next/no-img-element */}
-          <img src={heroImageUrl} alt="" className="absolute inset-0 h-full w-full object-cover" />
-          <div className="absolute inset-0 bg-navy/80" />
-        </>
-      )}
-
-      <div className="relative mx-auto max-w-3xl">
-        {themeMode !== 'PADRAO' && (
-          <span
-            className="inline-block rounded-full px-3 py-1 font-body text-xs font-semibold uppercase tracking-wide"
-            style={{ backgroundColor: `${season.colorHex}33`, color: season.colorHex }}
-          >
-            Tempo Litúrgico: {season.name}
-            {season.specialNote ? ` — ${season.specialNote}` : ''}
-          </span>
-        )}
-
-        <p className="mt-6 font-body text-sm font-semibold uppercase tracking-widest text-gold">
-          Bem-vindo à
-        </p>
-        <h1 className="mt-2 font-display text-4xl font-bold leading-tight sm:text-5xl">
-          {name ?? 'Paróquia Nossa Senhora Aparecida'}
-        </h1>
-
-        <div className="mx-auto mt-5 h-px w-16 bg-gold" />
-
-        <p className="mt-5 font-body text-lg text-cream/80">
-          {heroTagline ?? 'Lar de fé, esperança e devoção'}
-        </p>
-
-        <div className="mt-8 flex flex-wrap justify-center gap-3">
-          <a
-            href="#horarios"
-            className="rounded-full bg-gold px-6 py-3 font-body text-sm font-semibold text-navy transition-opacity hover:opacity-90"
-          >
-            Horários das Missas
-          </a>
-          <a
-            href={mapsUrl ?? '#contato'}
-            target={mapsUrl ? '_blank' : undefined}
-            rel={mapsUrl ? 'noopener noreferrer' : undefined}
-            className="rounded-full border border-cream/40 px-6 py-3 font-body text-sm font-semibold text-cream transition-colors hover:bg-cream/10"
-          >
-            Faça uma Visita
-          </a>
-        </div>
-      </div>
-
-      <a
-        href="#horarios"
-        aria-label="Rolar para baixo"
-        className="relative mx-auto mt-14 flex h-8 w-8 items-center justify-center rounded-full border border-cream/30 text-cream/70 transition-colors hover:text-cream"
-      >
-        <ChevronDown className="h-4 w-4" />
-      </a>
-    </section>
-  )
-}
-
-================
-File: src/components/home/LiveStreamsection.tsx
-================
-// src/components/home/LiveStreamSection.tsx
-
-type Props = { youtubeVideoId: string | null | undefined; isLiveNow: boolean | undefined }
-
-export function LiveStreamSection({ youtubeVideoId, isLiveNow }: Props) {
-  if (!isLiveNow || !youtubeVideoId) return null
-
-  return (
-    <section className="mx-auto max-w-3xl px-6 py-10">
-      <h2 className="font-display text-2xl font-bold text-gold">Assista Agora</h2>
-      <div className="mt-4 aspect-video overflow-hidden rounded-lg border border-line">
-        <iframe
-          className="h-full w-full"
-          src={`https://www.youtube.com/embed/${youtubeVideoId}`}
-          title="Transmissão ao vivo"
-          allowFullScreen
-        />
-      </div>
-    </section>
-  )
-}
-
-================
-File: src/components/home/MassScheduleSection.tsx
-================
-// src/components/home/MassScheduleSection.tsx
-import type { LiturgicalSeason } from '@/lib/liturgical'
-import { Sun, Church, Cross, Flame } from 'lucide-react'
-
-type MassSchedule = { id: string; label: string; times: string[] }
-
-type Props = { massSchedules: MassSchedule[]; themeMode: string; season: LiturgicalSeason }
-
-function scheduleIcon(label: string) {
-  const l = label.toLowerCase()
-  if (l.includes('domingo')) return Sun
-  if (l.includes('sábado') || l.includes('sabado')) return Cross
-  if (l.includes('adora')) return Flame
-  return Church
-}
-
-export function MassScheduleSection({ massSchedules, themeMode, season }: Props) {
-  return (
-    <section id="horarios" className="mx-auto max-w-3xl px-6 py-10">
-      <p
-        className={`text-center font-body text-xs font-bold uppercase tracking-widest ${
-          themeMode === 'PADRAO' ? 'text-gold' : ''
-        }`}
-        style={themeMode === 'PADRAO' ? undefined : { color: season.colorHex }}
-      >
-        Horários das Missas
-      </p>
-      {massSchedules.length === 0 ? (
-        <p className="mt-4 text-center font-body text-sm text-navy/50">
-          Horários em breve — cadastre no painel admin.
-        </p>
-      ) : (
-        <div className="mt-6 grid grid-cols-2 gap-4 sm:grid-cols-4">
-          {massSchedules.map((m) => {
-            const Icon = scheduleIcon(m.label)
-            return (
-              <div
-                key={m.id}
-                className={
-                  themeMode === 'FULLCOLOR'
-                    ? 'rounded-lg border p-4 text-center'
-                    : 'rounded-lg border border-line bg-white p-4 text-center'
-                }
-                style={
-                  themeMode === 'FULLCOLOR'
-                    ? { backgroundColor: `${season.colorHex}0d`, borderColor: `${season.colorHex}40` }
-                    : undefined
-                }
-              >
-                <Icon className="mx-auto h-5 w-5 text-gold" strokeWidth={1.75} />
-                <p className="mt-2 font-body text-xs font-bold uppercase tracking-wide text-navy/60">
-                  {m.label}
-                </p>
-                <div className="mt-2 space-y-1">
-                  {m.times.map((t) => (
-                    <p key={t} className="font-display text-lg font-semibold">
-                      {t}
-                    </p>
-                  ))}
-                </div>
-              </div>
-            )
-          })}
-        </div>
-      )}
-    </section>
-  )
-}
-
-================
-File: src/components/home/MinistriesSection.tsx
-================
-// src/components/home/MinistriesSection.tsx
-
-type Ministry = {
-  id: string
-  name: string
-  description: string | null
-  meetingSchedule: string | null
-}
-
-export function MinistriesSection({ ministries }: { ministries: Ministry[] }) {
-  if (ministries.length === 0) return null
-
-  return (
-    <section className="mx-auto max-w-3xl px-6 py-10">
-      <h2 className="font-display text-2xl font-bold text-gold">Pastorais e Ministérios</h2>
-      <div className="mt-6 grid gap-4 sm:grid-cols-2">
-        {ministries.map((m) => (
-          <div key={m.id} className="rounded-lg border border-line bg-white p-4">
-            <p className="font-display text-lg font-semibold">{m.name}</p>
-            {m.description && <p className="mt-1 font-body text-sm text-navy/70">{m.description}</p>}
-            {m.meetingSchedule && (
-              <p className="mt-2 font-mono text-xs text-navy/50">{m.meetingSchedule}</p>
-            )}
-          </div>
-        ))}
-      </div>
-    </section>
-  )
-}
-
-================
-File: src/components/home/SiteFooter.tsx
-================
-// src/components/home/SiteFooter.tsx
-import { FaInstagram, FaFacebook, FaYoutube } from 'react-icons/fa6'
-
-type Props = {
-  name: string | null | undefined
-  phone: string | null | undefined
-  email: string | null | undefined
-  address: string | null | undefined
-  instagramUrl: string | null | undefined
-  facebookUrl: string | null | undefined
-  youtubeUrl: string | null | undefined
-}
-
-export function SiteFooter({
-  name,
-  phone,
-  email,
-  address,
-  instagramUrl,
-  facebookUrl,
-  youtubeUrl,
-}: Props) {
-  return (
-    <footer className="border-t border-line bg-navy px-6 py-12 text-cream">
-      <div className="mx-auto grid max-w-3xl gap-8 sm:grid-cols-3">
-        <div>
-          <div className="flex items-center gap-2">
-            {/* eslint-disable-next-line @next/next/no-img-element */}
-            <img src="/favicon.svg" alt="" className="h-7 w-7" />
-            <p className="font-display text-base font-bold">
-              {name ?? 'Paróquia Nossa Senhora Aparecida'}
-            </p>
-          </div>
-          <p className="mt-3 font-body text-sm italic text-cream/60">
-            &ldquo;Fazei tudo o que Ele vos disser.&rdquo;
-            <br />
-            (João 2,5)
-          </p>
-        </div>
-
-        <div>
-          <p className="font-body text-xs font-bold uppercase tracking-widest text-gold">Contato</p>
-          <div className="mt-3 space-y-1.5 font-body text-sm text-cream/70">
-            {phone && <p>{phone}</p>}
-            {email && <p>{email}</p>}
-          </div>
-        </div>
-
-        <div>
-          <p className="font-body text-xs font-bold uppercase tracking-widest text-gold">
-            Endereço
-          </p>
-          <p className="mt-3 font-body text-sm text-cream/70">{address ?? 'Endereço em breve'}</p>
-
-          {(instagramUrl || facebookUrl || youtubeUrl) && (
-            <div className="mt-4 flex gap-3">
-              {instagramUrl && (
-                <a
-                  href={instagramUrl}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="flex h-8 w-8 items-center justify-center rounded-full border border-cream/30 text-cream/70 transition-colors hover:text-gold"
-                >
-                  <FaInstagram className="h-4 w-4" />
-                </a>
-              )}
-              {facebookUrl && (
-                <a
-                  href={facebookUrl}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="flex h-8 w-8 items-center justify-center rounded-full border border-cream/30 text-cream/70 transition-colors hover:text-gold"
-                >
-                  <FaFacebook className="h-4 w-4" />
-                </a>
-              )}
-              {youtubeUrl && (
-                <a
-                  href={youtubeUrl}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="flex h-8 w-8 items-center justify-center rounded-full border border-cream/30 text-cream/70 transition-colors hover:text-gold"
-                >
-                  <FaYoutube className="h-4 w-4" />
-                </a>
-              )}
-            </div>
-          )}
-        </div>
-      </div>
-
-      <p className="mx-auto mt-10 max-w-3xl border-t border-cream/10 pt-6 text-center font-mono text-xs text-cream/40">
-        © {new Date().getFullYear()} {name ?? 'Paróquia Nossa Senhora Aparecida'}. Todos os direitos
-        reservados.
-      </p>
-    </footer>
-  )
-}
-
-================
-File: src/components/home/TestimonialsBlock.tsx
-================
-// src/components/home/TestimonialsBlock.tsx
-import { Suspense } from 'react'
-import { TestimonialsSubmitArea } from '@/components/TestimonialsSection'
-
-type Testimonial = {
-  id: string
-  message: string
-  user: { name: string | null; image: string | null }
-}
-
-export function TestimonialsBlock({ testimonials }: { testimonials: Testimonial[] }) {
-  return (
-    <section className="mx-auto max-w-3xl px-6 py-10">
-      <p className="text-center font-body text-xs font-bold uppercase tracking-widest text-gold">
-        O Que Nossa Comunidade Diz
-      </p>
-
-      {testimonials.length > 0 && (
-        <div className="mt-6 grid gap-4 sm:grid-cols-2">
-          {testimonials.map((t) => (
-            <div key={t.id} className="rounded-lg border border-line bg-white p-4">
-              <p className="font-display text-2xl leading-none text-gold">&ldquo;</p>
-              <p className="-mt-2 font-body text-sm italic text-navy/80">{t.message}</p>
-              <div className="mt-3 flex items-center gap-2">
-                {t.user.image && (
-                  // eslint-disable-next-line @next/next/no-img-element
-                  <img src={t.user.image} alt="" className="h-6 w-6 rounded-full" />
-                )}
-                <p className="font-body text-xs font-semibold text-navy/60">
-                  {t.user.name ?? 'Paroquiano(a)'}
-                </p>
-              </div>
-            </div>
-          ))}
-        </div>
-      )}
-
-      <div className="mt-6">
-        <Suspense
-          fallback={<div className="h-24 animate-pulse rounded-lg border border-line bg-white" />}
-        >
-          <TestimonialsSubmitArea />
-        </Suspense>
-      </div>
-    </section>
-  )
-}
-
-================
-File: src/components/TestimonialForm.tsx
-================
-// src/components/TestimonialForm.tsx
-'use client'
-
-import { useActionState } from 'react'
-import { createTestimonial } from '@/actions/testimonial'
-
-type ActionState = { success: boolean; error?: string }
-
-export function TestimonialForm() {
-  const [state, formAction, pending] = useActionState<ActionState, FormData>(
-    createTestimonial,
-    { success: false }
-  )
-
-  if (state.success) {
-    return (
-      <p className="rounded-lg border border-line bg-white p-4 text-center font-body text-sm text-navy/70">
-        Obrigado por compartilhar! Seu depoimento entra no ar assim que for revisado.
-      </p>
-    )
-  }
-
-  return (
-    <form action={formAction} className="rounded-lg border border-line bg-white p-4">
-      <textarea
-        name="message"
-        required
-        maxLength={1000}
-        rows={3}
-        placeholder="Conte um pouco do que nossa comunidade significa pra você..."
-        className="w-full rounded border border-line px-3 py-2 font-body text-sm focus:border-gold focus:outline-none"
-      />
-      <button
-        type="submit"
-        disabled={pending}
-        className="mt-3 rounded bg-navy px-5 py-2 font-body text-xs font-semibold uppercase tracking-wide text-cream transition-opacity disabled:opacity-60"
-      >
-        {pending ? 'Enviando...' : 'Compartilhar meu depoimento'}
-      </button>
-      {state.error && <p className="mt-2 font-body text-xs text-red-600">{state.error}</p>}
-    </form>
-  )
-}
-
-================
-File: src/components/TestimonialsSection.tsx
-================
-// src/components/TestimonialsSection.tsx
-//
-// Isolado num componente próprio (renderizado dentro de <Suspense> no
-// page.tsx) porque auth() usa headers() por baixo dos panos — sem esse
-// isolamento, o build do Next tenta avaliar isso fora do contexto de uma
-// requisição real e quebra com "headers() was called outside a request
-// scope", mesmo com `export const dynamic = 'force-dynamic'`.
-
-import { auth, signIn } from '@/auth'
-import { TestimonialForm } from '@/components/TestimonialForm'
-
-export async function TestimonialsSubmitArea() {
-  const session = await auth()
-
-  if (session?.user) {
-    return <TestimonialForm />
-  }
-
-  return (
-    <form
-      action={async () => {
-        'use server'
-        await signIn('google')
-      }}
-      className="rounded-lg border border-dashed border-line bg-white p-4 text-center"
-    >
-      <p className="font-body text-sm text-navy/60">
-        Quer compartilhar sua história com a comunidade?
-      </p>
-      <button
-        type="submit"
-        className="mt-3 rounded bg-navy px-5 py-2 font-body text-xs font-semibold uppercase tracking-wide text-cream transition-opacity hover:opacity-90"
-      >
-        Entrar com Google e deixar um depoimento
-      </button>
-    </form>
-  )
-}
 
 ================
 File: prisma/migrations/20260721223628_init/migration.sql
@@ -1427,368 +470,40 @@ CREATE TABLE "LiturgicalOverride" (
 CREATE INDEX "LiturgicalOverride_startDate_endDate_idx" ON "LiturgicalOverride"("startDate", "endDate");
 
 ================
+File: prisma/migrations/20260731213127_testimonials/migration.sql
+================
+-- AlterEnum
+ALTER TYPE "StaffPermission" ADD VALUE 'MANAGE_TESTIMONIALS';
+
+-- CreateTable
+CREATE TABLE "Testimonial" (
+    "id" TEXT NOT NULL,
+    "userId" TEXT NOT NULL,
+    "message" TEXT NOT NULL,
+    "approved" BOOLEAN NOT NULL DEFAULT false,
+    "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+
+    CONSTRAINT "Testimonial_pkey" PRIMARY KEY ("id")
+);
+
+-- CreateIndex
+CREATE INDEX "Testimonial_approved_idx" ON "Testimonial"("approved");
+
+-- AddForeignKey
+ALTER TABLE "Testimonial" ADD CONSTRAINT "Testimonial_userId_fkey" FOREIGN KEY ("userId") REFERENCES "User"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
+
+================
+File: prisma/migrations/20260801000041_dailyword_instagram_reel/migration.sql
+================
+-- AlterTable
+ALTER TABLE "DailyWord" ADD COLUMN     "instagramReelUrl" TEXT;
+
+================
 File: prisma/migrations/migration_lock.toml
 ================
 # Please do not edit this file manually
 # It should be added in your version-control system (e.g., Git)
 provider = "postgresql"
-
-================
-File: prisma/schema.prisma
-================
-// prisma/schema.prisma
-// Paróquia Nossa Senhora Aparecida (Botucatu) — schema consolidado
-// (ver overview: paroquia-overview.md)
-
-generator client {
-  provider = "prisma-client-js"
-}
-
-datasource db {
-  provider = "postgresql"
-  //url      = env("DATABASE_URL")
-}
-
-// ============================================================
-// AUTH (Auth.js / NextAuth v5 — Google OAuth)
-// ============================================================
-
-enum StaffRole {
-  SUPER_ADMIN     // Dona Maria — acesso total, é quem delega o resto
-  MINISTRY_LEADER // acesso restrito ao que foi delegado via `permissions`
-}
-
-// Capacidades concedidas individualmente pela Dona Maria — a lista cresce
-// conforme surgir necessidade real (evita repetir o erro do enum de
-// roles genéricos sem lógica por trás, do outro projeto).
-enum StaffPermission {
-  VIEW_PRAYER_REQUESTS // ex: líder da Acolhida — vê pedidos de oração, inclusive os sigilosos
-  MANAGE_TITHE_RAFFLE  // ex: coordenadora do Dízimo — publica sorteio mensal
-  MANAGE_EVENTS
-  MANAGE_GALLERY
-  MANAGE_MASS_SCHEDULE
-  MANAGE_MINISTRIES
-  MANAGE_FAQ
-  MANAGE_LITURGICAL_THEME // NOVO — coordenador litúrgico
-  MANAGE_TESTIMONIALS // NOVO — moderação dos depoimentos
-}
-
-model User {
-  id            String    @id @default(cuid())
-  name          String?
-  email         String?   @unique
-  emailVerified DateTime?
-  image         String?
-
-  // null = paroquiano comum (só pode fazer pedidos/solicitações).
-  // SUPER_ADMIN = Dona Maria, acesso total, sem precisar checar `permissions`.
-  // MINISTRY_LEADER = acesso só ao que estiver em `permissions`.
-  staffRole   StaffRole?
-  ministryId  String?
-  ministry    Ministry?         @relation(fields: [ministryId], references: [id])
-  permissions StaffPermission[] @default([])
-
-  accounts Account[]
-  sessions Session[]
-  contactRequests ContactRequest[]
-  testimonials Testimonial[]
-
-  createdAt DateTime @default(now())
-}
-
-model Account {
-  id                String  @id @default(cuid())
-  userId            String
-  type              String
-  provider          String
-  providerAccountId String
-  refresh_token     String? @db.Text
-  access_token      String? @db.Text
-  expires_at        Int?
-  token_type        String?
-  scope             String?
-  id_token          String? @db.Text
-  session_state     String?
-
-  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
-
-  @@unique([provider, providerAccountId])
-}
-
-model Session {
-  id           String   @id @default(cuid())
-  sessionToken String   @unique
-  userId       String
-  expires      DateTime
-
-  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
-}
-
-model VerificationToken {
-  identifier String
-  token      String   @unique
-  expires    DateTime
-
-  @@unique([identifier, token])
-}
-
-// ============================================================
-// DADOS INSTITUCIONAIS (singleton — sempre 1 linha só)
-// ============================================================
-
-model ParishSettings {
-  // Id fixo garante singleton: toda leitura/escrita usa
-  // where: { id: "singleton" }, nunca cria uma segunda linha.
-  id        String   @id @default("singleton")
-  
-  name           String @default("Paróquia Nossa Senhora Aparecida")
-  patronSaintName String @default("Nossa Senhora Aparecida")
-
-  address String?
-  phone   String?
-  email   String?
-  pixKey  String?
-
-  instagramUrl String?
-  facebookUrl  String?
-  youtubeUrl   String?
-
-  heroImageUrl String?
-  heroTagline  String? @default("Lar de fé, esperança e devoção")
-
-  aboutText     String? @db.Text
-  aboutImageUrl String?
-
-  // Seção dedicada ao padroeiro/história da imagem
-  patronStoryText String? @db.Text
-
-  // Toggles editáveis pelo admin — decide se cada formulário exige login
-  // Google ou aceita envio anônimo. Sem migration pra mudar de ideia depois.
-  requireLoginForPrayer        Boolean @default(false)
-  requireLoginForMassIntention Boolean @default(false)
-  requireLoginForSacrament     Boolean @default(true)
-  requireLoginForGeneral       Boolean @default(false)
-  liturgicalThemeMode LiturgicalThemeMode @default(DISCRETO)
-  updatedAt DateTime @updatedAt
-}
-
-// ============================================================
-// HORÁRIOS DE MISSA
-// ============================================================
-
-model MassSchedule {
-  id    String   @id @default(cuid())
-  label String   // ex: "Domingo", "Segunda a Sexta", "Adoração ao Santíssimo"
-  times String[] // ex: ["08h00", "10h00", "18h00"]
-  order Int      @default(0)
-
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-}
-
-// ============================================================
-// EVENTOS
-// ============================================================
-
-model Event {
-  id          String   @id @default(cuid())
-  title       String
-  description String?  @db.Text
-  eventDate   DateTime // data + horário juntos
-  location    String?
-  imageUrl    String?
-
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-}
-
-// ============================================================
-// GALERIA
-// ============================================================
-
-model GalleryImage {
-  id      String  @id @default(cuid())
-  imageUrl String
-  caption String?
-  order   Int     @default(0)
-
-  createdAt DateTime @default(now())
-}
-
-// ============================================================
-// PASTORAIS / MINISTÉRIOS
-// ============================================================
-
-model Ministry {
-  id              String  @id @default(cuid())
-  name            String
-  slug            String  @unique // ex: "acolhida", "dizimo" — vira a rota /admin/ministerio/[slug]
-  description     String? @db.Text
-  contactInfo     String?
-  meetingSchedule String?
-  order           Int     @default(0)
-
-  members User[]
-
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-}
-
-// ============================================================
-// FAQ
-// ============================================================
-
-model FaqItem {
-  id       String  @id @default(cuid())
-  question String
-  answer   String  @db.Text
-  category String?
-  order    Int     @default(0)
-
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-}
-
-// ============================================================
-// PALAVRA DO DIA
-// (manual por enquanto — sem fonte externa confiável de leitura
-// litúrgica diária em pt-BR identificada ainda)
-// ============================================================
-
-model DailyWord {
-  id             String   @id @default(cuid())
-  date           DateTime @unique
-  verseReference String
-  text           String   @db.Text
-  reflection     String?  @db.Text
-
-  createdAt DateTime @default(now())
-}
-
-// ============================================================
-// TRANSMISSÃO AO VIVO
-// ============================================================
-
-enum LiveStreamMode {
-  MANUAL
-  AUTO // ainda não implementado — campo já existe pra não precisar migration depois
-}
-
-model LiveStreamSettings {
-  id String @id @default("singleton")
-
-  mode LiveStreamMode @default(MANUAL)
-
-  youtubeVideoId   String? // colado manualmente pela secretaria
-  youtubeChannelId String? // pronto pro dia que MODE=AUTO existir
-  isLiveNow        Boolean @default(false)
-
-  updatedAt DateTime @updatedAt
-}
-
-// ============================================================
-// SORTEIO MENSAL DO DÍZIMO
-// Mural público gerenciado pela coordenadora do dízimo, via permissão
-// MANAGE_TITHE_RAFFLE — não precisa passar pela Dona Maria pra publicar.
-// ============================================================
-
-model TitheRaffleWinner {
-  id          String   @id @default(cuid())
-  month       Int      // 1–12
-  year        Int
-  winnerName  String
-  photoUrl    String?
-  message     String?  @db.Text
-  publishedAt DateTime @default(now())
-
-  @@unique([month, year])
-}
-
-// ============================================================
-// SOLICITAÇÕES DE CONTATO
-// Unificado: Intenção de Missa, Pedido de Oração, Agendamento de
-// Sacramento e Contato Geral têm o mesmo formato real de solicitação —
-// por isso viram 1 modelo com "type", não 4 tabelas separadas.
-// ============================================================
-
-enum ContactRequestType {
-  PRAYER
-  MASS_INTENTION
-  SACRAMENT
-  GENERAL
-}
-
-enum SacramentType {
-  BAPTISM
-  MARRIAGE
-  CONFIRMATION
-  FIRST_COMMUNION
-}
-
-enum ContactRequestStatus {
-  PENDING
-  CONTACTED
-  RESOLVED
-}
-
-model ContactRequest {
-  id      String             @id @default(cuid())
-  type    ContactRequestType
-  name    String
-  contact String
-  message String             @db.Text
-
-  // Presente se o formulário exigia login (ou se a pessoa logada optou
-  // por se identificar mesmo sem ser obrigatório) — null = envio anônimo,
-  // permitido conforme o toggle correspondente em ParishSettings.
-  userId String?
-  user   User?   @relation(fields: [userId], references: [id])
-
-  preferredDate DateTime? // usado por MASS_INTENTION e SACRAMENT
-  sacramentType SacramentType? // só relevante se type = SACRAMENT
-
-  // Fluxo híbrido do mural de orações: pessoa opta por publicar, mas só
-  // vai ao ar depois que o admin aprovar — mesmo que wantsPublicWall
-  // seja true. Só relevante se type = PRAYER.
-  wantsPublicWall  Boolean @default(false)
-  approvedForWall  Boolean @default(false)
-
-  status ContactRequestStatus @default(PENDING)
-
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-
-  @@index([type, status])
-}
-
-enum LiturgicalThemeMode {
-  PADRAO
-  DISCRETO
-  FULLCOLOR
-}
-
-// NOVO model — cores manuais cadastradas pelo coordenador litúrgico:
-model LiturgicalOverride {
-  id        String   @id @default(cuid())
-  label     String
-  startDate DateTime
-  endDate   DateTime
-  colorHex  String
-  createdAt DateTime @default(now())
- 
-  @@index([startDate, endDate])
-}
- 
- model Testimonial {
-  id        String   @id @default(cuid())
-  userId    String
-  user      User     @relation(fields: [userId], references: [id])
-  message   String   @db.Text
-  approved  Boolean  @default(false)
-  createdAt DateTime @default(now())
- 
-  @@index([approved])
-}
 
 ================
 File: prisma/seed.ts
@@ -1954,69 +669,6 @@ File: public/vercel.svg
 File: public/window.svg
 ================
 <svg fill="none" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 16 16"><path fill-rule="evenodd" clip-rule="evenodd" d="M1.5 2.5h13v10a1 1 0 0 1-1 1h-11a1 1 0 0 1-1-1zM0 1h16v11.5a2.5 2.5 0 0 1-2.5 2.5h-11A2.5 2.5 0 0 1 0 12.5zm3.75 4.5a.75.75 0 1 0 0-1.5.75.75 0 0 0 0 1.5M7 4.75a.75.75 0 1 1-1.5 0 .75.75 0 0 1 1.5 0m1.75.75a.75.75 0 1 0 0-1.5.75.75 0 0 0 0 1.5" fill="#666"/></svg>
-
-================
-File: src/actions/dailyWord.ts
-================
-'use server'
-
-import { prisma } from '@/lib/prisma'
-import { revalidatePath } from 'next/cache'
-import { requireSuperAdmin } from '@/lib/permissions' // ou requirePermission
-import { getPalavraDoDia } from '@/lib/gemini'
-
-export async function generateAndSaveDailyWord() {
-  try {
-    await requireSuperAdmin()
-
-    const palavra = await getPalavraDoDia()
-
-    // Evita duplicar se já existir uma de hoje
-    const today = new Date()
-    today.setHours(0, 0, 0, 0)
-
-    const existing = await prisma.dailyWord.findFirst({
-      where: {
-        date: {
-          gte: today,
-        },
-      },
-    })
-
-    if (existing) {
-      // Atualiza a de hoje
-      await prisma.dailyWord.update({
-        where: { id: existing.id },
-        data: {
-          text: palavra.text,
-          verseReference: palavra.verseReference,
-          reflection: palavra.reflection,
-        },
-      })
-    } else {
-      // Cria nova
-      await prisma.dailyWord.create({
-        data: {
-          text: palavra.text,
-          verseReference: palavra.verseReference || '-',
-          reflection: palavra.reflection,
-          date: new Date(),
-        },
-      })
-    }
-
-    revalidatePath('/')
-    revalidatePath('/admin')
-
-    return { success: true, message: 'Palavra do Dia gerada com sucesso!' }
-  } catch (error: any) {
-    console.error(error)
-    return {
-      success: false,
-      error: error.message || 'Falha ao gerar a Palavra do Dia.',
-    }
-  }
-}
 
 ================
 File: src/actions/event.ts
@@ -2449,60 +1101,62 @@ export async function updateParishSettings(_prevState: unknown, formData: FormDa
 }
 
 ================
-File: src/actions/staffAccess.ts
+File: src/actions/testimonial.ts
 ================
-// src/actions/staffAccess.ts
+// src/actions/testimonial.ts
 'use server'
 
 import { prisma } from '@/lib/prisma'
 import { revalidatePath } from 'next/cache'
-import { requireSuperAdmin } from '@/lib/permissions'
-import type { StaffPermission, StaffRole } from '@prisma/client'
+import { auth } from '@/auth'
+import { requirePermission } from '@/lib/permissions'
 
-const ALL_PERMISSIONS: StaffPermission[] = [
-  'VIEW_PRAYER_REQUESTS',
-  'MANAGE_TITHE_RAFFLE',
-  'MANAGE_EVENTS',
-  'MANAGE_GALLERY',
-  'MANAGE_MASS_SCHEDULE',
-  'MANAGE_MINISTRIES',
-  'MANAGE_FAQ',
-  'MANAGE_LITURGICAL_THEME',
-  'MANAGE_TESTIMONIALS',
-]
-
-export async function updateStaffAccess(_prevState: unknown, formData: FormData) {
+// Qualquer pessoa logada (paroquiano comum, não precisa ser staff) pode
+// enviar — mas nasce com approved: false. Só aparece no site depois que
+// um admin/coordenador aprovar em /admin/depoimentos.
+export async function createTestimonial(_prevState: unknown, formData: FormData) {
   try {
-    const session = await requireSuperAdmin()
-
-    const userId = formData.get('userId') as string
-    if (!userId) throw new Error('Usuário não identificado.')
-
-    const staffRoleRaw = formData.get('staffRole') as string
-    const staffRole: StaffRole | null = staffRoleRaw === '' ? null : (staffRoleRaw as StaffRole)
-
-    // SUPER_ADMIN não impede a última administradora de se rebaixar sem querer
-    if (userId === session.user.id && staffRole !== 'SUPER_ADMIN') {
-      throw new Error('Você não pode remover seu próprio acesso de Super Admin por aqui.')
+    const session = await auth()
+    if (!session?.user?.id) {
+      throw new Error('Você precisa estar logado pra deixar um depoimento.')
     }
 
-    const ministryIdRaw = formData.get('ministryId') as string
-    const ministryId = staffRole === 'MINISTRY_LEADER' && ministryIdRaw ? ministryIdRaw : null
+    const message = (formData.get('message') as string)?.trim()
+    if (!message) throw new Error('Escreva seu depoimento.')
+    if (message.length > 1000) throw new Error('Depoimento muito longo (máximo 1000 caracteres).')
 
-    const permissions =
-      staffRole === 'MINISTRY_LEADER'
-        ? ALL_PERMISSIONS.filter((p) => formData.getAll('permissions').includes(p))
-        : []
-
-    await prisma.user.update({
-      where: { id: userId },
-      data: { staffRole, ministryId, permissions },
+    await prisma.testimonial.create({
+      data: { userId: session.user.id, message },
     })
 
-    revalidatePath('/admin/usuarios')
+    revalidatePath('/')
     return { success: true }
   } catch (error: any) {
-    return { success: false, error: error.message || 'Falha ao atualizar acesso.' }
+    return { success: false, error: error.message || 'Falha ao enviar depoimento.' }
+  }
+}
+
+export async function approveTestimonial(id: string) {
+  try {
+    await requirePermission('MANAGE_TESTIMONIALS')
+    await prisma.testimonial.update({ where: { id }, data: { approved: true } })
+    revalidatePath('/admin/depoimentos')
+    revalidatePath('/')
+    return { success: true }
+  } catch (error: any) {
+    return { success: false, error: error.message || 'Falha ao aprovar.' }
+  }
+}
+
+export async function deleteTestimonial(id: string) {
+  try {
+    await requirePermission('MANAGE_TESTIMONIALS')
+    await prisma.testimonial.delete({ where: { id } })
+    revalidatePath('/admin/depoimentos')
+    revalidatePath('/')
+    return { success: true }
+  } catch (error: any) {
+    return { success: false, error: error.message || 'Falha ao excluir.' }
   }
 }
 
@@ -2797,6 +1451,151 @@ export default async function AdminSettingsPage() {
   const settings = await prisma.parishSettings.findUnique({ where: { id: 'singleton' } })
 
   return <AdminSettingsClient settings={settings} />
+}
+
+================
+File: src/app/admin/depoimentos/AdminTestimonialsClient.tsx
+================
+// src/app/admin/depoimentos/AdminTestimonialsClient.tsx
+'use client'
+
+import { approveTestimonial, deleteTestimonial } from '@/actions/testimonial'
+
+type Testimonial = {
+  id: string
+  message: string
+  approved: boolean
+  createdAt: Date
+  user: { name: string | null; image: string | null }
+}
+
+function fmtDate(date: Date) {
+  return new Date(date).toLocaleDateString('pt-BR')
+}
+
+export function AdminTestimonialsClient({ testimonials }: { testimonials: Testimonial[] }) {
+  const pending = testimonials.filter((t) => !t.approved)
+  const approved = testimonials.filter((t) => t.approved)
+
+  return (
+    <main className="min-h-screen bg-cream px-6 py-12 text-navy">
+      <div className="mx-auto max-w-2xl">
+        <h1 className="font-display text-3xl font-bold">Depoimentos</h1>
+        <p className="mt-1 font-body text-sm text-navy/60">
+          Só entram no ar depois de aprovados aqui.
+        </p>
+
+        <h2 className="mt-8 font-body text-xs font-bold uppercase tracking-wide text-navy/50">
+          Aguardando aprovação ({pending.length})
+        </h2>
+        <div className="mt-3 space-y-3">
+          {pending.length === 0 && (
+            <p className="font-body text-sm text-navy/40">Nada pendente. 🎉</p>
+          )}
+          {pending.map((t) => (
+            <div key={t.id} className="rounded-lg border border-line bg-white p-4">
+              <div className="flex items-start gap-3">
+                {t.user.image && (
+                  // eslint-disable-next-line @next/next/no-img-element
+                  <img src={t.user.image} alt="" className="h-8 w-8 shrink-0 rounded-full" />
+                )}
+                <div className="flex-1">
+                  <p className="font-body text-xs font-semibold text-navy/60">
+                    {t.user.name ?? 'Anônimo'} · {fmtDate(t.createdAt)}
+                  </p>
+                  <p className="mt-1 font-body text-sm text-navy/80">{t.message}</p>
+                  <div className="mt-3 flex gap-3">
+                    <form
+                      action={async () => {
+                        await approveTestimonial(t.id)
+                      }}
+                    >
+                      <button
+                        type="submit"
+                        className="rounded bg-navy px-3 py-1.5 font-body text-xs font-semibold uppercase tracking-wide text-cream"
+                      >
+                        Aprovar e publicar
+                      </button>
+                    </form>
+                    <form
+                      action={async () => {
+                        await deleteTestimonial(t.id)
+                      }}
+                    >
+                      <button
+                        type="submit"
+                        className="font-body text-xs font-semibold text-red-600 hover:underline"
+                      >
+                        Descartar
+                      </button>
+                    </form>
+                  </div>
+                </div>
+              </div>
+            </div>
+          ))}
+        </div>
+
+        <h2 className="mt-10 font-body text-xs font-bold uppercase tracking-wide text-navy/50">
+          Publicados ({approved.length})
+        </h2>
+        <div className="mt-3 space-y-3">
+          {approved.map((t) => (
+            <div key={t.id} className="rounded-lg border border-line bg-white p-4">
+              <div className="flex items-start justify-between gap-3">
+                <div>
+                  <p className="font-body text-xs font-semibold text-navy/60">
+                    {t.user.name ?? 'Anônimo'} · {fmtDate(t.createdAt)}
+                  </p>
+                  <p className="mt-1 font-body text-sm text-navy/80">{t.message}</p>
+                </div>
+                <form
+                  action={async () => {
+                    await deleteTestimonial(t.id)
+                  }}
+                >
+                  <button
+                    type="submit"
+                    className="shrink-0 font-body text-xs font-semibold text-red-600 hover:underline"
+                  >
+                    Remover
+                  </button>
+                </form>
+              </div>
+            </div>
+          ))}
+        </div>
+      </div>
+    </main>
+  )
+}
+
+================
+File: src/app/admin/depoimentos/page.tsx
+================
+// src/app/admin/depoimentos/page.tsx
+
+import { redirect } from 'next/navigation'
+import { auth } from '@/auth'
+import { prisma } from '@/lib/prisma'
+import { AdminTestimonialsClient } from './AdminTestimonialsClient'
+
+export default async function AdminTestimonialsPage() {
+  const session = await auth()
+
+  const canManage =
+    session?.user?.staffRole === 'SUPER_ADMIN' ||
+    (session?.user?.staffRole === 'MINISTRY_LEADER' &&
+      session.user.permissions.includes('MANAGE_TESTIMONIALS'))
+
+  if (!canManage) redirect('/')
+
+  const testimonials = await prisma.testimonial.findMany({
+    orderBy: [{ approved: 'asc' }, { createdAt: 'desc' }],
+    include: { user: { select: { name: true, image: true } } },
+  })
+
+  return <AdminTestimonialsClient testimonials={testimonials} />
 }
 
 ================
@@ -3863,215 +2662,172 @@ export default async function AdminMinistriesPage() {
 }
 
 ================
-File: src/app/admin/usuarios/AdminUsersClient.tsx
+File: src/app/admin/palavra-do-dia/AdminDailyWordClient.tsx
 ================
-// src/app/admin/usuarios/AdminUsersClient.tsx
+// src/app/admin/palavra-do-dia/AdminDailyWordClient.tsx
 'use client'
 
-import { useActionState, useState } from 'react'
-import { updateStaffAccess } from '@/actions/staffAccess'
+import { useActionState, useState, useTransition } from 'react'
+import { generateAndSaveDailyWord, saveManualDailyWord } from '@/actions/dailyWord'
 
-type StaffRole = 'SUPER_ADMIN' | 'MINISTRY_LEADER'
-
-type User = {
-  id: string
-  name: string | null
-  email: string | null
-  image: string | null
-  staffRole: StaffRole | null
-  ministryId: string | null
-  permissions: string[]
-}
-
-type Ministry = { id: string; name: string }
+type DailyWord = {
+  text: string
+  verseReference: string
+  reflection: string | null
+} | null
 
 type ActionState = { success: boolean; error?: string }
 
-const PERMISSION_LABELS: Record<string, string> = {
-  VIEW_PRAYER_REQUESTS: 'Ver pedidos de oração',
-  MANAGE_TITHE_RAFFLE: 'Sorteio do dízimo',
-  MANAGE_EVENTS: 'Eventos',
-  MANAGE_GALLERY: 'Galeria',
-  MANAGE_MASS_SCHEDULE: 'Horários de missa',
-  MANAGE_MINISTRIES: 'Pastorais e ministérios',
-  MANAGE_FAQ: 'FAQ',
-  MANAGE_LITURGICAL_THEME: 'Cores litúrgicas especiais (coordenador litúrgico)',
-  MANAGE_TESTIMONIALS: 'Moderar depoimentos',
-}
+export function AdminDailyWordClient({ todayWord }: { todayWord: DailyWord }) {
+  const [isPending, startTransition] = useTransition()
+  const [genMessage, setGenMessage] = useState<string | null>(null)
 
-function roleLabel(role: StaffRole | null) {
-  if (role === 'SUPER_ADMIN') return 'Super Admin'
-  if (role === 'MINISTRY_LEADER') return 'Líder de Ministério'
-  return 'Sem acesso ao painel'
-}
-
-function UserEditForm({
-  user,
-  ministries,
-  isSelf,
-  onDone,
-}: {
-  user: User
-  ministries: Ministry[]
-  isSelf: boolean
-  onDone: () => void
-}) {
-  const [state, formAction, pending] = useActionState<ActionState, FormData>(updateStaffAccess, {
-    success: false,
-  })
-  const [role, setRole] = useState<'' | StaffRole>(user.staffRole ?? '')
-
-  return (
-    <form
-      action={formAction}
-      className="mt-3 space-y-3 rounded border border-dashed border-line bg-cream/40 p-4"
-    >
-      <input type="hidden" name="userId" value={user.id} />
-
-      <div>
-        <label className="block text-xs font-bold uppercase tracking-wide text-navy/60">
-          Cargo
-        </label>
-        <select
-          name="staffRole"
-          value={role}
-          onChange={(e) => setRole(e.target.value as '' | StaffRole)}
-          disabled={isSelf}
-          className="mt-1 w-full rounded border border-line bg-white px-3 py-2 font-body text-sm focus:border-gold focus:outline-none disabled:opacity-60"
-        >
-          <option value="">Sem acesso ao painel</option>
-          <option value="MINISTRY_LEADER">Líder de Ministério</option>
-          <option value="SUPER_ADMIN">Super Admin</option>
-        </select>
-        {isSelf && (
-          <p className="mt-1 font-body text-xs text-navy/40">
-            Você não pode alterar seu próprio cargo por aqui.
-          </p>
-        )}
-      </div>
-
-      {role === 'MINISTRY_LEADER' && (
-        <>
-          <div>
-            <label className="block text-xs font-bold uppercase tracking-wide text-navy/60">
-              Ministério que lidera
-            </label>
-            <select
-              name="ministryId"
-              defaultValue={user.ministryId ?? ''}
-              className="mt-1 w-full rounded border border-line bg-white px-3 py-2 font-body text-sm focus:border-gold focus:outline-none"
-            >
-              <option value="">Nenhum</option>
-              {ministries.map((m) => (
-                <option key={m.id} value={m.id}>
-                  {m.name}
-                </option>
-              ))}
-            </select>
-          </div>
-
-          <div>
-            <label className="block text-xs font-bold uppercase tracking-wide text-navy/60">
-              Permissões
-            </label>
-            <div className="mt-1 space-y-1">
-              {Object.entries(PERMISSION_LABELS).map(([value, label]) => (
-                <label key={value} className="flex items-center gap-2 font-body text-sm">
-                  <input
-                    type="checkbox"
-                    name="permissions"
-                    value={value}
-                    defaultChecked={user.permissions.includes(value)}
-                  />
-                  {label}
-                </label>
-              ))}
-            </div>
-          </div>
-        </>
-      )}
-
-      <div className="flex gap-2">
-        <button
-          type="submit"
-          disabled={pending}
-          className="flex-1 rounded bg-navy py-2 font-body text-xs font-semibold uppercase tracking-wide text-cream disabled:opacity-60"
-        >
-          {pending ? 'Salvando...' : 'Salvar'}
-        </button>
-        <button
-          type="button"
-          onClick={onDone}
-          className="flex-1 rounded border border-line py-2 font-body text-xs font-semibold uppercase tracking-wide text-navy/60"
-        >
-          Cancelar
-        </button>
-      </div>
-
-      {state?.error && <p className="font-body text-xs text-red-600">{state.error}</p>}
-      {state?.success && <p className="font-body text-xs text-green-700">Salvo!</p>}
-    </form>
+  const [state, formAction, pending] = useActionState<ActionState, FormData>(
+    saveManualDailyWord,
+    { success: false }
   )
-}
 
-export function AdminUsersClient({
-  users,
-  ministries,
-  currentUserId,
-}: {
-  users: User[]
-  ministries: Ministry[]
-  currentUserId: string
-}) {
-  const [editingId, setEditingId] = useState<string | null>(null)
+  function handleGenerate() {
+    setGenMessage(null)
+    startTransition(async () => {
+      const result = await generateAndSaveDailyWord()
+      const message = result.success
+        ? 'Gerada com sucesso!'
+        : 'error' in result
+          ? result.error ?? 'Erro'
+          : 'Erro'
+
+      setGenMessage(message)
+      if (result.success) {
+        // recarrega pra puxar o texto novo nos campos abaixo
+        window.location.reload()
+      }
+    })
+  }
 
   return (
     <main className="min-h-screen bg-cream px-6 py-12 text-navy">
       <div className="mx-auto max-w-2xl">
-        <h1 className="font-display text-3xl font-bold">Usuários e Permissões</h1>
+        <h1 className="font-display text-3xl font-bold">Palavra do Dia</h1>
         <p className="mt-1 font-body text-sm text-navy/60">
-          Só aparecem aqui pessoas que já entraram no site com Google pelo menos uma vez.
+          Todo dia às 6h o Gemini gera uma automaticamente. Aqui você pode gerar de novo ou
+          escrever a sua própria — o que for salvo por último é o que fica no ar.
         </p>
 
-        <div className="mt-8 space-y-3">
-          {users.map((u) => (
-            <div key={u.id} className="rounded-lg border border-line bg-white p-4">
-              <div className="flex items-start justify-between gap-3">
-                <div className="flex items-center gap-3">
-                  {u.image && (
-                    // eslint-disable-next-line @next/next/no-img-element
-                    <img src={u.image} alt="" className="h-10 w-10 rounded-full" />
-                  )}
-                  <div>
-                    <p className="font-display font-semibold">{u.name ?? 'Sem nome'}</p>
-                    <p className="font-body text-xs text-navy/50">{u.email}</p>
-                    <p className="mt-1 font-body text-xs font-semibold text-navy/70">
-                      {roleLabel(u.staffRole)}
-                    </p>
-                  </div>
-                </div>
-                <button
-                  onClick={() => setEditingId(editingId === u.id ? null : u.id)}
-                  className="shrink-0 font-body text-xs font-semibold text-navy/60 hover:underline"
-                >
-                  {editingId === u.id ? 'Fechar' : 'Editar acesso'}
-                </button>
-              </div>
+        {todayWord && (
+          <div className="mt-6 rounded-lg border border-line bg-white p-4">
+            <p className="font-body text-xs font-semibold uppercase tracking-wide text-navy/40">
+              Publicada hoje
+            </p>
+            <p className="mt-2 font-mono text-xs uppercase text-navy/50">
+              {todayWord.verseReference}
+            </p>
+            <p className="mt-1 font-display text-lg italic">&ldquo;{todayWord.text}&rdquo;</p>
+          </div>
+        )}
 
-              {editingId === u.id && (
-                <UserEditForm
-                  user={u}
-                  ministries={ministries}
-                  isSelf={u.id === currentUserId}
-                  onDone={() => setEditingId(null)}
-                />
-              )}
-            </div>
-          ))}
+        <button
+          onClick={handleGenerate}
+          disabled={isPending}
+          className="mt-6 rounded bg-navy px-5 py-2.5 font-body text-sm font-semibold uppercase tracking-wide text-cream transition-opacity disabled:opacity-60"
+        >
+          {isPending ? 'Gerando...' : 'Gerar novamente com IA'}
+        </button>
+        {genMessage && <p className="mt-2 font-body text-xs text-navy/60">{genMessage}</p>}
+
+        <div className="mt-4 flex items-center gap-2">
+          <div className="h-px flex-1 bg-line" />
+          <span className="font-body text-[10px] uppercase tracking-wide text-navy/40">ou</span>
+          <div className="h-px flex-1 bg-line" />
         </div>
+
+        <form
+          action={formAction}
+          className="mt-4 space-y-4 rounded-lg border border-line bg-white p-6"
+        >
+          <p className="font-body text-xs font-bold uppercase tracking-wide text-navy/60">
+            Escrever a sua
+          </p>
+
+          <div>
+            <label className="block text-xs font-bold uppercase tracking-wide text-navy/60">
+              Texto
+            </label>
+            <textarea
+              name="text"
+              required
+              rows={3}
+              defaultValue={todayWord?.text ?? ''}
+              placeholder="A mensagem do dia..."
+              className="mt-1 w-full rounded border border-line px-3 py-2 font-body text-sm focus:border-gold focus:outline-none"
+            />
+          </div>
+
+          <div>
+            <label className="block text-xs font-bold uppercase tracking-wide text-navy/60">
+              Referência (versículo, santo, papa...)
+            </label>
+            <input
+              name="verseReference"
+              defaultValue={todayWord?.verseReference ?? ''}
+              placeholder="Ex: Jo 14,27"
+              className="mt-1 w-full rounded border border-line px-3 py-2 font-body text-sm focus:border-gold focus:outline-none"
+            />
+          </div>
+
+          <div>
+            <label className="block text-xs font-bold uppercase tracking-wide text-navy/60">
+              Reflexão (opcional)
+            </label>
+            <textarea
+              name="reflection"
+              rows={2}
+              defaultValue={todayWord?.reflection ?? ''}
+              className="mt-1 w-full rounded border border-line px-3 py-2 font-body text-sm focus:border-gold focus:outline-none"
+            />
+          </div>
+
+          <button
+            type="submit"
+            disabled={pending}
+            className="w-full rounded bg-navy py-3 font-body text-sm font-semibold uppercase tracking-wide text-cream transition-opacity disabled:opacity-60"
+          >
+            {pending ? 'Salvando...' : 'Publicar esta versão'}
+          </button>
+
+          {state?.error && <p className="font-body text-sm text-red-600">{state.error}</p>}
+          {state?.success && <p className="font-body text-sm text-green-700">Publicado!</p>}
+        </form>
       </div>
     </main>
   )
+}
+
+================
+File: src/app/admin/palavra-do-dia/page.tsx
+================
+// src/app/admin/palavra-do-dia/page.tsx
+
+import { redirect } from 'next/navigation'
+import { auth } from '@/auth'
+import { prisma } from '@/lib/prisma'
+import { AdminDailyWordClient } from './AdminDailyWordClient'
+
+export default async function AdminDailyWordPage() {
+  const session = await auth()
+
+  if (session?.user?.staffRole !== 'SUPER_ADMIN') {
+    redirect('/')
+  }
+
+  const today = new Date()
+  today.setHours(0, 0, 0, 0)
+
+  const todayWord = await prisma.dailyWord.findFirst({
+    where: { date: { gte: today } },
+  })
+
+  return <AdminDailyWordClient todayWord={todayWord} />
 }
 
 ================
@@ -4121,6 +2877,38 @@ File: src/app/api/auth/[...nextauth]/route.ts
 import { handlers } from '@/auth'
 
 export const { GET, POST } = handlers
+
+================
+File: src/app/api/cron/palavra-do-dia/route.ts
+================
+// src/app/api/cron/palavra-do-dia/route.ts
+
+import { NextResponse } from 'next/server'
+import { generateDailyWord } from '@/lib/dailyWord'
+
+export async function GET(request: Request) {
+  const secret = process.env.CRON_SECRET
+
+  // Falha fechado se a env não estiver configurada
+  if (!secret) {
+    console.error('CRON_SECRET não configurado')
+    return NextResponse.json({ error: 'Não autorizado.' }, { status: 401 })
+  }
+
+  const authHeader = request.headers.get('authorization')
+  if (authHeader !== `Bearer ${secret}`) {
+    return NextResponse.json({ error: 'Não autorizado.' }, { status: 401 })
+  }
+
+  try {
+    const result = await generateDailyWord()
+    return NextResponse.json(result)
+  } catch (error: unknown) {
+    const message = error instanceof Error ? error.message : 'Falha ao gerar a Palavra do Dia.'
+    console.error('Cron Palavra do Dia falhou:', error)
+    return NextResponse.json({ success: false, error: message }, { status: 500 })
+  }
+}
 
 ================
 File: src/app/api/upload/route.ts
@@ -4333,49 +3121,6 @@ export default function TestePage() {
 }
 
 ================
-File: src/components/admin/GenerateDailyWordButton.tsx
-================
-'use client'
-
-import { useState, useTransition } from 'react'
-import { generateAndSaveDailyWord } from '@/actions/dailyWord'
-
-export function GenerateDailyWordButton() {
-  const [isPending, startTransition] = useTransition()
-  const [message, setMessage] = useState<string | null>(null)
-
-  function handleClick() {
-    setMessage(null)
-    startTransition(async () => {
-      const result = await generateAndSaveDailyWord()
-      if (result.success) {
-        setMessage(result.message ?? 'Gerado!')
-      } else {
-        setMessage(result.error ?? 'Erro')
-      }
-    })
-  }
-
-  return (
-    <div className="rounded-lg border border-amber-300 bg-amber-50 p-4">
-      <p className="mb-2 text-sm font-semibold text-amber-800">
-        Temporário — Gerar Palavra do Dia (antes do cron)
-      </p>
-      <button
-        onClick={handleClick}
-        disabled={isPending}
-        className="rounded bg-navy px-4 py-2 text-sm font-semibold text-cream disabled:opacity-50"
-      >
-        {isPending ? 'Gerando...' : 'Gerar Palavra do Dia agora'}
-      </button>
-      {message && (
-        <p className="mt-2 text-sm text-navy/70">{message}</p>
-      )}
-    </div>
-  )
-}
-
-================
 File: src/components/admin/ImageUpload.tsx
 ================
 // src/components/admin/ImageUpload.tsx
@@ -4474,6 +3219,657 @@ export function ImageUpload({
 }
 
 ================
+File: src/components/home/AboutSection.tsx
+================
+// src/components/home/AboutSection.tsx
+import Link from 'next/link'
+import type { LiturgicalSeason } from '@/lib/liturgical'
+
+type Props = {
+  name: string | null | undefined
+  aboutText: string | null | undefined
+  aboutImageUrl: string | null | undefined
+  themeMode: string
+  season: LiturgicalSeason
+}
+
+export function AboutSection({ name, aboutText, aboutImageUrl, themeMode, season }: Props) {
+  return (
+    <section
+      className="mx-auto max-w-3xl rounded-lg px-6 py-10"
+      style={themeMode === 'FULLCOLOR' ? { backgroundColor: `${season.colorHex}0d` } : undefined}
+    >
+      <p
+        className={`font-body text-xs font-bold uppercase tracking-widest ${
+          themeMode === 'FULLCOLOR' ? '' : 'text-gold'
+        }`}
+        style={themeMode === 'FULLCOLOR' ? { color: season.colorHex } : undefined}
+      >
+        Sobre Nós
+      </p>
+      <div className="mt-6 grid gap-6 md:grid-cols-2 md:items-center md:gap-10">
+        {aboutImageUrl && (
+          // eslint-disable-next-line @next/next/no-img-element
+          <img
+            src={aboutImageUrl}
+            alt={name ?? 'Nossa paróquia'}
+            className="aspect-[4/3] w-full rounded-lg object-cover"
+          />
+        )}
+        <div>
+          <p className="font-body leading-relaxed text-navy/80">
+            {aboutText ?? 'Em breve, a história da nossa comunidade.'}
+          </p>
+          <Link
+            href="/a-paroquia"
+            className="mt-4 inline-block rounded bg-navy px-5 py-2.5 font-body text-xs font-semibold uppercase tracking-wide text-cream transition-opacity hover:opacity-90"
+            style={themeMode === 'FULLCOLOR' ? { backgroundColor: season.colorHex } : undefined}
+          >
+            Saiba mais sobre nossa história →
+          </Link>
+        </div>
+      </div>
+    </section>
+  )
+}
+
+================
+File: src/components/home/ContactLinksSection.tsx
+================
+// src/components/home/ContactLinksSection.tsx
+import Link from 'next/link'
+
+const LINKS = [
+  { href: '/contato/oracao', label: 'Pedido de Oração' },
+  { href: '/contato/intencao', label: 'Intenção de Missa' },
+  { href: '/contato/sacramento', label: 'Agendar Sacramento' },
+  { href: '/contato/geral', label: 'Contato Geral' },
+]
+
+export function ContactLinksSection() {
+  return (
+    <section id="contato" className="mx-auto max-w-3xl px-6 py-10">
+      <h2 className="font-display text-2xl font-bold text-gold">Fale Conosco</h2>
+      <div className="mt-6 grid gap-3 sm:grid-cols-2">
+        {LINKS.map((link) => (
+          <Link
+            key={link.href}
+            href={link.href}
+            className="rounded-lg border border-line bg-white p-4 text-center font-body font-semibold transition-colors hover:border-gold"
+          >
+            {link.label}
+          </Link>
+        ))}
+      </div>
+    </section>
+  )
+}
+
+================
+File: src/components/home/DailyWordSection.tsx
+================
+// src/components/home/DailyWordSection.tsx
+
+type DailyWord = { verseReference: string; text: string; reflection: string | null }
+
+export function DailyWordSection({ dailyWord }: { dailyWord: DailyWord | null }) {
+  if (!dailyWord) return null
+
+  return (
+    <section className="mx-auto max-w-3xl px-6 py-10">
+      <p className="text-center font-body text-xs font-bold uppercase tracking-widest text-gold">
+        Palavra do Dia
+      </p>
+      <div className="mt-4 rounded-lg border border-line bg-white p-6 text-center">
+        <span className="inline-block rounded-full bg-navy px-3 py-1 font-mono text-[10px] font-bold uppercase tracking-widest text-cream">
+          {new Date().toLocaleDateString('pt-BR', { day: '2-digit', month: 'long' })}
+        </span>
+        <p className="mt-3 font-mono text-xs uppercase text-navy/50">{dailyWord.verseReference}</p>
+        <p className="mt-2 font-display text-lg italic">&ldquo;{dailyWord.text}&rdquo;</p>
+        {dailyWord.reflection && (
+          <p className="mx-auto mt-3 max-w-md font-body text-sm text-navy/70">
+            {dailyWord.reflection}
+          </p>
+        )}
+      </div>
+    </section>
+  )
+}
+
+================
+File: src/components/home/DonationSection.tsx
+================
+// src/components/home/DonationSection.tsx
+import { CopyPixButton } from '@/components/CopyPixButton'
+
+export function DonationSection({ pixKey }: { pixKey: string | null | undefined }) {
+  if (!pixKey) return null
+
+  return (
+    <section id="doacao" className="bg-[#f3ede0] px-6 py-14">
+      <div className="mx-auto grid max-w-3xl gap-8 md:grid-cols-2 md:items-center">
+        <div>
+          <p className="font-body text-xs font-bold uppercase tracking-widest text-gold">
+            Sua Doação Transforma Vidas
+          </p>
+          <p className="mt-4 font-body leading-relaxed text-navy/80">
+            Com sua ajuda, podemos continuar nossa missão de evangelizar, acolher e servir a
+            comunidade.
+          </p>
+          <p className="mt-2 font-display font-semibold">Doe com amor. Doe com fé.</p>
+        </div>
+
+        <div className="rounded-lg border border-line bg-white p-6 text-center">
+          <span className="inline-block rounded-full bg-gold px-3 py-1 font-body text-[10px] font-bold uppercase tracking-widest text-navy">
+            Chave PIX
+          </span>
+          <div className="mt-4 flex justify-center">
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img
+              src={`https://api.qrserver.com/v1/create-qr-code/?size=180x180&data=${encodeURIComponent(pixKey)}`}
+              alt="QR Code da chave PIX"
+              className="h-44 w-44"
+            />
+          </div>
+          <p className="mt-3 font-mono text-sm font-semibold text-navy/80">{pixKey}</p>
+          <CopyPixButton pixKey={pixKey} />
+        </div>
+      </div>
+    </section>
+  )
+}
+
+================
+File: src/components/home/EventsSection.tsx
+================
+// src/components/home/EventsSection.tsx
+import { Clock, MapPin } from 'lucide-react'
+
+type Event = {
+  id: string
+  title: string
+  description: string | null
+  eventDate: Date
+  location: string | null
+  imageUrl: string | null
+}
+
+export function EventsSection({ events }: { events: Event[] }) {
+  return (
+    <section id="eventos" className="mx-auto max-w-3xl px-6 py-10">
+      <p className="text-center font-body text-xs font-bold uppercase tracking-widest text-gold">
+        Próximos Eventos
+      </p>
+      {events.length === 0 ? (
+        <p className="mt-4 font-body text-sm text-navy/50">Nenhum evento agendado no momento.</p>
+      ) : (
+        <div className="mt-6 grid gap-5 sm:grid-cols-3">
+          {events.map((e) => (
+            <div
+              key={e.id}
+              className="overflow-hidden rounded-lg border border-line bg-white transition-shadow hover:shadow-md"
+            >
+              <div className="relative h-36 w-full bg-navy/10">
+                {e.imageUrl && (
+                  // eslint-disable-next-line @next/next/no-img-element
+                  <img src={e.imageUrl} alt={e.title} className="h-full w-full object-cover" />
+                )}
+                <div className="absolute left-3 top-3 rounded bg-navy px-2.5 py-1.5 text-center leading-none text-cream">
+                  <p className="font-body text-[10px] font-bold uppercase tracking-wide">
+                    {e.eventDate.toLocaleDateString('pt-BR', { month: 'short' }).replace('.', '')}
+                  </p>
+                  <p className="font-display text-base font-bold">
+                    {e.eventDate.toLocaleDateString('pt-BR', { day: '2-digit' })}
+                  </p>
+                </div>
+              </div>
+              <div className="p-4">
+                <p className="font-display text-lg font-semibold leading-snug">{e.title}</p>
+                {e.description && (
+                  <p className="mt-1 line-clamp-2 font-body text-sm text-navy/60">
+                    {e.description}
+                  </p>
+                )}
+                <div className="mt-3 space-y-1">
+                  <p className="flex items-center gap-1.5 font-body text-xs text-navy/50">
+                    <Clock className="h-3.5 w-3.5" />
+                    {e.eventDate.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })}
+                  </p>
+                  {e.location && (
+                    <p className="flex items-center gap-1.5 font-body text-xs text-navy/50">
+                      <MapPin className="h-3.5 w-3.5" />
+                      {e.location}
+                    </p>
+                  )}
+                </div>
+              </div>
+            </div>
+          ))}
+        </div>
+      )}
+    </section>
+  )
+}
+
+================
+File: src/components/home/FaqSection.tsx
+================
+// src/components/home/FaqSection.tsx
+
+type Faq = { id: string; question: string; answer: string }
+
+export function FaqSection({ faqs }: { faqs: Faq[] }) {
+  if (faqs.length === 0) return null
+
+  return (
+    <section className="mx-auto max-w-3xl px-6 py-10">
+      <h2 className="font-display text-2xl font-bold text-gold">Perguntas Frequentes</h2>
+      <div className="mt-6 space-y-3">
+        {faqs.map((f) => (
+          <details key={f.id} className="rounded-lg border border-line bg-white p-4">
+            <summary className="cursor-pointer font-body font-semibold">{f.question}</summary>
+            <p className="mt-2 font-body text-sm text-navy/70">{f.answer}</p>
+          </details>
+        ))}
+      </div>
+    </section>
+  )
+}
+
+================
+File: src/components/home/GallerySection.tsx
+================
+// src/components/home/GallerySection.tsx
+
+type GalleryImage = { id: string; imageUrl: string; caption: string | null }
+
+export function GallerySection({ gallery }: { gallery: GalleryImage[] }) {
+  if (gallery.length === 0) return null
+
+  return (
+    <section id="galeria" className="mx-auto max-w-3xl px-6 py-10">
+      <p className="text-center font-body text-xs font-bold uppercase tracking-widest text-gold">
+        Galeria
+      </p>
+      <div className="mt-6 grid grid-cols-3 gap-2">
+        {gallery.map((g) => (
+          // eslint-disable-next-line @next/next/no-img-element
+          <img
+            key={g.id}
+            src={g.imageUrl}
+            alt={g.caption ?? ''}
+            className="aspect-square w-full rounded-md object-cover transition-opacity hover:opacity-80"
+          />
+        ))}
+      </div>
+    </section>
+  )
+}
+
+================
+File: src/components/home/Hero.tsx
+================
+// src/components/home/Hero.tsx
+import type { LiturgicalSeason } from '@/lib/liturgical'
+import { ChevronDown } from 'lucide-react'
+
+type Props = {
+  name: string | null | undefined
+  heroImageUrl: string | null | undefined
+  heroTagline: string | null | undefined
+  themeMode: string
+  season: LiturgicalSeason
+  mapsUrl: string | null
+}
+
+export function Hero({ name, heroImageUrl, heroTagline, themeMode, season, mapsUrl }: Props) {
+  return (
+    <section className="relative overflow-hidden bg-navy px-6 py-24 text-center text-cream sm:py-28">
+      {heroImageUrl && (
+        <>
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img src={heroImageUrl} alt="" className="absolute inset-0 h-full w-full object-cover" />
+          <div className="absolute inset-0 bg-navy/80" />
+        </>
+      )}
+
+      <div className="relative mx-auto max-w-3xl">
+        {themeMode !== 'PADRAO' && (
+          <span
+            className="inline-block rounded-full px-3 py-1 font-body text-xs font-semibold uppercase tracking-wide"
+            style={{ backgroundColor: `${season.colorHex}33`, color: season.colorHex }}
+          >
+            Tempo Litúrgico: {season.name}
+            {season.specialNote ? ` — ${season.specialNote}` : ''}
+          </span>
+        )}
+
+        <p className="mt-6 font-body text-sm font-semibold uppercase tracking-widest text-gold">
+          Bem-vindo à
+        </p>
+        <h1 className="mt-2 font-display text-4xl font-bold leading-tight sm:text-5xl">
+          {name ?? 'Paróquia Nossa Senhora Aparecida'}
+        </h1>
+
+        <div className="mx-auto mt-5 h-px w-16 bg-gold" />
+
+        <p className="mt-5 font-body text-lg text-cream/80">
+          {heroTagline ?? 'Lar de fé, esperança e devoção'}
+        </p>
+
+        <div className="mt-8 flex flex-wrap justify-center gap-3">
+          <a
+            href="#horarios"
+            className="rounded-full bg-gold px-6 py-3 font-body text-sm font-semibold text-navy transition-opacity hover:opacity-90"
+          >
+            Horários das Missas
+          </a>
+          <a
+            href={mapsUrl ?? '#contato'}
+            target={mapsUrl ? '_blank' : undefined}
+            rel={mapsUrl ? 'noopener noreferrer' : undefined}
+            className="rounded-full border border-cream/40 px-6 py-3 font-body text-sm font-semibold text-cream transition-colors hover:bg-cream/10"
+          >
+            Faça uma Visita
+          </a>
+        </div>
+      </div>
+
+      <a
+        href="#horarios"
+        aria-label="Rolar para baixo"
+        className="relative mx-auto mt-14 flex h-8 w-8 items-center justify-center rounded-full border border-cream/30 text-cream/70 transition-colors hover:text-cream"
+      >
+        <ChevronDown className="h-4 w-4" />
+      </a>
+    </section>
+  )
+}
+
+================
+File: src/components/home/LiveStreamsection.tsx
+================
+// src/components/home/LiveStreamSection.tsx
+
+type Props = { youtubeVideoId: string | null | undefined; isLiveNow: boolean | undefined }
+
+export function LiveStreamSection({ youtubeVideoId, isLiveNow }: Props) {
+  if (!isLiveNow || !youtubeVideoId) return null
+
+  return (
+    <section className="mx-auto max-w-3xl px-6 py-10">
+      <h2 className="font-display text-2xl font-bold text-gold">Assista Agora</h2>
+      <div className="mt-4 aspect-video overflow-hidden rounded-lg border border-line">
+        <iframe
+          className="h-full w-full"
+          src={`https://www.youtube.com/embed/${youtubeVideoId}`}
+          title="Transmissão ao vivo"
+          allowFullScreen
+        />
+      </div>
+    </section>
+  )
+}
+
+================
+File: src/components/home/MassScheduleSection.tsx
+================
+// src/components/home/MassScheduleSection.tsx
+import type { LiturgicalSeason } from '@/lib/liturgical'
+import { Sun, Church, Cross, Flame } from 'lucide-react'
+
+type MassSchedule = { id: string; label: string; times: string[] }
+
+type Props = { massSchedules: MassSchedule[]; themeMode: string; season: LiturgicalSeason }
+
+function scheduleIcon(label: string) {
+  const l = label.toLowerCase()
+  if (l.includes('domingo')) return Sun
+  if (l.includes('sábado') || l.includes('sabado')) return Cross
+  if (l.includes('adora')) return Flame
+  return Church
+}
+
+export function MassScheduleSection({ massSchedules, themeMode, season }: Props) {
+  return (
+    <section id="horarios" className="mx-auto max-w-3xl px-6 py-10">
+      <p
+        className={`text-center font-body text-xs font-bold uppercase tracking-widest ${
+          themeMode === 'PADRAO' ? 'text-gold' : ''
+        }`}
+        style={themeMode === 'PADRAO' ? undefined : { color: season.colorHex }}
+      >
+        Horários das Missas
+      </p>
+      {massSchedules.length === 0 ? (
+        <p className="mt-4 text-center font-body text-sm text-navy/50">
+          Horários em breve — cadastre no painel admin.
+        </p>
+      ) : (
+        <div className="mt-6 grid grid-cols-2 gap-4 sm:grid-cols-4">
+          {massSchedules.map((m) => {
+            const Icon = scheduleIcon(m.label)
+            return (
+              <div
+                key={m.id}
+                className={
+                  themeMode === 'FULLCOLOR'
+                    ? 'rounded-lg border p-4 text-center'
+                    : 'rounded-lg border border-line bg-white p-4 text-center'
+                }
+                style={
+                  themeMode === 'FULLCOLOR'
+                    ? { backgroundColor: `${season.colorHex}0d`, borderColor: `${season.colorHex}40` }
+                    : undefined
+                }
+              >
+                <Icon className="mx-auto h-5 w-5 text-gold" strokeWidth={1.75} />
+                <p className="mt-2 font-body text-xs font-bold uppercase tracking-wide text-navy/60">
+                  {m.label}
+                </p>
+                <div className="mt-2 space-y-1">
+                  {m.times.map((t) => (
+                    <p key={t} className="font-display text-lg font-semibold">
+                      {t}
+                    </p>
+                  ))}
+                </div>
+              </div>
+            )
+          })}
+        </div>
+      )}
+    </section>
+  )
+}
+
+================
+File: src/components/home/MinistriesSection.tsx
+================
+// src/components/home/MinistriesSection.tsx
+
+type Ministry = {
+  id: string
+  name: string
+  description: string | null
+  meetingSchedule: string | null
+}
+
+export function MinistriesSection({ ministries }: { ministries: Ministry[] }) {
+  if (ministries.length === 0) return null
+
+  return (
+    <section className="mx-auto max-w-3xl px-6 py-10">
+      <h2 className="font-display text-2xl font-bold text-gold">Pastorais e Ministérios</h2>
+      <div className="mt-6 grid gap-4 sm:grid-cols-2">
+        {ministries.map((m) => (
+          <div key={m.id} className="rounded-lg border border-line bg-white p-4">
+            <p className="font-display text-lg font-semibold">{m.name}</p>
+            {m.description && <p className="mt-1 font-body text-sm text-navy/70">{m.description}</p>}
+            {m.meetingSchedule && (
+              <p className="mt-2 font-mono text-xs text-navy/50">{m.meetingSchedule}</p>
+            )}
+          </div>
+        ))}
+      </div>
+    </section>
+  )
+}
+
+================
+File: src/components/home/SiteFooter.tsx
+================
+// src/components/home/SiteFooter.tsx
+import { FaInstagram, FaFacebook, FaYoutube } from 'react-icons/fa6'
+
+type Props = {
+  name: string | null | undefined
+  phone: string | null | undefined
+  email: string | null | undefined
+  address: string | null | undefined
+  instagramUrl: string | null | undefined
+  facebookUrl: string | null | undefined
+  youtubeUrl: string | null | undefined
+}
+
+export function SiteFooter({
+  name,
+  phone,
+  email,
+  address,
+  instagramUrl,
+  facebookUrl,
+  youtubeUrl,
+}: Props) {
+  return (
+    <footer className="border-t border-line bg-navy px-6 py-12 text-cream">
+      <div className="mx-auto grid max-w-3xl gap-8 sm:grid-cols-3">
+        <div>
+          <div className="flex items-center gap-2">
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img src="/favicon.svg" alt="" className="h-7 w-7" />
+            <p className="font-display text-base font-bold">
+              {name ?? 'Paróquia Nossa Senhora Aparecida'}
+            </p>
+          </div>
+          <p className="mt-3 font-body text-sm italic text-cream/60">
+            &ldquo;Fazei tudo o que Ele vos disser.&rdquo;
+            <br />
+            (João 2,5)
+          </p>
+        </div>
+
+        <div>
+          <p className="font-body text-xs font-bold uppercase tracking-widest text-gold">Contato</p>
+          <div className="mt-3 space-y-1.5 font-body text-sm text-cream/70">
+            {phone && <p>{phone}</p>}
+            {email && <p>{email}</p>}
+          </div>
+        </div>
+
+        <div>
+          <p className="font-body text-xs font-bold uppercase tracking-widest text-gold">
+            Endereço
+          </p>
+          <p className="mt-3 font-body text-sm text-cream/70">{address ?? 'Endereço em breve'}</p>
+
+          {(instagramUrl || facebookUrl || youtubeUrl) && (
+            <div className="mt-4 flex gap-3">
+              {instagramUrl && (
+                <a
+                  href={instagramUrl}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="flex h-8 w-8 items-center justify-center rounded-full border border-cream/30 text-cream/70 transition-colors hover:text-gold"
+                >
+                  <FaInstagram className="h-4 w-4" />
+                </a>
+              )}
+              {facebookUrl && (
+                <a
+                  href={facebookUrl}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="flex h-8 w-8 items-center justify-center rounded-full border border-cream/30 text-cream/70 transition-colors hover:text-gold"
+                >
+                  <FaFacebook className="h-4 w-4" />
+                </a>
+              )}
+              {youtubeUrl && (
+                <a
+                  href={youtubeUrl}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="flex h-8 w-8 items-center justify-center rounded-full border border-cream/30 text-cream/70 transition-colors hover:text-gold"
+                >
+                  <FaYoutube className="h-4 w-4" />
+                </a>
+              )}
+            </div>
+          )}
+        </div>
+      </div>
+
+      <p className="mx-auto mt-10 max-w-3xl border-t border-cream/10 pt-6 text-center font-mono text-xs text-cream/40">
+        © {new Date().getFullYear()} {name ?? 'Paróquia Nossa Senhora Aparecida'}. Todos os direitos
+        reservados.
+      </p>
+    </footer>
+  )
+}
+
+================
+File: src/components/home/TestimonialsBlock.tsx
+================
+// src/components/home/TestimonialsBlock.tsx
+import { Suspense } from 'react'
+import { TestimonialsSubmitArea } from '@/components/TestimonialsSection'
+
+type Testimonial = {
+  id: string
+  message: string
+  user: { name: string | null; image: string | null }
+}
+
+export function TestimonialsBlock({ testimonials }: { testimonials: Testimonial[] }) {
+  return (
+    <section className="mx-auto max-w-3xl px-6 py-10">
+      <p className="text-center font-body text-xs font-bold uppercase tracking-widest text-gold">
+        O Que Nossa Comunidade Diz
+      </p>
+
+      {testimonials.length > 0 && (
+        <div className="mt-6 grid gap-4 sm:grid-cols-2">
+          {testimonials.map((t) => (
+            <div key={t.id} className="rounded-lg border border-line bg-white p-4">
+              <p className="font-display text-2xl leading-none text-gold">&ldquo;</p>
+              <p className="-mt-2 font-body text-sm italic text-navy/80">{t.message}</p>
+              <div className="mt-3 flex items-center gap-2">
+                {t.user.image && (
+                  // eslint-disable-next-line @next/next/no-img-element
+                  <img src={t.user.image} alt="" className="h-6 w-6 rounded-full" />
+                )}
+                <p className="font-body text-xs font-semibold text-navy/60">
+                  {t.user.name ?? 'Paroquiano(a)'}
+                </p>
+              </div>
+            </div>
+          ))}
+        </div>
+      )}
+
+      <div className="mt-6">
+        <Suspense
+          fallback={<div className="h-24 animate-pulse rounded-lg border border-line bg-white" />}
+        >
+          <TestimonialsSubmitArea />
+        </Suspense>
+      </div>
+    </section>
+  )
+}
+
+================
 File: src/components/CopyPixButton.tsx
 ================
 // src/components/CopyPixButton.tsx
@@ -4501,6 +3897,42 @@ export function CopyPixButton({ pixKey }: { pixKey: string }) {
     >
       {copied ? 'Copiado!' : 'Copiar chave PIX'}
     </button>
+  )
+}
+
+================
+File: src/components/InstagramEmbed.tsx
+================
+// src/components/InstagramEmbed.tsx
+'use client'
+
+import { useEffect } from 'react'
+
+declare global {
+  interface Window {
+    instgrm?: { Embeds: { process: () => void } }
+  }
+}
+
+export function InstagramEmbed({ url }: { url: string }) {
+  useEffect(() => {
+    if (window.instgrm) {
+      window.instgrm.Embeds.process()
+      return
+    }
+    const script = document.createElement('script')
+    script.src = 'https://www.instagram.com/embed.js'
+    script.async = true
+    document.body.appendChild(script)
+  }, [url])
+
+  return (
+    <blockquote
+      className="instagram-media"
+      data-instgrm-permalink={url}
+      data-instgrm-version="14"
+      style={{ margin: '0 auto', maxWidth: 400, width: '100%' }}
+    />
   )
 }
 
@@ -4549,63 +3981,143 @@ export default async function PalavraDoDia() {
 }
 
 ================
-File: src/lib/gemini.ts
+File: src/components/TestimonialForm.tsx
 ================
-import { GoogleGenerativeAI } from "@google/generative-ai";
+// src/components/TestimonialForm.tsx
+'use client'
 
-const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY!);
+import { useActionState } from 'react'
+import { createTestimonial } from '@/actions/testimonial'
 
-export async function getPalavraDoDia() {
-  try {
-    const model = genAI.getGenerativeModel({
-      model: "gemini-3.5-flash-lite",
-      generationConfig: {
-        responseMimeType: "application/json", // força JSON
-      },
-    });
+type ActionState = { success: boolean; error?: string }
 
-    const prompt = `
-Você é um assistente espiritual católico. Gere a "Palavra do Dia" para o site de uma paróquia brasileira.
+export function TestimonialForm() {
+  const [state, formAction, pending] = useActionState<ActionState, FormData>(
+    createTestimonial,
+    { success: false }
+  )
 
-Regras:
-- Máximo de 2 frases curtas, claras e acolhedoras.
-- Sem saudações, sem introduções e sem mencionar "Igreja Católica", "paróquia" ou "padre".
-- Priorize a tradição católica (Bíblia, santos ou papas) preferencialmente Novo Testamento.
-- Tom de encorajamento, esperança e confiança em Deus. Evite moralismo pesado e frases genéricas.
-
-Fontes preferidas quando não for Bíblia:
-São João Paulo II, Papa Francisco, Bento XVI, Santa Teresa de Calcutá, São João Bosco, São José de Anchieta, Santo Agostinho, Santa Catarina de Sena, São Tomás de Aquino, Santa Teresa de Ávila.
-
-Responda APENAS com JSON válido neste formato exato:
-{
-  "text": "o texto da mensagem (máximo 2 frases)",
-  "verseReference": "referência bíblica (ex: Jo 14,27) OU nome do santo/papa, ou null",
-  "reflection": null
-}
-`;
-
-    const result = await model.generateContent(prompt);
-    const response = await result.response;
-    const raw = response.text();
-
-    // Parse seguro
-    const parsed = JSON.parse(raw);
-
-    return {
-      text: parsed.text?.trim() || "Que a paz de Cristo preencha o seu coração hoje.",
-      verseReference: parsed.verseReference || "-",
-      reflection: parsed.reflection || null,
-    };
-  } catch (error) {
-    console.error("Erro ao buscar palavra do dia no Gemini:", error);
-
-    // Fallback seguro
-    return {
-      text: "Que a paz e a esperança guiem o seu dia.",
-      verseReference: null,
-      reflection: null,
-    };
+  if (state.success) {
+    return (
+      <p className="rounded-lg border border-line bg-white p-4 text-center font-body text-sm text-navy/70">
+        Obrigado por compartilhar! Seu depoimento entra no ar assim que for revisado.
+      </p>
+    )
   }
+
+  return (
+    <form action={formAction} className="rounded-lg border border-line bg-white p-4">
+      <textarea
+        name="message"
+        required
+        maxLength={1000}
+        rows={3}
+        placeholder="Conte um pouco do que nossa comunidade significa pra você..."
+        className="w-full rounded border border-line px-3 py-2 font-body text-sm focus:border-gold focus:outline-none"
+      />
+      <button
+        type="submit"
+        disabled={pending}
+        className="mt-3 rounded bg-navy px-5 py-2 font-body text-xs font-semibold uppercase tracking-wide text-cream transition-opacity disabled:opacity-60"
+      >
+        {pending ? 'Enviando...' : 'Compartilhar meu depoimento'}
+      </button>
+      {state.error && <p className="mt-2 font-body text-xs text-red-600">{state.error}</p>}
+    </form>
+  )
+}
+
+================
+File: src/components/TestimonialsSection.tsx
+================
+// src/components/TestimonialsSection.tsx
+//
+// Isolado num componente próprio (renderizado dentro de <Suspense> no
+// page.tsx) porque auth() usa headers() por baixo dos panos — sem esse
+// isolamento, o build do Next tenta avaliar isso fora do contexto de uma
+// requisição real e quebra com "headers() was called outside a request
+// scope", mesmo com `export const dynamic = 'force-dynamic'`.
+
+import { auth, signIn } from '@/auth'
+import { TestimonialForm } from '@/components/TestimonialForm'
+
+export async function TestimonialsSubmitArea() {
+  const session = await auth()
+
+  if (session?.user) {
+    return <TestimonialForm />
+  }
+
+  return (
+    <form
+      action={async () => {
+        'use server'
+        await signIn('google')
+      }}
+      className="rounded-lg border border-dashed border-line bg-white p-4 text-center"
+    >
+      <p className="font-body text-sm text-navy/60">
+        Quer compartilhar sua história com a comunidade?
+      </p>
+      <button
+        type="submit"
+        className="mt-3 rounded bg-navy px-5 py-2 font-body text-xs font-semibold uppercase tracking-wide text-cream transition-opacity hover:opacity-90"
+      >
+        Entrar com Google e deixar um depoimento
+      </button>
+    </form>
+  )
+}
+
+================
+File: src/lib/dailyWord.ts
+================
+// src/lib/dailyWord.ts
+//
+// Lógica compartilhada entre a Server Action (botão manual no admin,
+// autenticado por sessão) e a rota de cron (autenticada por CRON_SECRET).
+// Nenhum dos dois faz checagem de permissão aqui — cada chamador decide
+// como autenticar antes de invocar esta função.
+
+import { prisma } from '@/lib/prisma'
+import { revalidatePath } from 'next/cache'
+import { getPalavraDoDia } from '@/lib/gemini'
+
+export async function generateDailyWord() {
+  const palavra = await getPalavraDoDia()
+
+  // Evita duplicar se já existir uma de hoje
+  const today = new Date()
+  today.setHours(0, 0, 0, 0)
+
+  const existing = await prisma.dailyWord.findFirst({
+    where: { date: { gte: today } },
+  })
+
+  if (existing) {
+    await prisma.dailyWord.update({
+      where: { id: existing.id },
+      data: {
+        text: palavra.text,
+        verseReference: palavra.verseReference,
+        reflection: palavra.reflection,
+      },
+    })
+  } else {
+    await prisma.dailyWord.create({
+      data: {
+        text: palavra.text,
+        verseReference: palavra.verseReference || '-',
+        reflection: palavra.reflection,
+        date: new Date(),
+      },
+    })
+  }
+
+  revalidatePath('/')
+  revalidatePath('/admin')
+
+  return { success: true, message: 'Palavra do Dia gerada com sucesso!' }
 }
 
 ================
@@ -5030,61 +4542,700 @@ File: skills-lock.json
 }
 
 ================
-File: src/app/admin/page.tsx
+File: vercel.json
 ================
-// src/app/admin/page.tsx
+{
+  "crons": [
+    {
+      "path": "/api/cron/palavra-do-dia",
+      "schedule": "0 8 * * *"
+    }
+  ]
+}
 
-import Link from 'next/link'
-import { auth } from '@/auth'
-import { redirect } from 'next/navigation'
+================
+File: prisma/schema.prisma
+================
+// prisma/schema.prisma
+// Paróquia Nossa Senhora Aparecida (Botucatu) — schema consolidado
+// (ver overview: paroquia-overview.md)
 
-const MENU = [
-  { label: 'Horários de Missa', href: '/admin/horarios', ready: true },
-  { label: 'Próximos Eventos', href: '/admin/eventos', ready: true },
-  { label: 'Galeria', href: '/admin/galeria', ready: true },
-  { label: 'Pastorais e Ministérios', href: '/admin/ministerios', ready: true },
-  { label: 'FAQ', href: '/admin/faq', ready: true },
-  { label: 'Palavra do Dia', href: '/admin/palavra-do-dia', ready: false },
-  { label: 'Dados Institucionais', href: '/admin/configuracoes', ready: true },
-  { label: 'Usuários e Permissões', href: '/admin/usuarios', ready: true },
-  { label: 'Cores Litúrgicas', href: '/admin/liturgico', ready: true },
-  { label: 'Depoimentos', href: '/admin/depoimentos', ready: true },
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  //url      = env("DATABASE_URL")
+}
+
+// ============================================================
+// AUTH (Auth.js / NextAuth v5 — Google OAuth)
+// ============================================================
+
+enum StaffRole {
+  SUPER_ADMIN     // Dona Maria — acesso total, é quem delega o resto
+  MINISTRY_LEADER // acesso restrito ao que foi delegado via `permissions`
+}
+
+// Capacidades concedidas individualmente pela Dona Maria — a lista cresce
+// conforme surgir necessidade real (evita repetir o erro do enum de
+// roles genéricos sem lógica por trás, do outro projeto).
+enum StaffPermission {
+  VIEW_PRAYER_REQUESTS // ex: líder da Acolhida — vê pedidos de oração, inclusive os sigilosos
+  MANAGE_TITHE_RAFFLE  // ex: coordenadora do Dízimo — publica sorteio mensal
+  MANAGE_EVENTS
+  MANAGE_GALLERY
+  MANAGE_MASS_SCHEDULE
+  MANAGE_MINISTRIES
+  MANAGE_FAQ
+  MANAGE_LITURGICAL_THEME // NOVO — coordenador litúrgico
+  MANAGE_TESTIMONIALS // NOVO — moderação dos depoimentos
+}
+
+model User {
+  id            String    @id @default(cuid())
+  name          String?
+  email         String?   @unique
+  emailVerified DateTime?
+  image         String?
+
+  // null = paroquiano comum (só pode fazer pedidos/solicitações).
+  // SUPER_ADMIN = Dona Maria, acesso total, sem precisar checar `permissions`.
+  // MINISTRY_LEADER = acesso só ao que estiver em `permissions`.
+  staffRole   StaffRole?
+  ministryId  String?
+  ministry    Ministry?         @relation(fields: [ministryId], references: [id])
+  permissions StaffPermission[] @default([])
+
+  accounts Account[]
+  sessions Session[]
+  contactRequests ContactRequest[]
+  testimonials Testimonial[]
+
+  createdAt DateTime @default(now())
+}
+
+model Account {
+  id                String  @id @default(cuid())
+  userId            String
+  type              String
+  provider          String
+  providerAccountId String
+  refresh_token     String? @db.Text
+  access_token      String? @db.Text
+  expires_at        Int?
+  token_type        String?
+  scope             String?
+  id_token          String? @db.Text
+  session_state     String?
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([provider, providerAccountId])
+}
+
+model Session {
+  id           String   @id @default(cuid())
+  sessionToken String   @unique
+  userId       String
+  expires      DateTime
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+model VerificationToken {
+  identifier String
+  token      String   @unique
+  expires    DateTime
+
+  @@unique([identifier, token])
+}
+
+// ============================================================
+// DADOS INSTITUCIONAIS (singleton — sempre 1 linha só)
+// ============================================================
+
+model ParishSettings {
+  // Id fixo garante singleton: toda leitura/escrita usa
+  // where: { id: "singleton" }, nunca cria uma segunda linha.
+  id        String   @id @default("singleton")
+  
+  name           String @default("Paróquia Nossa Senhora Aparecida")
+  patronSaintName String @default("Nossa Senhora Aparecida")
+
+  address String?
+  phone   String?
+  email   String?
+  pixKey  String?
+
+  instagramUrl String?
+  facebookUrl  String?
+  youtubeUrl   String?
+
+  heroImageUrl String?
+  heroTagline  String? @default("Lar de fé, esperança e devoção")
+
+  aboutText     String? @db.Text
+  aboutImageUrl String?
+
+  // Seção dedicada ao padroeiro/história da imagem
+  patronStoryText String? @db.Text
+
+  // Toggles editáveis pelo admin — decide se cada formulário exige login
+  // Google ou aceita envio anônimo. Sem migration pra mudar de ideia depois.
+  requireLoginForPrayer        Boolean @default(false)
+  requireLoginForMassIntention Boolean @default(false)
+  requireLoginForSacrament     Boolean @default(true)
+  requireLoginForGeneral       Boolean @default(false)
+  liturgicalThemeMode LiturgicalThemeMode @default(DISCRETO)
+  updatedAt DateTime @updatedAt
+}
+
+// ============================================================
+// HORÁRIOS DE MISSA
+// ============================================================
+
+model MassSchedule {
+  id    String   @id @default(cuid())
+  label String   // ex: "Domingo", "Segunda a Sexta", "Adoração ao Santíssimo"
+  times String[] // ex: ["08h00", "10h00", "18h00"]
+  order Int      @default(0)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+// ============================================================
+// EVENTOS
+// ============================================================
+
+model Event {
+  id          String   @id @default(cuid())
+  title       String
+  description String?  @db.Text
+  eventDate   DateTime // data + horário juntos
+  location    String?
+  imageUrl    String?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+// ============================================================
+// GALERIA
+// ============================================================
+
+model GalleryImage {
+  id      String  @id @default(cuid())
+  imageUrl String
+  caption String?
+  order   Int     @default(0)
+
+  createdAt DateTime @default(now())
+}
+
+// ============================================================
+// PASTORAIS / MINISTÉRIOS
+// ============================================================
+
+model Ministry {
+  id              String  @id @default(cuid())
+  name            String
+  slug            String  @unique // ex: "acolhida", "dizimo" — vira a rota /admin/ministerio/[slug]
+  description     String? @db.Text
+  contactInfo     String?
+  meetingSchedule String?
+  order           Int     @default(0)
+
+  members User[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+// ============================================================
+// FAQ
+// ============================================================
+
+model FaqItem {
+  id       String  @id @default(cuid())
+  question String
+  answer   String  @db.Text
+  category String?
+  order    Int     @default(0)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+// ============================================================
+// PALAVRA DO DIA
+// (manual por enquanto — sem fonte externa confiável de leitura
+// litúrgica diária em pt-BR identificada ainda)
+// ============================================================
+
+model DailyWord {
+  id             String   @id @default(cuid())
+  date           DateTime @unique
+  verseReference String
+  text           String   @db.Text
+  reflection     String?  @db.Text
+  instagramReelUrl String?
+  
+  createdAt DateTime @default(now())
+}
+
+// ============================================================
+// TRANSMISSÃO AO VIVO
+// ============================================================
+
+enum LiveStreamMode {
+  MANUAL
+  AUTO // ainda não implementado — campo já existe pra não precisar migration depois
+}
+
+model LiveStreamSettings {
+  id String @id @default("singleton")
+
+  mode LiveStreamMode @default(MANUAL)
+
+  youtubeVideoId   String? // colado manualmente pela secretaria
+  youtubeChannelId String? // pronto pro dia que MODE=AUTO existir
+  isLiveNow        Boolean @default(false)
+
+  updatedAt DateTime @updatedAt
+}
+
+// ============================================================
+// SORTEIO MENSAL DO DÍZIMO
+// Mural público gerenciado pela coordenadora do dízimo, via permissão
+// MANAGE_TITHE_RAFFLE — não precisa passar pela Dona Maria pra publicar.
+// ============================================================
+
+model TitheRaffleWinner {
+  id          String   @id @default(cuid())
+  month       Int      // 1–12
+  year        Int
+  winnerName  String
+  photoUrl    String?
+  message     String?  @db.Text
+  publishedAt DateTime @default(now())
+
+  @@unique([month, year])
+}
+
+// ============================================================
+// SOLICITAÇÕES DE CONTATO
+// Unificado: Intenção de Missa, Pedido de Oração, Agendamento de
+// Sacramento e Contato Geral têm o mesmo formato real de solicitação —
+// por isso viram 1 modelo com "type", não 4 tabelas separadas.
+// ============================================================
+
+enum ContactRequestType {
+  PRAYER
+  MASS_INTENTION
+  SACRAMENT
+  GENERAL
+}
+
+enum SacramentType {
+  BAPTISM
+  MARRIAGE
+  CONFIRMATION
+  FIRST_COMMUNION
+}
+
+enum ContactRequestStatus {
+  PENDING
+  CONTACTED
+  RESOLVED
+}
+
+model ContactRequest {
+  id      String             @id @default(cuid())
+  type    ContactRequestType
+  name    String
+  contact String
+  message String             @db.Text
+
+  // Presente se o formulário exigia login (ou se a pessoa logada optou
+  // por se identificar mesmo sem ser obrigatório) — null = envio anônimo,
+  // permitido conforme o toggle correspondente em ParishSettings.
+  userId String?
+  user   User?   @relation(fields: [userId], references: [id])
+
+  preferredDate DateTime? // usado por MASS_INTENTION e SACRAMENT
+  sacramentType SacramentType? // só relevante se type = SACRAMENT
+
+  // Fluxo híbrido do mural de orações: pessoa opta por publicar, mas só
+  // vai ao ar depois que o admin aprovar — mesmo que wantsPublicWall
+  // seja true. Só relevante se type = PRAYER.
+  wantsPublicWall  Boolean @default(false)
+  approvedForWall  Boolean @default(false)
+
+  status ContactRequestStatus @default(PENDING)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([type, status])
+}
+
+enum LiturgicalThemeMode {
+  PADRAO
+  DISCRETO
+  FULLCOLOR
+}
+
+// NOVO model — cores manuais cadastradas pelo coordenador litúrgico:
+model LiturgicalOverride {
+  id        String   @id @default(cuid())
+  label     String
+  startDate DateTime
+  endDate   DateTime
+  colorHex  String
+  createdAt DateTime @default(now())
+ 
+  @@index([startDate, endDate])
+}
+ 
+ model Testimonial {
+  id        String   @id @default(cuid())
+  userId    String
+  user      User     @relation(fields: [userId], references: [id])
+  message   String   @db.Text
+  approved  Boolean  @default(false)
+  createdAt DateTime @default(now())
+ 
+  @@index([approved])
+}
+
+================
+File: src/actions/dailyWord.ts
+================
+'use server'
+
+import { prisma } from '@/lib/prisma'
+import { revalidatePath } from 'next/cache'
+import { requireSuperAdmin } from '@/lib/permissions'
+import { generateDailyWord } from '@/lib/dailyWord'
+
+export async function generateAndSaveDailyWord() {
+  try {
+    await requireSuperAdmin()
+    return await generateDailyWord()
+  } catch (error: any) {
+    console.error(error)
+    return {
+      success: false,
+      error: error.message || 'Falha ao gerar a Palavra do Dia.',
+    }
+  }
+}
+
+// O pároco escreve na mão — sobrescreve (ou cria) a de hoje, sem passar
+// pelo Gemini. Mesma trava de "uma por dia" que o gerador automático usa.
+export async function saveManualDailyWord(_prevState: unknown, formData: FormData) {
+  try {
+    await requireSuperAdmin()
+
+    const text = (formData.get('text') as string)?.trim()
+    const verseReference = (formData.get('verseReference') as string)?.trim() || '-'
+    const reflection = (formData.get('reflection') as string)?.trim() || null
+
+    if (!text) throw new Error('Escreva o texto da Palavra do Dia.')
+
+    const today = new Date()
+    today.setHours(0, 0, 0, 0)
+
+    const existing = await prisma.dailyWord.findFirst({
+      where: { date: { gte: today } },
+    })
+
+    if (existing) {
+      await prisma.dailyWord.update({
+        where: { id: existing.id },
+        data: { text, verseReference, reflection },
+      })
+    } else {
+      await prisma.dailyWord.create({
+        data: { text, verseReference, reflection, date: new Date() },
+      })
+    }
+
+    revalidatePath('/')
+    revalidatePath('/admin/palavra-do-dia')
+    return { success: true }
+  } catch (error: any) {
+    return { success: false, error: error.message || 'Falha ao salvar.' }
+  }
+}
+
+================
+File: src/actions/staffAccess.ts
+================
+// src/actions/staffAccess.ts
+'use server'
+
+import { prisma } from '@/lib/prisma'
+import { revalidatePath } from 'next/cache'
+import { requireSuperAdmin } from '@/lib/permissions'
+import type { StaffPermission, StaffRole } from '@prisma/client'
+
+const ALL_PERMISSIONS: StaffPermission[] = [
+  'VIEW_PRAYER_REQUESTS',
+  'MANAGE_TITHE_RAFFLE',
+  'MANAGE_EVENTS',
+  'MANAGE_GALLERY',
+  'MANAGE_MASS_SCHEDULE',
+  'MANAGE_MINISTRIES',
+  'MANAGE_FAQ',
+  'MANAGE_LITURGICAL_THEME',
+  'MANAGE_TESTIMONIALS',
 ]
 
-export default async function AdminPage() {
-  const session = await auth()
+export async function updateStaffAccess(_prevState: unknown, formData: FormData) {
+  try {
+    const session = await requireSuperAdmin()
 
-  if (session?.user?.staffRole !== 'SUPER_ADMIN') {
-    redirect('/')
+    const userId = formData.get('userId') as string
+    if (!userId) throw new Error('Usuário não identificado.')
+
+    const staffRoleRaw = formData.get('staffRole') as string
+    const staffRole: StaffRole | null = staffRoleRaw === '' ? null : (staffRoleRaw as StaffRole)
+
+    // SUPER_ADMIN não impede a última administradora de se rebaixar sem querer
+    if (userId === session.user.id && staffRole !== 'SUPER_ADMIN') {
+      throw new Error('Você não pode remover seu próprio acesso de Super Admin por aqui.')
+    }
+
+    const ministryIdRaw = formData.get('ministryId') as string
+    const ministryId = staffRole === 'MINISTRY_LEADER' && ministryIdRaw ? ministryIdRaw : null
+
+    const permissions =
+      staffRole === 'MINISTRY_LEADER'
+        ? ALL_PERMISSIONS.filter((p) => formData.getAll('permissions').includes(p))
+        : []
+
+    await prisma.user.update({
+      where: { id: userId },
+      data: { staffRole, ministryId, permissions },
+    })
+
+    revalidatePath('/admin/usuarios')
+    return { success: true }
+  } catch (error: any) {
+    return { success: false, error: error.message || 'Falha ao atualizar acesso.' }
   }
+}
+
+================
+File: src/app/admin/usuarios/AdminUsersClient.tsx
+================
+// src/app/admin/usuarios/AdminUsersClient.tsx
+'use client'
+
+import { useActionState, useState } from 'react'
+import { updateStaffAccess } from '@/actions/staffAccess'
+
+type StaffRole = 'SUPER_ADMIN' | 'MINISTRY_LEADER'
+
+type User = {
+  id: string
+  name: string | null
+  email: string | null
+  image: string | null
+  staffRole: StaffRole | null
+  ministryId: string | null
+  permissions: string[]
+}
+
+type Ministry = { id: string; name: string }
+
+type ActionState = { success: boolean; error?: string }
+
+const PERMISSION_LABELS: Record<string, string> = {
+  VIEW_PRAYER_REQUESTS: 'Ver pedidos de oração',
+  MANAGE_TITHE_RAFFLE: 'Sorteio do dízimo',
+  MANAGE_EVENTS: 'Eventos',
+  MANAGE_GALLERY: 'Galeria',
+  MANAGE_MASS_SCHEDULE: 'Horários de missa',
+  MANAGE_MINISTRIES: 'Pastorais e ministérios',
+  MANAGE_FAQ: 'FAQ',
+  MANAGE_LITURGICAL_THEME: 'Cores litúrgicas especiais (coordenador litúrgico)',
+  MANAGE_TESTIMONIALS: 'Moderar depoimentos',
+}
+
+function roleLabel(role: StaffRole | null) {
+  if (role === 'SUPER_ADMIN') return 'Super Admin'
+  if (role === 'MINISTRY_LEADER') return 'Líder de Ministério'
+  return 'Sem acesso ao painel'
+}
+
+function UserEditForm({
+  user,
+  ministries,
+  isSelf,
+  onDone,
+}: {
+  user: User
+  ministries: Ministry[]
+  isSelf: boolean
+  onDone: () => void
+}) {
+  const [state, formAction, pending] = useActionState<ActionState, FormData>(updateStaffAccess, {
+    success: false,
+  })
+  const [role, setRole] = useState<'' | StaffRole>(user.staffRole ?? '')
+
+  return (
+    <form
+      action={formAction}
+      className="mt-3 space-y-3 rounded border border-dashed border-line bg-cream/40 p-4"
+    >
+      <input type="hidden" name="userId" value={user.id} />
+
+      <div>
+        <label className="block text-xs font-bold uppercase tracking-wide text-navy/60">
+          Cargo
+        </label>
+        <select
+          name="staffRole"
+          value={role}
+          onChange={(e) => setRole(e.target.value as '' | StaffRole)}
+          disabled={isSelf}
+          className="mt-1 w-full rounded border border-line bg-white px-3 py-2 font-body text-sm focus:border-gold focus:outline-none disabled:opacity-60"
+        >
+          <option value="">Sem acesso ao painel</option>
+          <option value="MINISTRY_LEADER">Líder de Ministério</option>
+          <option value="SUPER_ADMIN">Super Admin</option>
+        </select>
+        {isSelf && (
+          <p className="mt-1 font-body text-xs text-navy/40">
+            Você não pode alterar seu próprio cargo por aqui.
+          </p>
+        )}
+      </div>
+
+      {role === 'MINISTRY_LEADER' && (
+        <>
+          <div>
+            <label className="block text-xs font-bold uppercase tracking-wide text-navy/60">
+              Ministério que lidera
+            </label>
+            <select
+              name="ministryId"
+              defaultValue={user.ministryId ?? ''}
+              className="mt-1 w-full rounded border border-line bg-white px-3 py-2 font-body text-sm focus:border-gold focus:outline-none"
+            >
+              <option value="">Nenhum</option>
+              {ministries.map((m) => (
+                <option key={m.id} value={m.id}>
+                  {m.name}
+                </option>
+              ))}
+            </select>
+          </div>
+
+          <div>
+            <label className="block text-xs font-bold uppercase tracking-wide text-navy/60">
+              Permissões
+            </label>
+            <div className="mt-1 space-y-1">
+              {Object.entries(PERMISSION_LABELS).map(([value, label]) => (
+                <label key={value} className="flex items-center gap-2 font-body text-sm">
+                  <input
+                    type="checkbox"
+                    name="permissions"
+                    value={value}
+                    defaultChecked={user.permissions.includes(value)}
+                  />
+                  {label}
+                </label>
+              ))}
+            </div>
+          </div>
+        </>
+      )}
+
+      <div className="flex gap-2">
+        <button
+          type="submit"
+          disabled={pending}
+          className="flex-1 rounded bg-navy py-2 font-body text-xs font-semibold uppercase tracking-wide text-cream disabled:opacity-60"
+        >
+          {pending ? 'Salvando...' : 'Salvar'}
+        </button>
+        <button
+          type="button"
+          onClick={onDone}
+          className="flex-1 rounded border border-line py-2 font-body text-xs font-semibold uppercase tracking-wide text-navy/60"
+        >
+          Cancelar
+        </button>
+      </div>
+
+      {state?.error && <p className="font-body text-xs text-red-600">{state.error}</p>}
+      {state?.success && <p className="font-body text-xs text-green-700">Salvo!</p>}
+    </form>
+  )
+}
+
+export function AdminUsersClient({
+  users,
+  ministries,
+  currentUserId,
+}: {
+  users: User[]
+  ministries: Ministry[]
+  currentUserId: string
+}) {
+  const [editingId, setEditingId] = useState<string | null>(null)
 
   return (
     <main className="min-h-screen bg-cream px-6 py-12 text-navy">
       <div className="mx-auto max-w-2xl">
-        <h1 className="font-display text-3xl font-bold">Painel — Dona Maria</h1>
-        <p className="mt-2 font-body text-sm text-navy/60">
-          Bem-vinda, {session.user.name}.
+        <h1 className="font-display text-3xl font-bold">Usuários e Permissões</h1>
+        <p className="mt-1 font-body text-sm text-navy/60">
+          Só aparecem aqui pessoas que já entraram no site com Google pelo menos uma vez.
         </p>
 
-        <div className="mt-8 grid gap-3 sm:grid-cols-2">
-          {MENU.map((item) =>
-            item.ready ? (
-              <Link
-                key={item.href}
-                href={item.href}
-                className="rounded-lg border border-line bg-white p-4 font-body font-semibold transition-colors hover:border-gold"
-              >
-                {item.label}
-              </Link>
-            ) : (
-              <div
-                key={item.href}
-                className="cursor-not-allowed rounded-lg border border-dashed border-line bg-white/50 p-4 font-body font-semibold text-navy/30"
-              >
-                {item.label} <span className="font-mono text-[10px]">(em breve)</span>
+        <div className="mt-8 space-y-3">
+          {users.map((u) => (
+            <div key={u.id} className="rounded-lg border border-line bg-white p-4">
+              <div className="flex items-start justify-between gap-3">
+                <div className="flex items-center gap-3">
+                  {u.image && (
+                    // eslint-disable-next-line @next/next/no-img-element
+                    <img src={u.image} alt="" className="h-10 w-10 rounded-full" />
+                  )}
+                  <div>
+                    <p className="font-display font-semibold">{u.name ?? 'Sem nome'}</p>
+                    <p className="font-body text-xs text-navy/50">{u.email}</p>
+                    <p className="mt-1 font-body text-xs font-semibold text-navy/70">
+                      {roleLabel(u.staffRole)}
+                    </p>
+                  </div>
+                </div>
+                <button
+                  onClick={() => setEditingId(editingId === u.id ? null : u.id)}
+                  className="shrink-0 font-body text-xs font-semibold text-navy/60 hover:underline"
+                >
+                  {editingId === u.id ? 'Fechar' : 'Editar acesso'}
+                </button>
               </div>
-            )
-          )}
+
+              {editingId === u.id && (
+                <UserEditForm
+                  user={u}
+                  ministries={ministries}
+                  isSelf={u.id === currentUserId}
+                  onDone={() => setEditingId(null)}
+                />
+              )}
+            </div>
+          ))}
         </div>
       </div>
     </main>
@@ -5148,6 +5299,49 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
         {children}
       </body>
     </html>
+  )
+}
+
+================
+File: src/components/admin/GenerateDailyWordButton.tsx
+================
+'use client'
+
+import { useState, useTransition } from 'react'
+import { generateAndSaveDailyWord } from '@/actions/dailyWord'
+
+export function GenerateDailyWordButton() {
+  const [isPending, startTransition] = useTransition()
+  const [message, setMessage] = useState<string | null>(null)
+
+  function handleClick() {
+    setMessage(null)
+    startTransition(async () => {
+      const result = await generateAndSaveDailyWord()
+if (result.success) {
+  setMessage('message' in result ? result.message : 'Gerado!')
+} else {
+  setMessage('error' in result ? result.error : 'Erro')
+}
+    })
+  }
+
+  return (
+    <div className="rounded-lg border border-amber-300 bg-amber-50 p-4">
+      <p className="mb-2 text-sm font-semibold text-amber-800">
+        Temporário — Gerar Palavra do Dia (antes do cron)
+      </p>
+      <button
+        onClick={handleClick}
+        disabled={isPending}
+        className="rounded bg-navy px-4 py-2 text-sm font-semibold text-cream disabled:opacity-50"
+      >
+        {isPending ? 'Gerando...' : 'Gerar Palavra do Dia agora'}
+      </button>
+      {message && (
+        <p className="mt-2 text-sm text-navy/70">{message}</p>
+      )}
+    </div>
   )
 }
 
@@ -5255,6 +5449,66 @@ export async function SiteHeader() {
 }
 
 ================
+File: src/lib/gemini.ts
+================
+import { GoogleGenerativeAI } from "@google/generative-ai";
+
+const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY!);
+
+export async function getPalavraDoDia() {
+  try {
+    const model = genAI.getGenerativeModel({
+      model: "gemini-3.5-flash-lite",
+      generationConfig: {
+        responseMimeType: "application/json", // força JSON
+      },
+    });
+
+    const prompt = `
+Você é um assistente espiritual católico. Gere a "Palavra do Dia" para o site de uma paróquia brasileira.
+
+Regras:
+- Máximo de 2 frases curtas, claras e acolhedoras.
+- Sem saudações, sem introduções e sem mencionar "Igreja Católica", "paróquia" ou "padre".
+- Priorize a tradição católica (Bíblia, santos ou papas) preferencialmente Novo Testamento.
+- Tom de encorajamento, esperança e confiança em Deus. Evite moralismo pesado e frases genéricas.
+
+Fontes preferidas quando não for Bíblia:
+São João Paulo II, Papa Francisco, Bento XVI, Santa Teresa de Calcutá, São João Bosco, São José de Anchieta, Santo Agostinho, Santa Catarina de Sena, São Tomás de Aquino, Santa Teresa de Ávila.
+
+Responda APENAS com JSON válido neste formato exato:
+{
+  "text": "o texto da mensagem (máximo 2 frases)",
+  "verseReference": "referência bíblica (ex: Jo 14,27) OU nome do santo/papa, ou null",
+  "reflection": null
+}
+`;
+
+    const result = await model.generateContent(prompt);
+    const response = await result.response;
+    const raw = response.text();
+
+    // Parse seguro
+    const parsed = JSON.parse(raw);
+
+    return {
+      text: parsed.text?.trim() || "Que a paz de Cristo preencha o seu coração hoje.",
+      verseReference: parsed.verseReference || "-",
+      reflection: parsed.reflection || null,
+    };
+  } catch (error) {
+    console.error("Erro ao buscar palavra do dia no Gemini:", error);
+
+    // Fallback seguro
+    return {
+      text: "Que a paz e a esperança guiem o seu dia.",
+      verseReference: null,
+      reflection: null,
+    };
+  }
+}
+
+================
 File: .gitignore
 ================
 # See https://help.github.com/articles/ignoring-files/ for more about ignoring files.
@@ -5357,6 +5611,68 @@ File: tsconfig.json
     "**/*.mts"
   ],
   "exclude": ["node_modules","prisma"]
+}
+
+================
+File: src/app/admin/page.tsx
+================
+// src/app/admin/page.tsx
+
+import Link from 'next/link'
+import { auth } from '@/auth'
+import { redirect } from 'next/navigation'
+
+const MENU = [
+  { label: 'Horários de Missa', href: '/admin/horarios', ready: true },
+  { label: 'Próximos Eventos', href: '/admin/eventos', ready: true },
+  { label: 'Galeria', href: '/admin/galeria', ready: true },
+  { label: 'Pastorais e Ministérios', href: '/admin/ministerios', ready: true },
+  { label: 'FAQ', href: '/admin/faq', ready: true },
+  { label: 'Palavra do Dia', href: '/admin/palavra-do-dia', ready: true },
+  { label: 'Dados Institucionais', href: '/admin/configuracoes', ready: true },
+  { label: 'Usuários e Permissões', href: '/admin/usuarios', ready: true },
+  { label: 'Cores Litúrgicas', href: '/admin/liturgico', ready: true },
+  { label: 'Depoimentos', href: '/admin/depoimentos', ready: true },
+]
+
+export default async function AdminPage() {
+  const session = await auth()
+
+  if (session?.user?.staffRole !== 'SUPER_ADMIN') {
+    redirect('/')
+  }
+
+  return (
+    <main className="min-h-screen bg-cream px-6 py-12 text-navy">
+      <div className="mx-auto max-w-2xl">
+        <h1 className="font-display text-3xl font-bold">Painel — Dona Maria</h1>
+        <p className="mt-2 font-body text-sm text-navy/60">
+          Bem-vinda, {session.user.name}.
+        </p>
+
+        <div className="mt-8 grid gap-3 sm:grid-cols-2">
+          {MENU.map((item) =>
+            item.ready ? (
+              <Link
+                key={item.href}
+                href={item.href}
+                className="rounded-lg border border-line bg-white p-4 font-body font-semibold transition-colors hover:border-gold"
+              >
+                {item.label}
+              </Link>
+            ) : (
+              <div
+                key={item.href}
+                className="cursor-not-allowed rounded-lg border border-dashed border-line bg-white/50 p-4 font-body font-semibold text-navy/30"
+              >
+                {item.label} <span className="font-mono text-[10px]">(em breve)</span>
+              </div>
+            )
+          )}
+        </div>
+      </div>
+    </main>
+  )
 }
 
 ================
