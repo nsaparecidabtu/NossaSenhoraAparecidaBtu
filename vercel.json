@@ -1,0 +1,8 @@
+{
+  "crons": [
+    {
+      "path": "/api/cron/palavra-do-dia",
+      "schedule": "0 8 * * *"
+    }
+  ]
+}

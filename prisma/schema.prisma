@@ -32,6 +32,7 @@ enum StaffPermission {
   MANAGE_MINISTRIES
   MANAGE_FAQ
   MANAGE_LITURGICAL_THEME // NOVO — coordenador litúrgico
+  MANAGE_TESTIMONIALS // NOVO — moderação dos depoimentos
 }
 
 model User {
@@ -52,6 +53,7 @@ model User {
   accounts Account[]
   sessions Session[]
   contactRequests ContactRequest[]
+  testimonials Testimonial[]
 
   createdAt DateTime @default(now())
 }
@@ -221,7 +223,8 @@ model DailyWord {
   verseReference String
   text           String   @db.Text
   reflection     String?  @db.Text
-
+  instagramReelUrl String?
+  
   createdAt DateTime @default(now())
 }
 
@@ -339,4 +342,14 @@ model LiturgicalOverride {
   @@index([startDate, endDate])
 }
  
+ model Testimonial {
+  id        String   @id @default(cuid())
+  userId    String
+  user      User     @relation(fields: [userId], references: [id])
+  message   String   @db.Text
+  approved  Boolean  @default(false)
+  createdAt DateTime @default(now())
  
+  @@index([approved])
+}
+

@@ -11,11 +11,11 @@ export function GenerateDailyWordButton() {
     setMessage(null)
     startTransition(async () => {
       const result = await generateAndSaveDailyWord()
-      if (result.success) {
-        setMessage(result.message ?? 'Gerado!')
-      } else {
-        setMessage(result.error ?? 'Erro')
-      }
+if (result.success) {
+  setMessage('message' in result ? result.message : 'Gerado!')
+} else {
+  setMessage('error' in result ? result.error : 'Erro')
+}
     })
   }
 

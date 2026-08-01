@@ -3,9 +3,6 @@
 import Link from 'next/link'
 import { auth } from '@/auth'
 import { redirect } from 'next/navigation'
-import { GenerateDailyWordButton } from '@/components/admin/GenerateDailyWordButton'
-
-
 
 const MENU = [
   { label: 'Horários de Missa', href: '/admin/horarios', ready: true },
@@ -13,10 +10,11 @@ const MENU = [
   { label: 'Galeria', href: '/admin/galeria', ready: true },
   { label: 'Pastorais e Ministérios', href: '/admin/ministerios', ready: true },
   { label: 'FAQ', href: '/admin/faq', ready: true },
-  { label: 'Palavra do Dia', href: '/admin/palavra-do-dia', ready: false },
+  { label: 'Palavra do Dia', href: '/admin/palavra-do-dia', ready: true },
   { label: 'Dados Institucionais', href: '/admin/configuracoes', ready: true },
   { label: 'Usuários e Permissões', href: '/admin/usuarios', ready: true },
   { label: 'Cores Litúrgicas', href: '/admin/liturgico', ready: true },
+  { label: 'Depoimentos', href: '/admin/depoimentos', ready: true },
 ]
 
 export default async function AdminPage() {
@@ -34,7 +32,6 @@ export default async function AdminPage() {
           Bem-vinda, {session.user.name}.
         </p>
 
-<GenerateDailyWordButton />
         <div className="mt-8 grid gap-3 sm:grid-cols-2">
           {MENU.map((item) =>
             item.ready ? (

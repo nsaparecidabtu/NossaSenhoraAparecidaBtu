@@ -29,6 +29,7 @@ const PERMISSION_LABELS: Record<string, string> = {
   MANAGE_MINISTRIES: 'Pastorais e ministérios',
   MANAGE_FAQ: 'FAQ',
   MANAGE_LITURGICAL_THEME: 'Cores litúrgicas especiais (coordenador litúrgico)',
+  MANAGE_TESTIMONIALS: 'Moderar depoimentos',
 }
 
 function roleLabel(role: StaffRole | null) {
