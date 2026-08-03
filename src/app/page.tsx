@@ -42,6 +42,9 @@ export default async function Home() {
       }),
     ])
 
+    console.log('DB HOST:', process.env.DATABASE_URL?.split('@')[1])
+    console.log('DAILY WORD:', dailyWord)
+
   const themeMode = settings?.liturgicalThemeMode ?? 'DISCRETO'
   const mapsUrl = settings?.address
     ? `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(settings.address)}`

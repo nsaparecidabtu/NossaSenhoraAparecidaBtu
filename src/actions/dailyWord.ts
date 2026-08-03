@@ -27,6 +27,10 @@ export async function saveManualDailyWord(_prevState: unknown, formData: FormDat
     const text = (formData.get('text') as string)?.trim()
     const verseReference = (formData.get('verseReference') as string)?.trim() || '-'
     const reflection = (formData.get('reflection') as string)?.trim() || null
+    const instagramReelUrl =
+      (formData.get('instagramReelUrl') as string)?.trim() || null
+    // checkbox: se marcado vem "on", se não vem null
+    const showTextWithReel = formData.get('showTextWithReel') === 'on'
 
     if (!text) throw new Error('Escreva o texto da Palavra do Dia.')
 
@@ -37,17 +41,21 @@ export async function saveManualDailyWord(_prevState: unknown, formData: FormDat
       where: { date: { gte: today } },
     })
 
+    const data = {
+      text,
+      verseReference,
+      reflection,
+      instagramReelUrl,
+      showTextWithReel,
+    }
+
     if (existing) {
-      await prisma.dailyWord.update({
-        where: { id: existing.id },
-        data: { text, verseReference, reflection },
-      })
+      await prisma.dailyWord.update({ where: { id: existing.id }, data })
     } else {
       await prisma.dailyWord.create({
-        data: { text, verseReference, reflection, date: new Date() },
+        data: { ...data, date: new Date() },
       })
     }
-const instagramReelUrl = (formData.get('instagramReelUrl') as string)?.trim() || null
 
     revalidatePath('/')
     revalidatePath('/admin/palavra-do-dia')

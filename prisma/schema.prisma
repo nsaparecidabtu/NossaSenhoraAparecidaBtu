@@ -224,6 +224,7 @@ model DailyWord {
   text           String   @db.Text
   reflection     String?  @db.Text
   instagramReelUrl String?
+  showTextWithReel Boolean  @default(true)  // ← NOVO
   
   createdAt DateTime @default(now())
 }
