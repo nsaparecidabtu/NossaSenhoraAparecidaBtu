@@ -2,7 +2,7 @@
 import { auth, signIn } from '@/auth'
 import { prisma } from '@/lib/prisma'
 import { getTodayEligibleMasses, isoWeekKey } from '@/lib/catechism'
-import { PresencaClient } from './catequeseClient'
+import { PresencaClient } from './PresencaClient'
 
 export const dynamic = 'force-dynamic'
 
