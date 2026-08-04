@@ -16,6 +16,7 @@ const MENU = [
   { label: 'Cores Litúrgicas', href: '/admin/liturgico', ready: true },
   { label: 'Depoimentos', href: '/admin/depoimentos', ready: true },
   { label: 'Pedidos Recebidos', href: '/admin/pedidos', ready: true },
+  { label: 'Catequese', href: '/admin/catequese', ready: true },
 ]
 
 export default async function AdminPage() {

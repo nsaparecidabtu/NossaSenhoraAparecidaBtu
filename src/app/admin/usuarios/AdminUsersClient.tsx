@@ -30,6 +30,7 @@ const PERMISSION_LABELS: Record<string, string> = {
   MANAGE_FAQ: 'FAQ',
   MANAGE_LITURGICAL_THEME: 'Cores litúrgicas especiais (coordenador litúrgico)',
   MANAGE_TESTIMONIALS: 'Moderar depoimentos',
+  MANAGE_CATECHISM: 'Catequese (alunos e presença)',
 }
 
 function roleLabel(role: StaffRole | null) {

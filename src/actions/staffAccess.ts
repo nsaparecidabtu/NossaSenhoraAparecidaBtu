@@ -16,6 +16,7 @@ const ALL_PERMISSIONS: StaffPermission[] = [
   'MANAGE_FAQ',
   'MANAGE_LITURGICAL_THEME',
   'MANAGE_TESTIMONIALS',
+  'MANAGE_CATECHISM',
 ]
 
 export async function updateStaffAccess(_prevState: unknown, formData: FormData) {
