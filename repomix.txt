@@ -115,7 +115,10 @@ src/
         page.tsx
       palavra-do-dia/
         AdminDailyWordClient.tsx
+        GenerateDailyWordButton.tsx
+        ManualDailyWordForm.tsx
         page.tsx
+        TodayWordCard.tsx
       usuarios/
         AdminUsersClient.tsx
         page.tsx
@@ -2662,144 +2665,168 @@ export default async function AdminMinistriesPage() {
 }
 
 ================
-File: src/app/admin/palavra-do-dia/AdminDailyWordClient.tsx
+File: src/app/admin/palavra-do-dia/GenerateDailyWordButton.tsx
 ================
-// src/app/admin/palavra-do-dia/AdminDailyWordClient.tsx
+// src/app/admin/palavra-do-dia/GenerateDailyWordButton.tsx
 'use client'
 
-import { useActionState, useState, useTransition } from 'react'
-import { generateAndSaveDailyWord, saveManualDailyWord } from '@/actions/dailyWord'
+import { useState, useTransition } from 'react'
+import { generateAndSaveDailyWord } from '@/actions/dailyWord'
 
-type DailyWord = {
-  text: string
-  verseReference: string
-  reflection: string | null
-} | null
-
-type ActionState = { success: boolean; error?: string }
-
-export function AdminDailyWordClient({ todayWord }: { todayWord: DailyWord }) {
+export function GenerateDailyWordButton() {
   const [isPending, startTransition] = useTransition()
-  const [genMessage, setGenMessage] = useState<string | null>(null)
-
-  const [state, formAction, pending] = useActionState<ActionState, FormData>(
-    saveManualDailyWord,
-    { success: false }
-  )
+  const [message, setMessage] = useState<string | null>(null)
 
   function handleGenerate() {
-    setGenMessage(null)
+    setMessage(null)
     startTransition(async () => {
       const result = await generateAndSaveDailyWord()
-      const message = result.success
-        ? 'Gerada com sucesso!'
-        : 'error' in result
-          ? result.error ?? 'Erro'
-          : 'Erro'
+      const isError = 'error' in result
 
-      setGenMessage(message)
-      if (result.success) {
-        // recarrega pra puxar o texto novo nos campos abaixo
+      setMessage(
+        isError
+          ? (result.error ?? 'Erro')
+          : (result.message ?? 'Gerada com sucesso!')
+      )
+
+      if (!isError) {
         window.location.reload()
       }
     })
   }
 
   return (
-    <main className="min-h-screen bg-cream px-6 py-12 text-navy">
-      <div className="mx-auto max-w-2xl">
-        <h1 className="font-display text-3xl font-bold">Palavra do Dia</h1>
-        <p className="mt-1 font-body text-sm text-navy/60">
-          Todo dia às 6h o Gemini gera uma automaticamente. Aqui você pode gerar de novo ou
-          escrever a sua própria — o que for salvo por último é o que fica no ar.
-        </p>
+    <div className="mt-6">
+      <button
+        type="button"
+        onClick={handleGenerate}
+        disabled={isPending}
+        className="rounded bg-navy px-5 py-2.5 font-body text-sm font-semibold uppercase tracking-wide text-cream transition-opacity disabled:opacity-60"
+      >
+        {isPending ? 'Gerando...' : 'Gerar novamente com IA'}
+      </button>
+      {message && <p className="mt-2 font-body text-xs text-navy/60">{message}</p>}
+    </div>
+  )
+}
 
-        {todayWord && (
-          <div className="mt-6 rounded-lg border border-line bg-white p-4">
-            <p className="font-body text-xs font-semibold uppercase tracking-wide text-navy/40">
-              Publicada hoje
-            </p>
-            <p className="mt-2 font-mono text-xs uppercase text-navy/50">
-              {todayWord.verseReference}
-            </p>
-            <p className="mt-1 font-display text-lg italic">&ldquo;{todayWord.text}&rdquo;</p>
-          </div>
-        )}
+================
+File: src/app/admin/palavra-do-dia/ManualDailyWordForm.tsx
+================
+// src/app/admin/palavra-do-dia/ManualDailyWordForm.tsx
+'use client'
 
-        <button
-          onClick={handleGenerate}
-          disabled={isPending}
-          className="mt-6 rounded bg-navy px-5 py-2.5 font-body text-sm font-semibold uppercase tracking-wide text-cream transition-opacity disabled:opacity-60"
-        >
-          {isPending ? 'Gerando...' : 'Gerar novamente com IA'}
-        </button>
-        {genMessage && <p className="mt-2 font-body text-xs text-navy/60">{genMessage}</p>}
+import { useActionState } from 'react'
+import { saveManualDailyWord } from '@/actions/dailyWord'
 
-        <div className="mt-4 flex items-center gap-2">
-          <div className="h-px flex-1 bg-line" />
-          <span className="font-body text-[10px] uppercase tracking-wide text-navy/40">ou</span>
-          <div className="h-px flex-1 bg-line" />
-        </div>
+type DailyWord = {
+  text: string
+  verseReference: string
+  reflection: string | null
+  instagramReelUrl: string | null
+  showTextWithReel?: boolean
+} | null
 
-        <form
-          action={formAction}
-          className="mt-4 space-y-4 rounded-lg border border-line bg-white p-6"
-        >
-          <p className="font-body text-xs font-bold uppercase tracking-wide text-navy/60">
-            Escrever a sua
-          </p>
+type ActionState = { success: boolean; error?: string }
 
-          <div>
-            <label className="block text-xs font-bold uppercase tracking-wide text-navy/60">
-              Texto
-            </label>
-            <textarea
-              name="text"
-              required
-              rows={3}
-              defaultValue={todayWord?.text ?? ''}
-              placeholder="A mensagem do dia..."
-              className="mt-1 w-full rounded border border-line px-3 py-2 font-body text-sm focus:border-gold focus:outline-none"
-            />
-          </div>
+export function ManualDailyWordForm({ todayWord }: { todayWord: DailyWord }) {
+  const [state, formAction, pending] = useActionState<ActionState, FormData>(
+    saveManualDailyWord,
+    { success: false }
+  )
 
-          <div>
-            <label className="block text-xs font-bold uppercase tracking-wide text-navy/60">
-              Referência (versículo, santo, papa...)
-            </label>
-            <input
-              name="verseReference"
-              defaultValue={todayWord?.verseReference ?? ''}
-              placeholder="Ex: Jo 14,27"
-              className="mt-1 w-full rounded border border-line px-3 py-2 font-body text-sm focus:border-gold focus:outline-none"
-            />
-          </div>
+  return (
+    <form
+      action={formAction}
+      className="mt-4 space-y-4 rounded-lg border border-line bg-white p-6"
+    >
+      <p className="font-body text-xs font-bold uppercase tracking-wide text-navy/60">
+        Escrever a sua / anexar um Reels
+      </p>
 
-          <div>
-            <label className="block text-xs font-bold uppercase tracking-wide text-navy/60">
-              Reflexão (opcional)
-            </label>
-            <textarea
-              name="reflection"
-              rows={2}
-              defaultValue={todayWord?.reflection ?? ''}
-              className="mt-1 w-full rounded border border-line px-3 py-2 font-body text-sm focus:border-gold focus:outline-none"
-            />
-          </div>
-
-          <button
-            type="submit"
-            disabled={pending}
-            className="w-full rounded bg-navy py-3 font-body text-sm font-semibold uppercase tracking-wide text-cream transition-opacity disabled:opacity-60"
-          >
-            {pending ? 'Salvando...' : 'Publicar esta versão'}
-          </button>
-
-          {state?.error && <p className="font-body text-sm text-red-600">{state.error}</p>}
-          {state?.success && <p className="font-body text-sm text-green-700">Publicado!</p>}
-        </form>
+      <div>
+        <label className="block text-xs font-bold uppercase tracking-wide text-navy/60">
+          Texto
+        </label>
+        <textarea
+          name="text"
+          required
+          rows={3}
+          defaultValue={todayWord?.text ?? ''}
+          placeholder="A mensagem do dia..."
+          className="mt-1 w-full rounded border border-line px-3 py-2 font-body text-sm focus:border-gold focus:outline-none"
+        />
       </div>
-    </main>
+
+      <div>
+        <label className="block text-xs font-bold uppercase tracking-wide text-navy/60">
+          Referência (versículo, santo, papa...)
+        </label>
+        <input
+          name="verseReference"
+          defaultValue={todayWord?.verseReference ?? ''}
+          placeholder="Ex: Jo 14,27"
+          className="mt-1 w-full rounded border border-line px-3 py-2 font-body text-sm focus:border-gold focus:outline-none"
+        />
+      </div>
+
+      <div>
+        <label className="block text-xs font-bold uppercase tracking-wide text-navy/60">
+          Reflexão (opcional)
+        </label>
+        <textarea
+          name="reflection"
+          rows={2}
+          defaultValue={todayWord?.reflection ?? ''}
+          className="mt-1 w-full rounded border border-line px-3 py-2 font-body text-sm focus:border-gold focus:outline-none"
+        />
+      </div>
+
+      <div>
+        <label className="block text-xs font-bold uppercase tracking-wide text-navy/60">
+          Link do Reels do Instagram (opcional)
+        </label>
+        <input
+          name="instagramReelUrl"
+          type="url"
+          defaultValue={todayWord?.instagramReelUrl ?? ''}
+          placeholder="https://www.instagram.com/reel/..."
+          className="mt-1 w-full rounded border border-line px-3 py-2 font-body text-sm focus:border-gold focus:outline-none"
+        />
+        <p className="mt-1 font-body text-xs text-navy/40">
+          Copia direto do Instagram: três pontinhos no reel → Copiar link.
+        </p>
+      </div>
+
+      {/* Chavinha — bem visível */}
+      <label className="flex cursor-pointer items-center gap-3 rounded-lg border border-line bg-cream/50 px-3 py-3">
+        <input
+          type="checkbox"
+          name="showTextWithReel"
+          defaultChecked={todayWord?.showTextWithReel !== false}
+          className="h-4 w-4 shrink-0 accent-navy"
+        />
+        <span className="text-left">
+          <span className="block font-body text-sm font-semibold text-navy">
+            Mostrar texto junto com o Reels
+          </span>
+          <span className="block font-body text-xs text-navy/50">
+            Desligue se quiser só o vídeo na página inicial.
+          </span>
+        </span>
+      </label>
+
+      <button
+        type="submit"
+        disabled={pending}
+        className="w-full rounded bg-navy py-3 font-body text-sm font-semibold uppercase tracking-wide text-cream transition-opacity disabled:opacity-60"
+      >
+        {pending ? 'Salvando...' : 'Publicar esta versão'}
+      </button>
+
+      {state?.error && <p className="font-body text-sm text-red-600">{state.error}</p>}
+      {state?.success && <p className="font-body text-sm text-green-700">Publicado!</p>}
+    </form>
   )
 }
 
@@ -2828,6 +2855,37 @@ export default async function AdminDailyWordPage() {
   })
 
   return <AdminDailyWordClient todayWord={todayWord} />
+}
+
+================
+File: src/app/admin/palavra-do-dia/TodayWordCard.tsx
+================
+// src/app/admin/palavra-do-dia/TodayWordCard.tsx
+
+type DailyWord = {
+  text: string
+  verseReference: string
+  reflection: string | null
+  instagramReelUrl: string | null
+  showTextWithReel?: boolean
+}
+
+export function TodayWordCard({ word }: { word: DailyWord }) {
+  return (
+    <div className="mt-6 rounded-lg border border-line bg-white p-4">
+      <p className="font-body text-xs font-semibold uppercase tracking-wide text-navy/40">
+        Publicada hoje
+      </p>
+      <p className="mt-2 font-mono text-xs uppercase text-navy/50">{word.verseReference}</p>
+      <p className="mt-1 font-display text-lg italic">&ldquo;{word.text}&rdquo;</p>
+      {word.instagramReelUrl && (
+        <p className="mt-2 font-body text-xs text-navy/50">
+          📎 Com Reels do Instagram anexado
+          {word.showTextWithReel === false && ' · só o vídeo na home'}
+        </p>
+      )}
+    </div>
+  )
 }
 
 ================
@@ -2877,38 +2935,6 @@ File: src/app/api/auth/[...nextauth]/route.ts
 import { handlers } from '@/auth'
 
 export const { GET, POST } = handlers
-
-================
-File: src/app/api/cron/palavra-do-dia/route.ts
-================
-// src/app/api/cron/palavra-do-dia/route.ts
-
-import { NextResponse } from 'next/server'
-import { generateDailyWord } from '@/lib/dailyWord'
-
-export async function GET(request: Request) {
-  const secret = process.env.CRON_SECRET
-
-  // Falha fechado se a env não estiver configurada
-  if (!secret) {
-    console.error('CRON_SECRET não configurado')
-    return NextResponse.json({ error: 'Não autorizado.' }, { status: 401 })
-  }
-
-  const authHeader = request.headers.get('authorization')
-  if (authHeader !== `Bearer ${secret}`) {
-    return NextResponse.json({ error: 'Não autorizado.' }, { status: 401 })
-  }
-
-  try {
-    const result = await generateDailyWord()
-    return NextResponse.json(result)
-  } catch (error: unknown) {
-    const message = error instanceof Error ? error.message : 'Falha ao gerar a Palavra do Dia.'
-    console.error('Cron Palavra do Dia falhou:', error)
-    return NextResponse.json({ success: false, error: message }, { status: 500 })
-  }
-}
 
 ================
 File: src/app/api/upload/route.ts
@@ -2963,161 +2989,6 @@ export async function POST(request: Request): Promise<NextResponse> {
   } catch (error) {
     return NextResponse.json({ error: (error as Error).message }, { status: 400 })
   }
-}
-
-================
-File: src/app/teste/page.tsx
-================
-// src/app/teste/page.tsx
-//
-// Página de rascunho pra comparar visualmente a "Opção 2" (atmosfera
-// litúrgica mais presente) nas 7 estações, sem precisar mudar a data do
-// sistema. NÃO é uma rota definitiva — pode apagar depois de decidir.
-'use client'
-
-import { useState } from 'react'
-
-const SEASONS = [
-  { name: 'Advento', color: '#5b2a86' },
-  { name: 'Natal', color: '#d4a017' },
-  { name: 'Tempo Comum', color: '#2f6b3a' },
-  { name: 'Quaresma', color: '#5b2a86' },
-  { name: 'Semana Santa', color: '#5b2a86' },
-  { name: 'Tríduo Pascal', color: '#a11d1d' },
-  { name: 'Tempo Pascal', color: '#d4a017' },
-] as const
-
-export default function TestePage() {
-  const [selected, setSelected] = useState<(typeof SEASONS)[number]>(SEASONS[2]) // começa em Tempo Comum
-
-  return (
-    <main className="min-h-screen bg-cream text-navy">
-      {/* Barra de acento sazonal */}
-      <div className="h-1.5 w-full" style={{ backgroundColor: selected.color }} />
-
-      <div className="mx-auto max-w-3xl px-6 py-10">
-        <p className="font-body text-xs font-semibold uppercase tracking-wide text-navy/40">
-          Rascunho — não é uma página final
-        </p>
-        <h1 className="mt-1 font-display text-2xl font-bold">
-          Opção 2: atmosfera litúrgica mais presente
-        </h1>
-
-        {/* Seletor de estação */}
-        <div className="mt-6 flex flex-wrap gap-2">
-          {SEASONS.map((s) => (
-            <button
-              key={s.name}
-              onClick={() => setSelected(s)}
-              className="rounded-full border px-3 py-1.5 font-body text-xs font-semibold uppercase tracking-wide transition-colors"
-              style={{
-                borderColor: s.color,
-                backgroundColor: selected.name === s.name ? s.color : 'transparent',
-                color: selected.name === s.name ? '#fdfbf5' : s.color,
-              }}
-            >
-              {s.name}
-            </button>
-          ))}
-        </div>
-
-        {/* Pílula do hero (já existe hoje, sem mudança) */}
-        <div className="mt-10">
-          <p className="mb-2 font-body text-xs font-semibold uppercase tracking-wide text-navy/40">
-            Pílula do hero (já existe)
-          </p>
-          <span
-            className="inline-block rounded-full px-3 py-1 font-body text-xs font-semibold uppercase tracking-wide"
-            style={{ backgroundColor: `${selected.color}33`, color: selected.color }}
-          >
-            Tempo Litúrgico: {selected.name}
-          </span>
-        </div>
-
-        {/* Seção "Sobre Nós" com fundo levemente tingido */}
-        <section
-          className="mt-10 rounded-lg p-6"
-          style={{ backgroundColor: `${selected.color}0d` }}
-        >
-          <p
-            className="font-body text-xs font-bold uppercase tracking-widest"
-            style={{ color: selected.color }}
-          >
-            Sobre Nós
-          </p>
-          <div className="mt-4 grid gap-6 md:grid-cols-2 md:items-center md:gap-10">
-            <div className="aspect-[4/3] w-full rounded-lg bg-navy/10" />
-            <div>
-              <p className="font-body leading-relaxed text-navy/80">
-                A Paróquia Nossa Senhora Aparecida nasceu do sonho de uma comunidade unida
-                pela fé e pelo amor a Maria.
-              </p>
-              <button
-                className="mt-4 rounded px-5 py-2.5 font-body text-xs font-semibold uppercase tracking-wide transition-colors"
-                style={{ backgroundColor: selected.color, color: '#fdfbf5' }}
-              >
-                Saiba mais sobre nossa história →
-              </button>
-            </div>
-          </div>
-        </section>
-
-        {/* Horários das Missas com cards levemente tingidos */}
-        <section className="mt-10">
-          <p
-            className="text-center font-body text-xs font-bold uppercase tracking-widest"
-            style={{ color: selected.color }}
-          >
-            Horários das Missas
-          </p>
-          <div className="mt-4 grid grid-cols-2 gap-4 sm:grid-cols-4">
-            {['Domingo', 'Segunda a Sexta', 'Sábado', 'Adoração'].map((label) => (
-              <div
-                key={label}
-                className="rounded-lg border p-4 text-center"
-                style={{
-                  backgroundColor: `${selected.color}0d`,
-                  borderColor: `${selected.color}40`,
-                }}
-              >
-                <p className="font-body text-xs font-bold uppercase tracking-wide text-navy/60">
-                  {label}
-                </p>
-                <p className="mt-2 font-display text-lg font-semibold">08h00</p>
-              </div>
-            ))}
-          </div>
-        </section>
-
-        {/* Botão secundário com hover na cor sazonal */}
-        <section className="mt-10">
-          <p className="mb-2 font-body text-xs font-semibold uppercase tracking-wide text-navy/40">
-            Botão secundário (passe o mouse)
-          </p>
-          <button
-            className="rounded border-2 bg-transparent px-5 py-2.5 font-body text-sm font-semibold uppercase tracking-wide transition-colors hover:text-cream"
-            style={
-              {
-                borderColor: selected.color,
-                color: selected.color,
-                '--hover-bg': selected.color,
-              } as React.CSSProperties
-            }
-            onMouseEnter={(e) => (e.currentTarget.style.backgroundColor = selected.color)}
-            onMouseLeave={(e) => (e.currentTarget.style.backgroundColor = 'transparent')}
-          >
-            Faça uma Visita
-          </button>
-        </section>
-
-        <p className="mt-12 border-t border-line pt-6 font-body text-xs text-navy/40">
-          Essa página é só pra comparação visual. Quando decidirem o nível de presença,
-          é só apagar <code>src/app/teste/</code> e aplicar o estilo escolhido nas páginas
-          de verdade.
-        </p>
-      </div>
-    </main>
-  )
 }
 
 ================
@@ -3300,37 +3171,6 @@ export function ContactLinksSection() {
             {link.label}
           </Link>
         ))}
-      </div>
-    </section>
-  )
-}
-
-================
-File: src/components/home/DailyWordSection.tsx
-================
-// src/components/home/DailyWordSection.tsx
-
-type DailyWord = { verseReference: string; text: string; reflection: string | null }
-
-export function DailyWordSection({ dailyWord }: { dailyWord: DailyWord | null }) {
-  if (!dailyWord) return null
-
-  return (
-    <section className="mx-auto max-w-3xl px-6 py-10">
-      <p className="text-center font-body text-xs font-bold uppercase tracking-widest text-gold">
-        Palavra do Dia
-      </p>
-      <div className="mt-4 rounded-lg border border-line bg-white p-6 text-center">
-        <span className="inline-block rounded-full bg-navy px-3 py-1 font-mono text-[10px] font-bold uppercase tracking-widest text-cream">
-          {new Date().toLocaleDateString('pt-BR', { day: '2-digit', month: 'long' })}
-        </span>
-        <p className="mt-3 font-mono text-xs uppercase text-navy/50">{dailyWord.verseReference}</p>
-        <p className="mt-2 font-display text-lg italic">&ldquo;{dailyWord.text}&rdquo;</p>
-        {dailyWord.reflection && (
-          <p className="mx-auto mt-3 max-w-md font-body text-sm text-navy/70">
-            {dailyWord.reflection}
-          </p>
-        )}
       </div>
     </section>
   )
@@ -3897,42 +3737,6 @@ export function CopyPixButton({ pixKey }: { pixKey: string }) {
     >
       {copied ? 'Copiado!' : 'Copiar chave PIX'}
     </button>
-  )
-}
-
-================
-File: src/components/InstagramEmbed.tsx
-================
-// src/components/InstagramEmbed.tsx
-'use client'
-
-import { useEffect } from 'react'
-
-declare global {
-  interface Window {
-    instgrm?: { Embeds: { process: () => void } }
-  }
-}
-
-export function InstagramEmbed({ url }: { url: string }) {
-  useEffect(() => {
-    if (window.instgrm) {
-      window.instgrm.Embeds.process()
-      return
-    }
-    const script = document.createElement('script')
-    script.src = 'https://www.instagram.com/embed.js'
-    script.async = true
-    document.body.appendChild(script)
-  }, [url])
-
-  return (
-    <blockquote
-      className="instagram-media"
-      data-instgrm-permalink={url}
-      data-instgrm-version="14"
-      style={{ margin: '0 auto', maxWidth: 400, width: '100%' }}
-    />
   )
 }
 
@@ -4554,6 +4358,812 @@ File: vercel.json
 }
 
 ================
+File: src/actions/staffAccess.ts
+================
+// src/actions/staffAccess.ts
+'use server'
+
+import { prisma } from '@/lib/prisma'
+import { revalidatePath } from 'next/cache'
+import { requireSuperAdmin } from '@/lib/permissions'
+import type { StaffPermission, StaffRole } from '@prisma/client'
+
+const ALL_PERMISSIONS: StaffPermission[] = [
+  'VIEW_PRAYER_REQUESTS',
+  'MANAGE_TITHE_RAFFLE',
+  'MANAGE_EVENTS',
+  'MANAGE_GALLERY',
+  'MANAGE_MASS_SCHEDULE',
+  'MANAGE_MINISTRIES',
+  'MANAGE_FAQ',
+  'MANAGE_LITURGICAL_THEME',
+  'MANAGE_TESTIMONIALS',
+]
+
+export async function updateStaffAccess(_prevState: unknown, formData: FormData) {
+  try {
+    const session = await requireSuperAdmin()
+
+    const userId = formData.get('userId') as string
+    if (!userId) throw new Error('Usuário não identificado.')
+
+    const staffRoleRaw = formData.get('staffRole') as string
+    const staffRole: StaffRole | null = staffRoleRaw === '' ? null : (staffRoleRaw as StaffRole)
+
+    // SUPER_ADMIN não impede a última administradora de se rebaixar sem querer
+    if (userId === session.user.id && staffRole !== 'SUPER_ADMIN') {
+      throw new Error('Você não pode remover seu próprio acesso de Super Admin por aqui.')
+    }
+
+    const ministryIdRaw = formData.get('ministryId') as string
+    const ministryId = staffRole === 'MINISTRY_LEADER' && ministryIdRaw ? ministryIdRaw : null
+
+    const permissions =
+      staffRole === 'MINISTRY_LEADER'
+        ? ALL_PERMISSIONS.filter((p) => formData.getAll('permissions').includes(p))
+        : []
+
+    await prisma.user.update({
+      where: { id: userId },
+      data: { staffRole, ministryId, permissions },
+    })
+
+    revalidatePath('/admin/usuarios')
+    return { success: true }
+  } catch (error: any) {
+    return { success: false, error: error.message || 'Falha ao atualizar acesso.' }
+  }
+}
+
+================
+File: src/app/admin/palavra-do-dia/AdminDailyWordClient.tsx
+================
+// src/app/admin/palavra-do-dia/AdminDailyWordClient.tsx
+'use client'
+
+import { TodayWordCard } from './TodayWordCard'
+import { GenerateDailyWordButton } from './GenerateDailyWordButton'
+import { ManualDailyWordForm } from './ManualDailyWordForm'
+
+type DailyWord = {
+  text: string
+  verseReference: string
+  reflection: string | null
+  instagramReelUrl: string | null
+  showTextWithReel?: boolean
+} | null
+
+export function AdminDailyWordClient({ todayWord }: { todayWord: DailyWord }) {
+  return (
+    <main className="min-h-screen bg-cream px-6 py-12 text-navy">
+      <div className="mx-auto max-w-2xl">
+        <h1 className="font-display text-3xl font-bold">Palavra do Dia</h1>
+        <p className="mt-1 font-body text-sm text-navy/60">
+          Todo dia às 6h o Gemini gera uma automaticamente. Aqui você pode gerar de novo, colar
+          um Reels do Instagram, ou escrever a sua própria — o que for salvo por último fica no ar.
+        </p>
+
+        {todayWord && <TodayWordCard word={todayWord} />}
+
+        <GenerateDailyWordButton />
+
+        <div className="mt-4 flex items-center gap-2">
+          <div className="h-px flex-1 bg-line" />
+          <span className="font-body text-[10px] uppercase tracking-wide text-navy/40">ou</span>
+          <div className="h-px flex-1 bg-line" />
+        </div>
+
+        <ManualDailyWordForm todayWord={todayWord} />
+      </div>
+    </main>
+  )
+}
+
+================
+File: src/app/admin/usuarios/AdminUsersClient.tsx
+================
+// src/app/admin/usuarios/AdminUsersClient.tsx
+'use client'
+
+import { useActionState, useState } from 'react'
+import { updateStaffAccess } from '@/actions/staffAccess'
+
+type StaffRole = 'SUPER_ADMIN' | 'MINISTRY_LEADER'
+
+type User = {
+  id: string
+  name: string | null
+  email: string | null
+  image: string | null
+  staffRole: StaffRole | null
+  ministryId: string | null
+  permissions: string[]
+}
+
+type Ministry = { id: string; name: string }
+
+type ActionState = { success: boolean; error?: string }
+
+const PERMISSION_LABELS: Record<string, string> = {
+  VIEW_PRAYER_REQUESTS: 'Ver pedidos de oração',
+  MANAGE_TITHE_RAFFLE: 'Sorteio do dízimo',
+  MANAGE_EVENTS: 'Eventos',
+  MANAGE_GALLERY: 'Galeria',
+  MANAGE_MASS_SCHEDULE: 'Horários de missa',
+  MANAGE_MINISTRIES: 'Pastorais e ministérios',
+  MANAGE_FAQ: 'FAQ',
+  MANAGE_LITURGICAL_THEME: 'Cores litúrgicas especiais (coordenador litúrgico)',
+  MANAGE_TESTIMONIALS: 'Moderar depoimentos',
+}
+
+function roleLabel(role: StaffRole | null) {
+  if (role === 'SUPER_ADMIN') return 'Super Admin'
+  if (role === 'MINISTRY_LEADER') return 'Líder de Ministério'
+  return 'Sem acesso ao painel'
+}
+
+function UserEditForm({
+  user,
+  ministries,
+  isSelf,
+  onDone,
+}: {
+  user: User
+  ministries: Ministry[]
+  isSelf: boolean
+  onDone: () => void
+}) {
+  const [state, formAction, pending] = useActionState<ActionState, FormData>(updateStaffAccess, {
+    success: false,
+  })
+  const [role, setRole] = useState<'' | StaffRole>(user.staffRole ?? '')
+
+  return (
+    <form
+      action={formAction}
+      className="mt-3 space-y-3 rounded border border-dashed border-line bg-cream/40 p-4"
+    >
+      <input type="hidden" name="userId" value={user.id} />
+
+      <div>
+        <label className="block text-xs font-bold uppercase tracking-wide text-navy/60">
+          Cargo
+        </label>
+        <select
+          name="staffRole"
+          value={role}
+          onChange={(e) => setRole(e.target.value as '' | StaffRole)}
+          disabled={isSelf}
+          className="mt-1 w-full rounded border border-line bg-white px-3 py-2 font-body text-sm focus:border-gold focus:outline-none disabled:opacity-60"
+        >
+          <option value="">Sem acesso ao painel</option>
+          <option value="MINISTRY_LEADER">Líder de Ministério</option>
+          <option value="SUPER_ADMIN">Super Admin</option>
+        </select>
+        {isSelf && (
+          <p className="mt-1 font-body text-xs text-navy/40">
+            Você não pode alterar seu próprio cargo por aqui.
+          </p>
+        )}
+      </div>
+
+      {role === 'MINISTRY_LEADER' && (
+        <>
+          <div>
+            <label className="block text-xs font-bold uppercase tracking-wide text-navy/60">
+              Ministério que lidera
+            </label>
+            <select
+              name="ministryId"
+              defaultValue={user.ministryId ?? ''}
+              className="mt-1 w-full rounded border border-line bg-white px-3 py-2 font-body text-sm focus:border-gold focus:outline-none"
+            >
+              <option value="">Nenhum</option>
+              {ministries.map((m) => (
+                <option key={m.id} value={m.id}>
+                  {m.name}
+                </option>
+              ))}
+            </select>
+          </div>
+
+          <div>
+            <label className="block text-xs font-bold uppercase tracking-wide text-navy/60">
+              Permissões
+            </label>
+            <div className="mt-1 space-y-1">
+              {Object.entries(PERMISSION_LABELS).map(([value, label]) => (
+                <label key={value} className="flex items-center gap-2 font-body text-sm">
+                  <input
+                    type="checkbox"
+                    name="permissions"
+                    value={value}
+                    defaultChecked={user.permissions.includes(value)}
+                  />
+                  {label}
+                </label>
+              ))}
+            </div>
+          </div>
+        </>
+      )}
+
+      <div className="flex gap-2">
+        <button
+          type="submit"
+          disabled={pending}
+          className="flex-1 rounded bg-navy py-2 font-body text-xs font-semibold uppercase tracking-wide text-cream disabled:opacity-60"
+        >
+          {pending ? 'Salvando...' : 'Salvar'}
+        </button>
+        <button
+          type="button"
+          onClick={onDone}
+          className="flex-1 rounded border border-line py-2 font-body text-xs font-semibold uppercase tracking-wide text-navy/60"
+        >
+          Cancelar
+        </button>
+      </div>
+
+      {state?.error && <p className="font-body text-xs text-red-600">{state.error}</p>}
+      {state?.success && <p className="font-body text-xs text-green-700">Salvo!</p>}
+    </form>
+  )
+}
+
+export function AdminUsersClient({
+  users,
+  ministries,
+  currentUserId,
+}: {
+  users: User[]
+  ministries: Ministry[]
+  currentUserId: string
+}) {
+  const [editingId, setEditingId] = useState<string | null>(null)
+
+  return (
+    <main className="min-h-screen bg-cream px-6 py-12 text-navy">
+      <div className="mx-auto max-w-2xl">
+        <h1 className="font-display text-3xl font-bold">Usuários e Permissões</h1>
+        <p className="mt-1 font-body text-sm text-navy/60">
+          Só aparecem aqui pessoas que já entraram no site com Google pelo menos uma vez.
+        </p>
+
+        <div className="mt-8 space-y-3">
+          {users.map((u) => (
+            <div key={u.id} className="rounded-lg border border-line bg-white p-4">
+              <div className="flex items-start justify-between gap-3">
+                <div className="flex items-center gap-3">
+                  {u.image && (
+                    // eslint-disable-next-line @next/next/no-img-element
+                    <img src={u.image} alt="" className="h-10 w-10 rounded-full" />
+                  )}
+                  <div>
+                    <p className="font-display font-semibold">{u.name ?? 'Sem nome'}</p>
+                    <p className="font-body text-xs text-navy/50">{u.email}</p>
+                    <p className="mt-1 font-body text-xs font-semibold text-navy/70">
+                      {roleLabel(u.staffRole)}
+                    </p>
+                  </div>
+                </div>
+                <button
+                  onClick={() => setEditingId(editingId === u.id ? null : u.id)}
+                  className="shrink-0 font-body text-xs font-semibold text-navy/60 hover:underline"
+                >
+                  {editingId === u.id ? 'Fechar' : 'Editar acesso'}
+                </button>
+              </div>
+
+              {editingId === u.id && (
+                <UserEditForm
+                  user={u}
+                  ministries={ministries}
+                  isSelf={u.id === currentUserId}
+                  onDone={() => setEditingId(null)}
+                />
+              )}
+            </div>
+          ))}
+        </div>
+      </div>
+    </main>
+  )
+}
+
+================
+File: src/app/api/cron/palavra-do-dia/route.ts
+================
+// src/app/api/cron/palavra-do-dia/route.ts
+import { NextResponse } from 'next/server'
+import { generateDailyWord } from '@/lib/dailyWord'
+// ou de onde estiver: '@/actions/dailyWord'
+
+export async function GET(request: Request) {
+  const secret = process.env.CRON_SECRET
+
+  if (!secret) {
+    return NextResponse.json({ error: 'CRON_SECRET ausente' }, { status: 401 })
+  }
+
+  const auth = request.headers.get('authorization')
+  if (auth !== `Bearer ${secret}`) {
+    return NextResponse.json({ error: 'Não autorizado' }, { status: 401 })
+  }
+
+  try {
+    const result = await generateDailyWord()
+    return NextResponse.json({ ok: true, result })
+  } catch (e: unknown) {
+    const message = e instanceof Error ? e.message : 'Erro no cron'
+    console.error('Cron falhou:', e)
+    return NextResponse.json({ ok: false, error: message }, { status: 500 })
+  }
+}
+
+================
+File: src/app/teste/page.tsx
+================
+// src/app/teste-instagram/page.tsx
+//
+// Página de rascunho SÓ pra testar o InstagramEmbed isolado, sem
+// depender do banco, do admin ou do formulário. Apaga depois de resolver.
+
+import { InstagramEmbed } from '@/components/InstagramEmbed'
+
+export default function TesteInstagramPage() {
+  return (
+    <main className="min-h-screen bg-cream px-6 py-12 text-navy">
+      <div className="mx-auto max-w-md">
+        <p className="font-body text-xs font-semibold uppercase tracking-wide text-navy/40">
+          Rascunho — teste isolado
+        </p>
+        <h1 className="mt-1 font-display text-2xl font-bold">Teste do InstagramEmbed</h1>
+        <p className="mt-2 font-body text-sm text-navy/60">
+          Se o Reels aparecer abaixo, o componente funciona e o problema está no fluxo de dados
+          (formulário/banco). Se não aparecer nada, o problema é o componente/bloqueio do
+          navegador.
+        </p>
+
+        <div className="mt-6 flex justify-center rounded-lg border border-dashed border-line p-4">
+          <InstagramEmbed url="https://www.instagram.com/reel/DbhabOLsrFd/" />
+        </div>
+      </div>
+    </main>
+  )
+}
+
+================
+File: src/app/globals.css
+================
+@import "tailwindcss";
+
+@theme {
+  --color-navy: #1b2560;
+  --color-navy-dark: #10173d;
+  --color-gold: #f0b023;
+  --color-terracotta: #7a4a2b;
+  --color-cream: #fbf8f2;
+  --color-line: #e4ddd0;
+
+  --font-display: var(--font-cormorant), serif;
+  --font-body: var(--font-nunito), sans-serif;
+}
+
+body {
+  background-color: var(--color-cream);
+  color: var(--color-navy);
+}
+
+================
+File: src/app/layout.tsx
+================
+// src/app/layout.tsx
+
+import type { Metadata } from 'next'
+import { Cormorant_Garamond, Nunito } from 'next/font/google'
+import { SiteHeader } from '@/components/layout/SiteHeader'
+import './globals.css'
+
+const cormorant = Cormorant_Garamond({
+  subsets: ['latin'],
+  weight: ['500', '600', '700'],
+  variable: '--font-cormorant',
+})
+
+const nunito = Nunito({
+  subsets: ['latin'],
+  weight: ['400', '500', '600', '700'],
+  variable: '--font-nunito',
+})
+
+export const metadata: Metadata = {
+  title: 'Paróquia Nossa Senhora Aparecida — Botucatu',
+  description: 'Lar de fé, esperança e devoção.',
+}
+
+export default function RootLayout({ children }: { children: React.ReactNode }) {
+  return (
+    <html lang="pt-BR">
+      <body className={`${cormorant.variable} ${nunito.variable} antialiased`}>
+        <SiteHeader />
+        {children}
+      </body>
+    </html>
+  )
+}
+
+================
+File: src/components/admin/GenerateDailyWordButton.tsx
+================
+'use client'
+
+import { useState, useTransition } from 'react'
+import { generateAndSaveDailyWord } from '@/actions/dailyWord'
+
+export function GenerateDailyWordButton() {
+  const [isPending, startTransition] = useTransition()
+  const [message, setMessage] = useState<string | null>(null)
+
+  function handleClick() {
+    setMessage(null)
+    startTransition(async () => {
+      const result = await generateAndSaveDailyWord()
+if (result.success) {
+  setMessage('message' in result ? result.message : 'Gerado!')
+} else {
+  setMessage('error' in result ? result.error : 'Erro')
+}
+    })
+  }
+
+  return (
+    <div className="rounded-lg border border-amber-300 bg-amber-50 p-4">
+      <p className="mb-2 text-sm font-semibold text-amber-800">
+        Temporário — Gerar Palavra do Dia (antes do cron)
+      </p>
+      <button
+        onClick={handleClick}
+        disabled={isPending}
+        className="rounded bg-navy px-4 py-2 text-sm font-semibold text-cream disabled:opacity-50"
+      >
+        {isPending ? 'Gerando...' : 'Gerar Palavra do Dia agora'}
+      </button>
+      {message && (
+        <p className="mt-2 text-sm text-navy/70">{message}</p>
+      )}
+    </div>
+  )
+}
+
+================
+File: src/components/layout/SiteHeader.tsx
+================
+// src/components/layout/SiteHeader.tsx
+
+import Link from 'next/link'
+import { auth, signIn, signOut } from '@/auth'
+
+const NAV_LINKS = [
+  { label: 'Início', href: '/' },
+  { label: 'A Paróquia', href: '/a-paroquia' },
+  { label: 'Missas', href: '/#horarios' },
+  { label: 'Eventos', href: '/#eventos' },
+  { label: 'Galeria', href: '/#galeria' },
+  { label: 'Contato', href: '/#contato' },
+]
+
+export async function SiteHeader() {
+  const session = await auth()
+  const isStaff = !!session?.user?.staffRole
+
+  return (
+    <header className="sticky top-0 z-50 border-b border-line bg-cream/90 backdrop-blur">
+      <div className="mx-auto flex max-w-5xl items-center justify-between gap-3 px-4 py-3 sm:px-6">
+        <Link href="/" className="flex shrink-0 items-center gap-2">
+          <img src="/favicon.svg" alt="Nossa Senhora Aparecida" className="h-8 w-8" />
+          <span className="font-display text-sm font-bold leading-tight tracking-tight text-navy sm:text-lg">
+            Nossa Senhora Aparecida
+          </span>
+        </Link>
+
+        <nav className="hidden items-center gap-6 md:flex">
+          {NAV_LINKS.map((link) => (
+            <Link
+              key={link.href}
+              href={link.href}
+              className="font-body text-sm font-semibold text-navy/70 transition-colors hover:text-gold"
+            >
+              {link.label}
+            </Link>
+          ))}
+        </nav>
+
+        <div className="flex shrink-0 items-center gap-3 sm:gap-4">
+          {isStaff && (
+            <Link
+              href="/admin"
+              className="hidden font-body text-xs font-semibold uppercase tracking-wide text-navy/50 transition-colors hover:text-gold sm:inline"
+            >
+              Painel
+            </Link>
+          )}
+
+          <Link
+            href="/#doacao"
+            className="rounded-full bg-gold px-4 py-2 font-body text-xs font-semibold uppercase tracking-wide text-navy transition-opacity hover:opacity-90"
+          >
+            Doar
+          </Link>
+
+          {session?.user ? (
+            <form
+              action={async () => {
+                'use server'
+                await signOut()
+              }}
+              className="flex items-center gap-2"
+            >
+              {session.user.image && (
+                <img
+                  src={session.user.image}
+                  alt={session.user.name ?? 'Você'}
+                  className="h-6 w-6 rounded-full border border-line"
+                />
+              )}
+              <button
+                type="submit"
+                className="font-body text-xs font-semibold uppercase tracking-wide text-navy/50 transition-colors hover:text-gold"
+              >
+                Sair
+              </button>
+            </form>
+          ) : (
+            <form
+              action={async () => {
+                'use server'
+                await signIn('google')
+              }}
+            >
+              <button
+                type="submit"
+                className="border border-navy px-3 py-1.5 font-body text-xs font-semibold uppercase tracking-wide text-navy transition-colors hover:bg-navy hover:text-cream"
+              >
+                Entrar
+              </button>
+            </form>
+          )}
+        </div>
+      </div>
+    </header>
+  )
+}
+
+================
+File: src/components/InstagramEmbed.tsx
+================
+// src/components/InstagramEmbed.tsx
+//
+// Usa o widget oficial do Instagram (embed.js) pra renderizar um post/reels
+// público diretamente na página, sem precisar de API key.
+'use client'
+
+import { useEffect, useRef } from 'react'
+
+declare global {
+  interface Window {
+    instgrm?: { Embeds: { process: () => void } }
+  }
+}
+
+export function InstagramEmbed({ url }: { url: string }) {
+  const containerRef = useRef<HTMLDivElement>(null)
+
+  useEffect(() => {
+    function process() {
+      window.instgrm?.Embeds.process()
+    }
+
+    if (window.instgrm) {
+      process()
+      return
+    }
+
+    const existing = document.querySelector<HTMLScriptElement>('script[src*="instagram.com/embed.js"]')
+    if (existing) {
+      existing.addEventListener('load', process)
+      return () => existing.removeEventListener('load', process)
+    }
+
+    const script = document.createElement('script')
+    script.src = 'https://www.instagram.com/embed.js'
+    script.async = true
+    script.onload = process
+    document.body.appendChild(script)
+  }, [url])
+
+  return (
+    <div ref={containerRef}>
+      <blockquote
+        className="instagram-media"
+        data-instgrm-permalink={url}
+        data-instgrm-version="14"
+        style={{ margin: '0 auto', maxWidth: 400, width: '100%' }}
+      >
+        <a href={url} target="_blank" rel="noopener noreferrer">
+          Ver esta publicação no Instagram
+        </a>
+      </blockquote>
+    </div>
+  )
+}
+
+================
+File: src/lib/gemini.ts
+================
+import { GoogleGenerativeAI } from "@google/generative-ai";
+
+const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY!);
+
+export async function getPalavraDoDia() {
+  try {
+    const model = genAI.getGenerativeModel({
+      model: "gemini-3.5-flash-lite",
+      generationConfig: {
+        responseMimeType: "application/json", // força JSON
+      },
+    });
+
+    const prompt = `
+Você é um assistente espiritual católico. Gere a "Palavra do Dia" para o site de uma paróquia brasileira.
+
+Regras:
+- Máximo de 2 frases curtas, claras e acolhedoras.
+- Sem saudações, sem introduções e sem mencionar "Igreja Católica", "paróquia" ou "padre".
+- Priorize a tradição católica (Bíblia, santos ou papas) preferencialmente Novo Testamento.
+- Tom de encorajamento, esperança e confiança em Deus. Evite moralismo pesado e frases genéricas.
+
+Fontes preferidas quando não for Bíblia:
+São João Paulo II, Papa Francisco, Bento XVI, Santa Teresa de Calcutá, São João Bosco, São José de Anchieta, Santo Agostinho, Santa Catarina de Sena, São Tomás de Aquino, Santa Teresa de Ávila.
+
+Responda APENAS com JSON válido neste formato exato:
+{
+  "text": "o texto da mensagem (máximo 2 frases)",
+  "verseReference": "referência bíblica (ex: Jo 14,27) OU nome do santo/papa, ou null",
+  "reflection": null
+}
+`;
+
+    const result = await model.generateContent(prompt);
+    const response = await result.response;
+    const raw = response.text();
+
+    // Parse seguro
+    const parsed = JSON.parse(raw);
+
+    return {
+      text: parsed.text?.trim() || "Que a paz de Cristo preencha o seu coração hoje.",
+      verseReference: parsed.verseReference || "-",
+      reflection: parsed.reflection || null,
+    };
+  } catch (error) {
+    console.error("Erro ao buscar palavra do dia no Gemini:", error);
+
+    // Fallback seguro
+    return {
+      text: "Que a paz e a esperança guiem o seu dia.",
+      verseReference: null,
+      reflection: null,
+    };
+  }
+}
+
+================
+File: .gitignore
+================
+# See https://help.github.com/articles/ignoring-files/ for more about ignoring files.
+
+# dependencies
+/node_modules
+/.pnp
+.pnp.*
+.yarn/*
+!.yarn/patches
+!.yarn/plugins
+!.yarn/releases
+!.yarn/versions
+
+# testing
+/coverage
+
+# next.js
+/.next/
+/out/
+
+# production
+/build
+
+# misc
+.DS_Store
+*.pem
+
+# debug
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+.pnpm-debug.log*
+
+# env files (can opt-in for committing if needed)
+.env*
+
+# vercel
+.vercel
+
+# typescript
+*.tsbuildinfo
+next-env.d.ts
+
+/src/generated/prisma
+
+.vercel
+.env*
+
+================
+File: next.config.ts
+================
+import type { NextConfig } from "next";
+
+const nextConfig: NextConfig = {
+  /* config options here */
+  reactCompiler: true,
+  experimental: {
+    serverActions: {
+      bodySizeLimit: "5mb",
+    },
+  },
+};
+
+export default nextConfig;
+
+================
+File: tsconfig.json
+================
+{
+  "compilerOptions": {
+    "target": "ES2017",
+    "lib": ["dom", "dom.iterable", "esnext"],
+    "allowJs": true,
+    "skipLibCheck": true,
+    "strict": true,
+    "noEmit": true,
+    "esModuleInterop": true,
+    "module": "esnext",
+    "moduleResolution": "bundler",
+    "resolveJsonModule": true,
+    "isolatedModules": true,
+    "jsx": "react-jsx",
+    "incremental": true,
+    "plugins": [
+      {
+        "name": "next"
+      }
+    ],
+    "paths": {
+      "@/*": ["./src/*"]
+    }
+  },
+  "include": [
+    "next-env.d.ts",
+    "**/*.ts",
+    "**/*.tsx",
+    ".next/types/**/*.ts",
+    ".next/dev/types/**/*.ts",
+    "**/*.mts"
+  ],
+  "exclude": ["node_modules","prisma"]
+}
+
+================
 File: prisma/schema.prisma
 ================
 // prisma/schema.prisma
@@ -4782,6 +5392,7 @@ model DailyWord {
   text           String   @db.Text
   reflection     String?  @db.Text
   instagramReelUrl String?
+  showTextWithReel Boolean  @default(true)  // ← NOVO
   
   createdAt DateTime @default(now())
 }
@@ -4912,708 +5523,6 @@ model LiturgicalOverride {
 }
 
 ================
-File: src/actions/dailyWord.ts
-================
-'use server'
-
-import { prisma } from '@/lib/prisma'
-import { revalidatePath } from 'next/cache'
-import { requireSuperAdmin } from '@/lib/permissions'
-import { generateDailyWord } from '@/lib/dailyWord'
-
-export async function generateAndSaveDailyWord() {
-  try {
-    await requireSuperAdmin()
-    return await generateDailyWord()
-  } catch (error: any) {
-    console.error(error)
-    return {
-      success: false,
-      error: error.message || 'Falha ao gerar a Palavra do Dia.',
-    }
-  }
-}
-
-// O pároco escreve na mão — sobrescreve (ou cria) a de hoje, sem passar
-// pelo Gemini. Mesma trava de "uma por dia" que o gerador automático usa.
-export async function saveManualDailyWord(_prevState: unknown, formData: FormData) {
-  try {
-    await requireSuperAdmin()
-
-    const text = (formData.get('text') as string)?.trim()
-    const verseReference = (formData.get('verseReference') as string)?.trim() || '-'
-    const reflection = (formData.get('reflection') as string)?.trim() || null
-
-    if (!text) throw new Error('Escreva o texto da Palavra do Dia.')
-
-    const today = new Date()
-    today.setHours(0, 0, 0, 0)
-
-    const existing = await prisma.dailyWord.findFirst({
-      where: { date: { gte: today } },
-    })
-
-    if (existing) {
-      await prisma.dailyWord.update({
-        where: { id: existing.id },
-        data: { text, verseReference, reflection },
-      })
-    } else {
-      await prisma.dailyWord.create({
-        data: { text, verseReference, reflection, date: new Date() },
-      })
-    }
-
-    revalidatePath('/')
-    revalidatePath('/admin/palavra-do-dia')
-    return { success: true }
-  } catch (error: any) {
-    return { success: false, error: error.message || 'Falha ao salvar.' }
-  }
-}
-
-================
-File: src/actions/staffAccess.ts
-================
-// src/actions/staffAccess.ts
-'use server'
-
-import { prisma } from '@/lib/prisma'
-import { revalidatePath } from 'next/cache'
-import { requireSuperAdmin } from '@/lib/permissions'
-import type { StaffPermission, StaffRole } from '@prisma/client'
-
-const ALL_PERMISSIONS: StaffPermission[] = [
-  'VIEW_PRAYER_REQUESTS',
-  'MANAGE_TITHE_RAFFLE',
-  'MANAGE_EVENTS',
-  'MANAGE_GALLERY',
-  'MANAGE_MASS_SCHEDULE',
-  'MANAGE_MINISTRIES',
-  'MANAGE_FAQ',
-  'MANAGE_LITURGICAL_THEME',
-  'MANAGE_TESTIMONIALS',
-]
-
-export async function updateStaffAccess(_prevState: unknown, formData: FormData) {
-  try {
-    const session = await requireSuperAdmin()
-
-    const userId = formData.get('userId') as string
-    if (!userId) throw new Error('Usuário não identificado.')
-
-    const staffRoleRaw = formData.get('staffRole') as string
-    const staffRole: StaffRole | null = staffRoleRaw === '' ? null : (staffRoleRaw as StaffRole)
-
-    // SUPER_ADMIN não impede a última administradora de se rebaixar sem querer
-    if (userId === session.user.id && staffRole !== 'SUPER_ADMIN') {
-      throw new Error('Você não pode remover seu próprio acesso de Super Admin por aqui.')
-    }
-
-    const ministryIdRaw = formData.get('ministryId') as string
-    const ministryId = staffRole === 'MINISTRY_LEADER' && ministryIdRaw ? ministryIdRaw : null
-
-    const permissions =
-      staffRole === 'MINISTRY_LEADER'
-        ? ALL_PERMISSIONS.filter((p) => formData.getAll('permissions').includes(p))
-        : []
-
-    await prisma.user.update({
-      where: { id: userId },
-      data: { staffRole, ministryId, permissions },
-    })
-
-    revalidatePath('/admin/usuarios')
-    return { success: true }
-  } catch (error: any) {
-    return { success: false, error: error.message || 'Falha ao atualizar acesso.' }
-  }
-}
-
-================
-File: src/app/admin/usuarios/AdminUsersClient.tsx
-================
-// src/app/admin/usuarios/AdminUsersClient.tsx
-'use client'
-
-import { useActionState, useState } from 'react'
-import { updateStaffAccess } from '@/actions/staffAccess'
-
-type StaffRole = 'SUPER_ADMIN' | 'MINISTRY_LEADER'
-
-type User = {
-  id: string
-  name: string | null
-  email: string | null
-  image: string | null
-  staffRole: StaffRole | null
-  ministryId: string | null
-  permissions: string[]
-}
-
-type Ministry = { id: string; name: string }
-
-type ActionState = { success: boolean; error?: string }
-
-const PERMISSION_LABELS: Record<string, string> = {
-  VIEW_PRAYER_REQUESTS: 'Ver pedidos de oração',
-  MANAGE_TITHE_RAFFLE: 'Sorteio do dízimo',
-  MANAGE_EVENTS: 'Eventos',
-  MANAGE_GALLERY: 'Galeria',
-  MANAGE_MASS_SCHEDULE: 'Horários de missa',
-  MANAGE_MINISTRIES: 'Pastorais e ministérios',
-  MANAGE_FAQ: 'FAQ',
-  MANAGE_LITURGICAL_THEME: 'Cores litúrgicas especiais (coordenador litúrgico)',
-  MANAGE_TESTIMONIALS: 'Moderar depoimentos',
-}
-
-function roleLabel(role: StaffRole | null) {
-  if (role === 'SUPER_ADMIN') return 'Super Admin'
-  if (role === 'MINISTRY_LEADER') return 'Líder de Ministério'
-  return 'Sem acesso ao painel'
-}
-
-function UserEditForm({
-  user,
-  ministries,
-  isSelf,
-  onDone,
-}: {
-  user: User
-  ministries: Ministry[]
-  isSelf: boolean
-  onDone: () => void
-}) {
-  const [state, formAction, pending] = useActionState<ActionState, FormData>(updateStaffAccess, {
-    success: false,
-  })
-  const [role, setRole] = useState<'' | StaffRole>(user.staffRole ?? '')
-
-  return (
-    <form
-      action={formAction}
-      className="mt-3 space-y-3 rounded border border-dashed border-line bg-cream/40 p-4"
-    >
-      <input type="hidden" name="userId" value={user.id} />
-
-      <div>
-        <label className="block text-xs font-bold uppercase tracking-wide text-navy/60">
-          Cargo
-        </label>
-        <select
-          name="staffRole"
-          value={role}
-          onChange={(e) => setRole(e.target.value as '' | StaffRole)}
-          disabled={isSelf}
-          className="mt-1 w-full rounded border border-line bg-white px-3 py-2 font-body text-sm focus:border-gold focus:outline-none disabled:opacity-60"
-        >
-          <option value="">Sem acesso ao painel</option>
-          <option value="MINISTRY_LEADER">Líder de Ministério</option>
-          <option value="SUPER_ADMIN">Super Admin</option>
-        </select>
-        {isSelf && (
-          <p className="mt-1 font-body text-xs text-navy/40">
-            Você não pode alterar seu próprio cargo por aqui.
-          </p>
-        )}
-      </div>
-
-      {role === 'MINISTRY_LEADER' && (
-        <>
-          <div>
-            <label className="block text-xs font-bold uppercase tracking-wide text-navy/60">
-              Ministério que lidera
-            </label>
-            <select
-              name="ministryId"
-              defaultValue={user.ministryId ?? ''}
-              className="mt-1 w-full rounded border border-line bg-white px-3 py-2 font-body text-sm focus:border-gold focus:outline-none"
-            >
-              <option value="">Nenhum</option>
-              {ministries.map((m) => (
-                <option key={m.id} value={m.id}>
-                  {m.name}
-                </option>
-              ))}
-            </select>
-          </div>
-
-          <div>
-            <label className="block text-xs font-bold uppercase tracking-wide text-navy/60">
-              Permissões
-            </label>
-            <div className="mt-1 space-y-1">
-              {Object.entries(PERMISSION_LABELS).map(([value, label]) => (
-                <label key={value} className="flex items-center gap-2 font-body text-sm">
-                  <input
-                    type="checkbox"
-                    name="permissions"
-                    value={value}
-                    defaultChecked={user.permissions.includes(value)}
-                  />
-                  {label}
-                </label>
-              ))}
-            </div>
-          </div>
-        </>
-      )}
-
-      <div className="flex gap-2">
-        <button
-          type="submit"
-          disabled={pending}
-          className="flex-1 rounded bg-navy py-2 font-body text-xs font-semibold uppercase tracking-wide text-cream disabled:opacity-60"
-        >
-          {pending ? 'Salvando...' : 'Salvar'}
-        </button>
-        <button
-          type="button"
-          onClick={onDone}
-          className="flex-1 rounded border border-line py-2 font-body text-xs font-semibold uppercase tracking-wide text-navy/60"
-        >
-          Cancelar
-        </button>
-      </div>
-
-      {state?.error && <p className="font-body text-xs text-red-600">{state.error}</p>}
-      {state?.success && <p className="font-body text-xs text-green-700">Salvo!</p>}
-    </form>
-  )
-}
-
-export function AdminUsersClient({
-  users,
-  ministries,
-  currentUserId,
-}: {
-  users: User[]
-  ministries: Ministry[]
-  currentUserId: string
-}) {
-  const [editingId, setEditingId] = useState<string | null>(null)
-
-  return (
-    <main className="min-h-screen bg-cream px-6 py-12 text-navy">
-      <div className="mx-auto max-w-2xl">
-        <h1 className="font-display text-3xl font-bold">Usuários e Permissões</h1>
-        <p className="mt-1 font-body text-sm text-navy/60">
-          Só aparecem aqui pessoas que já entraram no site com Google pelo menos uma vez.
-        </p>
-
-        <div className="mt-8 space-y-3">
-          {users.map((u) => (
-            <div key={u.id} className="rounded-lg border border-line bg-white p-4">
-              <div className="flex items-start justify-between gap-3">
-                <div className="flex items-center gap-3">
-                  {u.image && (
-                    // eslint-disable-next-line @next/next/no-img-element
-                    <img src={u.image} alt="" className="h-10 w-10 rounded-full" />
-                  )}
-                  <div>
-                    <p className="font-display font-semibold">{u.name ?? 'Sem nome'}</p>
-                    <p className="font-body text-xs text-navy/50">{u.email}</p>
-                    <p className="mt-1 font-body text-xs font-semibold text-navy/70">
-                      {roleLabel(u.staffRole)}
-                    </p>
-                  </div>
-                </div>
-                <button
-                  onClick={() => setEditingId(editingId === u.id ? null : u.id)}
-                  className="shrink-0 font-body text-xs font-semibold text-navy/60 hover:underline"
-                >
-                  {editingId === u.id ? 'Fechar' : 'Editar acesso'}
-                </button>
-              </div>
-
-              {editingId === u.id && (
-                <UserEditForm
-                  user={u}
-                  ministries={ministries}
-                  isSelf={u.id === currentUserId}
-                  onDone={() => setEditingId(null)}
-                />
-              )}
-            </div>
-          ))}
-        </div>
-      </div>
-    </main>
-  )
-}
-
-================
-File: src/app/globals.css
-================
-@import "tailwindcss";
-
-@theme {
-  --color-navy: #1b2560;
-  --color-navy-dark: #10173d;
-  --color-gold: #f0b023;
-  --color-terracotta: #7a4a2b;
-  --color-cream: #fbf8f2;
-  --color-line: #e4ddd0;
-
-  --font-display: var(--font-cormorant), serif;
-  --font-body: var(--font-nunito), sans-serif;
-}
-
-body {
-  background-color: var(--color-cream);
-  color: var(--color-navy);
-}
-
-================
-File: src/app/layout.tsx
-================
-// src/app/layout.tsx
-
-import type { Metadata } from 'next'
-import { Cormorant_Garamond, Nunito } from 'next/font/google'
-import { SiteHeader } from '@/components/layout/SiteHeader'
-import './globals.css'
-
-const cormorant = Cormorant_Garamond({
-  subsets: ['latin'],
-  weight: ['500', '600', '700'],
-  variable: '--font-cormorant',
-})
-
-const nunito = Nunito({
-  subsets: ['latin'],
-  weight: ['400', '500', '600', '700'],
-  variable: '--font-nunito',
-})
-
-export const metadata: Metadata = {
-  title: 'Paróquia Nossa Senhora Aparecida — Botucatu',
-  description: 'Lar de fé, esperança e devoção.',
-}
-
-export default function RootLayout({ children }: { children: React.ReactNode }) {
-  return (
-    <html lang="pt-BR">
-      <body className={`${cormorant.variable} ${nunito.variable} antialiased`}>
-        <SiteHeader />
-        {children}
-      </body>
-    </html>
-  )
-}
-
-================
-File: src/components/admin/GenerateDailyWordButton.tsx
-================
-'use client'
-
-import { useState, useTransition } from 'react'
-import { generateAndSaveDailyWord } from '@/actions/dailyWord'
-
-export function GenerateDailyWordButton() {
-  const [isPending, startTransition] = useTransition()
-  const [message, setMessage] = useState<string | null>(null)
-
-  function handleClick() {
-    setMessage(null)
-    startTransition(async () => {
-      const result = await generateAndSaveDailyWord()
-if (result.success) {
-  setMessage('message' in result ? result.message : 'Gerado!')
-} else {
-  setMessage('error' in result ? result.error : 'Erro')
-}
-    })
-  }
-
-  return (
-    <div className="rounded-lg border border-amber-300 bg-amber-50 p-4">
-      <p className="mb-2 text-sm font-semibold text-amber-800">
-        Temporário — Gerar Palavra do Dia (antes do cron)
-      </p>
-      <button
-        onClick={handleClick}
-        disabled={isPending}
-        className="rounded bg-navy px-4 py-2 text-sm font-semibold text-cream disabled:opacity-50"
-      >
-        {isPending ? 'Gerando...' : 'Gerar Palavra do Dia agora'}
-      </button>
-      {message && (
-        <p className="mt-2 text-sm text-navy/70">{message}</p>
-      )}
-    </div>
-  )
-}
-
-================
-File: src/components/layout/SiteHeader.tsx
-================
-// src/components/layout/SiteHeader.tsx
-
-import Link from 'next/link'
-import { auth, signIn, signOut } from '@/auth'
-
-const NAV_LINKS = [
-  { label: 'Início', href: '/' },
-  { label: 'A Paróquia', href: '/a-paroquia' },
-  { label: 'Missas', href: '/#horarios' },
-  { label: 'Eventos', href: '/#eventos' },
-  { label: 'Galeria', href: '/#galeria' },
-  { label: 'Contato', href: '/#contato' },
-]
-
-export async function SiteHeader() {
-  const session = await auth()
-  const isStaff = !!session?.user?.staffRole
-
-  return (
-    <header className="sticky top-0 z-50 border-b border-line bg-cream/90 backdrop-blur">
-      <div className="mx-auto flex max-w-5xl items-center justify-between gap-3 px-4 py-3 sm:px-6">
-        <Link href="/" className="flex shrink-0 items-center gap-2">
-          <img src="/favicon.svg" alt="Nossa Senhora Aparecida" className="h-8 w-8" />
-          <span className="font-display text-sm font-bold leading-tight tracking-tight text-navy sm:text-lg">
-            Nossa Senhora Aparecida
-          </span>
-        </Link>
-
-        <nav className="hidden items-center gap-6 md:flex">
-          {NAV_LINKS.map((link) => (
-            <Link
-              key={link.href}
-              href={link.href}
-              className="font-body text-sm font-semibold text-navy/70 transition-colors hover:text-gold"
-            >
-              {link.label}
-            </Link>
-          ))}
-        </nav>
-
-        <div className="flex shrink-0 items-center gap-3 sm:gap-4">
-          {isStaff && (
-            <Link
-              href="/admin"
-              className="hidden font-body text-xs font-semibold uppercase tracking-wide text-navy/50 transition-colors hover:text-gold sm:inline"
-            >
-              Painel
-            </Link>
-          )}
-
-          <Link
-            href="/#doacao"
-            className="rounded-full bg-gold px-4 py-2 font-body text-xs font-semibold uppercase tracking-wide text-navy transition-opacity hover:opacity-90"
-          >
-            Doar
-          </Link>
-
-          {session?.user ? (
-            <form
-              action={async () => {
-                'use server'
-                await signOut()
-              }}
-              className="flex items-center gap-2"
-            >
-              {session.user.image && (
-                <img
-                  src={session.user.image}
-                  alt={session.user.name ?? 'Você'}
-                  className="h-6 w-6 rounded-full border border-line"
-                />
-              )}
-              <button
-                type="submit"
-                className="font-body text-xs font-semibold uppercase tracking-wide text-navy/50 transition-colors hover:text-gold"
-              >
-                Sair
-              </button>
-            </form>
-          ) : (
-            <form
-              action={async () => {
-                'use server'
-                await signIn('google')
-              }}
-            >
-              <button
-                type="submit"
-                className="border border-navy px-3 py-1.5 font-body text-xs font-semibold uppercase tracking-wide text-navy transition-colors hover:bg-navy hover:text-cream"
-              >
-                Entrar
-              </button>
-            </form>
-          )}
-        </div>
-      </div>
-    </header>
-  )
-}
-
-================
-File: src/lib/gemini.ts
-================
-import { GoogleGenerativeAI } from "@google/generative-ai";
-
-const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY!);
-
-export async function getPalavraDoDia() {
-  try {
-    const model = genAI.getGenerativeModel({
-      model: "gemini-3.5-flash-lite",
-      generationConfig: {
-        responseMimeType: "application/json", // força JSON
-      },
-    });
-
-    const prompt = `
-Você é um assistente espiritual católico. Gere a "Palavra do Dia" para o site de uma paróquia brasileira.
-
-Regras:
-- Máximo de 2 frases curtas, claras e acolhedoras.
-- Sem saudações, sem introduções e sem mencionar "Igreja Católica", "paróquia" ou "padre".
-- Priorize a tradição católica (Bíblia, santos ou papas) preferencialmente Novo Testamento.
-- Tom de encorajamento, esperança e confiança em Deus. Evite moralismo pesado e frases genéricas.
-
-Fontes preferidas quando não for Bíblia:
-São João Paulo II, Papa Francisco, Bento XVI, Santa Teresa de Calcutá, São João Bosco, São José de Anchieta, Santo Agostinho, Santa Catarina de Sena, São Tomás de Aquino, Santa Teresa de Ávila.
-
-Responda APENAS com JSON válido neste formato exato:
-{
-  "text": "o texto da mensagem (máximo 2 frases)",
-  "verseReference": "referência bíblica (ex: Jo 14,27) OU nome do santo/papa, ou null",
-  "reflection": null
-}
-`;
-
-    const result = await model.generateContent(prompt);
-    const response = await result.response;
-    const raw = response.text();
-
-    // Parse seguro
-    const parsed = JSON.parse(raw);
-
-    return {
-      text: parsed.text?.trim() || "Que a paz de Cristo preencha o seu coração hoje.",
-      verseReference: parsed.verseReference || "-",
-      reflection: parsed.reflection || null,
-    };
-  } catch (error) {
-    console.error("Erro ao buscar palavra do dia no Gemini:", error);
-
-    // Fallback seguro
-    return {
-      text: "Que a paz e a esperança guiem o seu dia.",
-      verseReference: null,
-      reflection: null,
-    };
-  }
-}
-
-================
-File: .gitignore
-================
-# See https://help.github.com/articles/ignoring-files/ for more about ignoring files.
-
-# dependencies
-/node_modules
-/.pnp
-.pnp.*
-.yarn/*
-!.yarn/patches
-!.yarn/plugins
-!.yarn/releases
-!.yarn/versions
-
-# testing
-/coverage
-
-# next.js
-/.next/
-/out/
-
-# production
-/build
-
-# misc
-.DS_Store
-*.pem
-
-# debug
-npm-debug.log*
-yarn-debug.log*
-yarn-error.log*
-.pnpm-debug.log*
-
-# env files (can opt-in for committing if needed)
-.env*
-
-# vercel
-.vercel
-
-# typescript
-*.tsbuildinfo
-next-env.d.ts
-
-/src/generated/prisma
-
-.vercel
-.env*
-
-================
-File: next.config.ts
-================
-import type { NextConfig } from "next";
-
-const nextConfig: NextConfig = {
-  /* config options here */
-  reactCompiler: true,
-  experimental: {
-    serverActions: {
-      bodySizeLimit: "5mb",
-    },
-  },
-};
-
-export default nextConfig;
-
-================
-File: tsconfig.json
-================
-{
-  "compilerOptions": {
-    "target": "ES2017",
-    "lib": ["dom", "dom.iterable", "esnext"],
-    "allowJs": true,
-    "skipLibCheck": true,
-    "strict": true,
-    "noEmit": true,
-    "esModuleInterop": true,
-    "module": "esnext",
-    "moduleResolution": "bundler",
-    "resolveJsonModule": true,
-    "isolatedModules": true,
-    "jsx": "react-jsx",
-    "incremental": true,
-    "plugins": [
-      {
-        "name": "next"
-      }
-    ],
-    "paths": {
-      "@/*": ["./src/*"]
-    }
-  },
-  "include": [
-    "next-env.d.ts",
-    "**/*.ts",
-    "**/*.tsx",
-    ".next/types/**/*.ts",
-    ".next/dev/types/**/*.ts",
-    "**/*.mts"
-  ],
-  "exclude": ["node_modules","prisma"]
-}
-
-================
 File: src/app/admin/page.tsx
 ================
 // src/app/admin/page.tsx
@@ -5676,6 +5585,143 @@ export default async function AdminPage() {
 }
 
 ================
+File: src/components/home/DailyWordSection.tsx
+================
+// src/components/home/DailyWordSection.tsx
+import { InstagramEmbed } from '@/components/InstagramEmbed'
+
+type DailyWord = {
+  verseReference: string
+  text: string
+  reflection: string | null
+  instagramReelUrl?: string | null
+  showTextWithReel?: boolean
+}
+
+export function DailyWordSection({ dailyWord }: { dailyWord: DailyWord | null }) {
+  if (!dailyWord) return null
+
+  const hasReel = Boolean(dailyWord.instagramReelUrl)
+  // Sem reels → sempre mostra texto
+  // Com reels → só mostra texto se a chavinha estiver ligada (default true)
+  const showText = !hasReel || dailyWord.showTextWithReel !== false
+
+  return (
+    <section className="mx-auto max-w-3xl px-6 py-10">
+      <p className="text-center font-body text-xs font-bold uppercase tracking-widest text-gold">
+        Palavra do Dia
+      </p>
+
+      <div className="mt-4 rounded-lg border border-line bg-white p-6 text-center">
+        <span className="inline-block rounded-full bg-navy px-3 py-1 font-mono text-[10px] font-bold uppercase tracking-widest text-cream">
+          {new Date().toLocaleDateString('pt-BR', { day: '2-digit', month: 'long' })}
+        </span>
+
+        {showText && (
+          <>
+            <p className="mt-3 font-mono text-xs uppercase text-navy/50">
+              {dailyWord.verseReference}
+            </p>
+            <p className="mt-2 font-display text-lg italic">&ldquo;{dailyWord.text}&rdquo;</p>
+            {dailyWord.reflection && (
+              <p className="mx-auto mt-3 max-w-md font-body text-sm text-navy/70">
+                {dailyWord.reflection}
+              </p>
+            )}
+          </>
+        )}
+
+        {hasReel && (
+          <div className={showText ? 'mt-6' : 'mt-4'}>
+            <div className="flex justify-center">
+              <InstagramEmbed url={dailyWord.instagramReelUrl!} />
+            </div>
+            <a
+              href={dailyWord.instagramReelUrl!}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="mt-3 inline-block font-body text-xs font-semibold text-navy/50 hover:text-gold"
+            >
+              Ver no Instagram ↗
+            </a>
+          </div>
+        )}
+      </div>
+    </section>
+  )
+}
+
+================
+File: src/actions/dailyWord.ts
+================
+'use server'
+
+import { prisma } from '@/lib/prisma'
+import { revalidatePath } from 'next/cache'
+import { requireSuperAdmin } from '@/lib/permissions'
+import { generateDailyWord } from '@/lib/dailyWord'
+
+export async function generateAndSaveDailyWord() {
+  try {
+    await requireSuperAdmin()
+    return await generateDailyWord()
+  } catch (error: any) {
+    console.error(error)
+    return {
+      success: false,
+      error: error.message || 'Falha ao gerar a Palavra do Dia.',
+    }
+  }
+}
+
+// O pároco escreve na mão — sobrescreve (ou cria) a de hoje, sem passar
+// pelo Gemini. Mesma trava de "uma por dia" que o gerador automático usa.
+export async function saveManualDailyWord(_prevState: unknown, formData: FormData) {
+  try {
+    await requireSuperAdmin()
+
+    const text = (formData.get('text') as string)?.trim()
+    const verseReference = (formData.get('verseReference') as string)?.trim() || '-'
+    const reflection = (formData.get('reflection') as string)?.trim() || null
+    const instagramReelUrl =
+      (formData.get('instagramReelUrl') as string)?.trim() || null
+    // checkbox: se marcado vem "on", se não vem null
+    const showTextWithReel = formData.get('showTextWithReel') === 'on'
+
+    if (!text) throw new Error('Escreva o texto da Palavra do Dia.')
+
+    const today = new Date()
+    today.setHours(0, 0, 0, 0)
+
+    const existing = await prisma.dailyWord.findFirst({
+      where: { date: { gte: today } },
+    })
+
+    const data = {
+      text,
+      verseReference,
+      reflection,
+      instagramReelUrl,
+      showTextWithReel,
+    }
+
+    if (existing) {
+      await prisma.dailyWord.update({ where: { id: existing.id }, data })
+    } else {
+      await prisma.dailyWord.create({
+        data: { ...data, date: new Date() },
+      })
+    }
+
+    revalidatePath('/')
+    revalidatePath('/admin/palavra-do-dia')
+    return { success: true }
+  } catch (error: any) {
+    return { success: false, error: error.message || 'Falha ao salvar.' }
+  }
+}
+
+================
 File: src/app/page.tsx
 ================
 // src/app/page.tsx
@@ -5721,6 +5767,9 @@ export default async function Home() {
         include: { user: { select: { name: true, image: true } } },
       }),
     ])
+
+    console.log('DB HOST:', process.env.DATABASE_URL?.split('@')[1])
+    console.log('DAILY WORD:', dailyWord)
 
   const themeMode = settings?.liturgicalThemeMode ?? 'DISCRETO'
   const mapsUrl = settings?.address
@@ -5792,7 +5841,7 @@ File: package.json
   "private": true,
   "scripts": {
     "dev": "next dev",
-    "build": "next build",
+    "build": "prisma migrate deploy && next build",
     "start": "next start",
     "lint": "eslint",
     "postinstall": "prisma generate"

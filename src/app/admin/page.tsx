@@ -15,6 +15,7 @@ const MENU = [
   { label: 'Usuários e Permissões', href: '/admin/usuarios', ready: true },
   { label: 'Cores Litúrgicas', href: '/admin/liturgico', ready: true },
   { label: 'Depoimentos', href: '/admin/depoimentos', ready: true },
+  { label: 'Pedidos Recebidos', href: '/admin/pedidos', ready: true },
 ]
 
 export default async function AdminPage() {
