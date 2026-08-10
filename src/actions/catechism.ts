@@ -278,3 +278,39 @@ export async function deleteAttendance(id: string) {
     return { success: false, error: message }
   }
 }
+
+export async function getAttendancesReport(filters: { 
+  weekId?: string; 
+  catechistName?: string; 
+  stage?: string; 
+}) {
+  try {
+    // Garantir segurança e permissão de admin
+    await requirePermission('MANAGE_CATECHISM');
+
+    // Construção dinâmica da query
+    const whereClause: any = {};
+    
+    if (filters.weekId && filters.weekId !== 'all') {
+      whereClause.weekId = filters.weekId;
+    }
+    if (filters.catechistName && filters.catechistName !== 'all') {
+      whereClause.catechistName = filters.catechistName;
+    }
+    if (filters.stage && filters.stage !== 'all') {
+      whereClause.stage = filters.stage;
+    }
+
+    const data = await prisma.catechismAttendance.findMany({
+      where: whereClause,
+      orderBy: { createdAt: 'desc' },
+      include: {
+        week: { select: { title: true } }
+      }
+    });
+
+    return { success: true, data };
+  } catch (error: any) {
+    return { success: false, error: error.message || 'Erro ao gerar relatório' };
+  }
+}
