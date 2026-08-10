@@ -37,7 +37,7 @@ Notes:
 ------
 - Some files may have been excluded based on .gitignore rules and Repomix's configuration
 - Binary files are not included in this packed representation. Please refer to the Repository Structure section for a complete list of file paths, including binary files
-- Files matching these patterns are excluded: .agents/**, .claude/**, .next/**, .node_modules/**, node_modules/**, .env, .env.*, AGENTS.md, CLAUDE.md, README.md, repomix.txt, repomix-output.*
+- Files matching these patterns are excluded: .agents/**, .claude/**, .next/**, .node_modules/**, node_modules/**, .env, .env.*, AGENTS.md, CLAUDE.md, README.md, repomix.txt, repomix-output.*, .agents/**, .claude/**, .next/**, .node_modules/**, node_modules/**, .env, .env.*, AGENTS.md, CLAUDE.md, README.md, repomix.txt
 - Files matching patterns in .gitignore are excluded
 - Files matching default ignore patterns are excluded
 - Files are sorted by Git change count (files with more changes are at the bottom)
@@ -55,6 +55,8 @@ prisma/
     20260731213127_testimonials/
       migration.sql
     20260801000041_dailyword_instagram_reel/
+      migration.sql
+    20260804190000_catechism_baseline/
       migration.sql
     migration_lock.toml
   schema.prisma
@@ -74,6 +76,8 @@ public/
   window.svg
 src/
   actions/
+    catechism.ts
+    contactRequest.ts
     dailyWord.ts
     event.ts
     faq.ts
@@ -89,6 +93,9 @@ src/
     a-paroquia/
       page.tsx
     admin/
+      catequese/
+        AdminCatechismClient.tsx
+        page.tsx
       configuracoes/
         AdminSettingsClient.tsx
         page.tsx
@@ -119,6 +126,9 @@ src/
         ManualDailyWordForm.tsx
         page.tsx
         TodayWordCard.tsx
+      pedidos/
+        AdminRequestsClient.tsx
+        page.tsx
       usuarios/
         AdminUsersClient.tsx
         page.tsx
@@ -132,6 +142,19 @@ src/
           route.ts
       upload/
         route.ts
+    catequese/
+      AdminCatechismClient.tsx
+      page.tsx
+      PresencaClient.tsx
+    contato/
+      geral/
+        page.tsx
+      intencao/
+        page.tsx
+      oracao/
+        page.tsx
+      sacramento/
+        page.tsx
     teste/
       page.tsx
     favicon.ico
@@ -158,12 +181,14 @@ src/
       TestimonialsBlock.tsx
     layout/
       SiteHeader.tsx
+    ContactForm.tsx
     CopyPixButton.tsx
     InstagramEmbed.tsx
     PalavraDoDia.tsx
     TestimonialForm.tsx
     TestimonialsSection.tsx
   lib/
+    catechism.ts
     dailyWord.ts
     gemini.ts
     liturgical.ts
@@ -173,7 +198,9 @@ src/
     next-auth.d.ts
   auth.ts
 .gitignore
+drift.sql
 eslint.config.mjs
+migration_catechism.sql
 next.config.ts
 package.json
 pnpm-workspace.yaml
@@ -187,6 +214,201 @@ vercel.json
 ================================================================
 Files
 ================================================================
+
+================
+File: src/app/catequese/AdminCatechismClient.tsx
+================
+// src/app/admin/catequese/AdminCatechismClient.tsx
+'use client'
+
+import { useMemo, useState } from 'react'
+// actions que você vai criar:
+// openWeek, closeWeek, createCatechist, toggleCatechist
+
+type Week = {
+  id: string
+  title: string
+  token: string
+  isOpen: boolean
+  startsAt: Date
+}
+
+type Catechist = {
+  id: string
+  name: string
+  stages: string[]
+  active: boolean
+}
+
+type Attendance = {
+  id: string
+  studentName: string
+  massLabel: string
+  stage: string
+  catechistName: string
+  catechistId: string
+  createdAt: Date
+  week: { id: string; title: string }
+}
+
+export function AdminCatechismClient({
+  openWeek,
+  weeks,
+  catechists,
+  attendances,
+  baseUrl,
+}: {
+  openWeek: Week | null
+  weeks: Week[]
+  catechists: Catechist[]
+  attendances: Attendance[]
+  baseUrl: string
+}) {
+  const [tab, setTab] = useState<'semana' | 'catequistas' | 'relatorio'>('semana')
+  const [filterCatechistId, setFilterCatechistId] = useState<string>('all')
+
+  const weekLink = openWeek ? `${baseUrl}/catequese?s=${openWeek.token}` : null
+  const qrSrc = weekLink
+    ? `https://api.qrserver.com/v1/create-qr-code/?size=220x220&data=${encodeURIComponent(weekLink)}`
+    : null
+
+  const reportRows = useMemo(() => {
+    const weekId = openWeek?.id
+    return attendances.filter((a) => {
+      if (weekId && a.week.id !== weekId) return false
+      if (filterCatechistId !== 'all' && a.catechistId !== filterCatechistId) return false
+      return true
+    })
+  }, [attendances, openWeek, filterCatechistId])
+
+  return (
+    <main className="min-h-screen bg-cream px-6 py-12 text-navy">
+      <div className="mx-auto max-w-2xl">
+        <h1 className="font-display text-3xl font-bold">Catequese</h1>
+        <p className="mt-1 font-body text-sm text-navy/60">
+          Semana com QR, catequistas e relatório por turma.
+        </p>
+
+        <div className="mt-6 flex flex-wrap gap-2">
+          {(
+            [
+              ['semana', 'Semana / QR'],
+              ['catequistas', 'Catequistas'],
+              ['relatorio', 'Relatório'],
+            ] as const
+          ).map(([key, label]) => (
+            <button
+              key={key}
+              type="button"
+              onClick={() => setTab(key)}
+              className={`rounded-full border px-3 py-1.5 font-body text-xs font-semibold uppercase tracking-wide ${
+                tab === key ? 'border-navy bg-navy text-cream' : 'border-line text-navy/60'
+              }`}
+            >
+              {label}
+            </button>
+          ))}
+        </div>
+
+        {tab === 'semana' && (
+          <section className="mt-6 space-y-4 rounded-lg border border-line bg-white p-5">
+            {openWeek ? (
+              <>
+                <p className="font-body text-xs font-bold uppercase tracking-wide text-green-700">
+                  Semana aberta
+                </p>
+                <p className="font-display text-xl font-semibold">{openWeek.title}</p>
+                {weekLink && (
+                  <div className="space-y-2">
+                    <p className="break-all font-mono text-xs text-navy/70">{weekLink}</p>
+                    <button
+                      type="button"
+                      className="rounded border border-line px-3 py-1.5 text-xs font-semibold"
+                      onClick={() => navigator.clipboard.writeText(weekLink)}
+                    >
+                      Copiar link
+                    </button>
+                  </div>
+                )}
+                {qrSrc && (
+                  // eslint-disable-next-line @next/next/no-img-element
+                  <img src={qrSrc} alt="QR da semana" className="mx-auto h-52 w-52" />
+                )}
+                <p className="font-body text-xs text-navy/50">
+                  Imprima o QR e cole no mural. Cada semana nova gera link novo.
+                </p>
+                {/* botões: Fechar semana / Abrir nova — ligar nas actions */}
+              </>
+            ) : (
+              <p className="font-body text-sm text-navy/60">
+                Nenhuma semana aberta. Abra uma para gerar o QR.
+              </p>
+            )}
+          </section>
+        )}
+
+        {tab === 'catequistas' && (
+          <section className="mt-6 space-y-4">
+            {/* form criar catequista: name + stages[] + active */}
+            <div className="space-y-2">
+              {catechists.map((c) => (
+                <div
+                  key={c.id}
+                  className="flex items-center justify-between rounded-lg border border-line bg-white p-3"
+                >
+                  <div>
+                    <p className="font-body text-sm font-semibold">{c.name}</p>
+                    <p className="font-body text-xs text-navy/50">
+                      {c.stages.join(', ')} · {c.active ? 'ativo' : 'inativo'}
+                    </p>
+                  </div>
+                  {/* botão ativar/desativar */}
+                </div>
+              ))}
+            </div>
+          </section>
+        )}
+
+        {tab === 'relatorio' && (
+          <section className="mt-6 space-y-4">
+            <select
+              value={filterCatechistId}
+              onChange={(e) => setFilterCatechistId(e.target.value)}
+              className="w-full rounded border border-line bg-white px-3 py-2 text-sm"
+            >
+              <option value="all">Todos os catequistas</option>
+              {catechists.map((c) => (
+                <option key={c.id} value={c.id}>
+                  {c.name}
+                </option>
+              ))}
+            </select>
+
+            <p className="font-body text-xs text-navy/50">
+              {reportRows.length} registro(s)
+              {openWeek ? ` · ${openWeek.title}` : ''}
+            </p>
+
+            <div className="space-y-2">
+              {reportRows.map((a) => (
+                <div key={a.id} className="rounded-lg border border-line bg-white p-3">
+                  <p className="font-body text-sm font-semibold">{a.studentName}</p>
+                  <p className="font-body text-xs text-navy/50">
+                    {a.massLabel} · {a.stage} · {a.catechistName}
+                  </p>
+                  <p className="font-body text-xs text-navy/40">
+                    Enviado em{' '}
+                    {new Date(a.createdAt).toLocaleString('pt-BR')}
+                  </p>
+                </div>
+              ))}
+            </div>
+          </section>
+        )}
+      </div>
+    </main>
+  )
+}
 
 ================
 File: prisma/migrations/20260721223628_init/migration.sql
@@ -502,6 +724,13 @@ File: prisma/migrations/20260801000041_dailyword_instagram_reel/migration.sql
 ALTER TABLE "DailyWord" ADD COLUMN     "instagramReelUrl" TEXT;
 
 ================
+File: prisma/migrations/20260804190000_catechism_baseline/migration.sql
+================
+-- Baseline: alterações já estão no banco (db push / manual).
+-- Só alinha o histórico de migrations. Não executa nada destrutivo.
+SELECT 1;
+
+================
 File: prisma/migrations/migration_lock.toml
 ================
 # Please do not edit this file manually
@@ -672,6 +901,226 @@ File: public/vercel.svg
 File: public/window.svg
 ================
 <svg fill="none" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 16 16"><path fill-rule="evenodd" clip-rule="evenodd" d="M1.5 2.5h13v10a1 1 0 0 1-1 1h-11a1 1 0 0 1-1-1zM0 1h16v11.5a2.5 2.5 0 0 1-2.5 2.5h-11A2.5 2.5 0 0 1 0 12.5zm3.75 4.5a.75.75 0 1 0 0-1.5.75.75 0 0 0 0 1.5M7 4.75a.75.75 0 1 1-1.5 0 .75.75 0 0 1 1.5 0m1.75.75a.75.75 0 1 0 0-1.5.75.75 0 0 0 0 1.5" fill="#666"/></svg>
+
+================
+File: src/actions/catechism.ts
+================
+// src/actions/catechism.ts
+'use server'
+
+import { prisma } from '@/lib/prisma'
+import { revalidatePath } from 'next/cache'
+import { auth } from '@/auth'
+import { requirePermission } from '@/lib/permissions'
+import { getTodayEligibleMasses } from '@/lib/catechism'
+
+// ------- Auto atribuição (responsável/aluno logado) -------
+
+export async function markAttendanceSelf(_prevState: unknown, formData: FormData) {
+  try {
+    const session = await auth()
+    if (!session?.user?.email) {
+      throw new Error('Você precisa estar logado.')
+    }
+
+    const studentId = formData.get('studentId') as string
+    const scheduleId = formData.get('scheduleId') as string
+    if (!studentId || !scheduleId) throw new Error('Selecione o aluno e a missa.')
+
+    // Confirma que esse aluno pertence mesmo a quem está logado — nunca
+    // confia no studentId vindo do form sem checar o dono.
+    const student = await prisma.catechismStudent.findUnique({ where: { id: studentId } })
+    if (!student || student.guardianEmail !== session.user.email) {
+      throw new Error('Aluno não encontrado pra esse login.')
+    }
+
+    // Recalcula a janela no servidor — nunca confia no horário que o
+    // navegador mandou, senão dá pra burlar mudando o relógio do celular.
+    const massSchedules = await prisma.massSchedule.findMany({ orderBy: { order: 'asc' } })
+    const eligible = getTodayEligibleMasses(massSchedules)
+    const mass = eligible.find((m) => m.scheduleId === scheduleId && m.isOpenNow)
+
+    if (!mass) {
+      throw new Error('Essa missa não está mais com a presença liberada no momento.')
+    }
+
+    const already = await prisma.catechismAttendance.findFirst({
+      where: { studentId, attendedAt: mass.attendedAt },
+    })
+    if (already) {
+      throw new Error('Presença já registrada pra essa missa.')
+    }
+
+    await prisma.catechismAttendance.create({
+      data: {
+        studentId,
+        massLabel: mass.label,
+        attendedAt: mass.attendedAt,
+        source: 'SELF',
+        markedByUserId: session.user.id,
+      },
+    })
+
+    revalidatePath('/catequese')
+    revalidatePath('/admin/catequese')
+    return { success: true }
+  } catch (error: any) {
+    return { success: false, error: error.message || 'Falha ao marcar presença.' }
+  }
+}
+
+// ------- Portal do catequista -------
+
+export async function createStudent(_prevState: unknown, formData: FormData) {
+  try {
+    await requirePermission('MANAGE_CATECHISM')
+
+    const name = (formData.get('name') as string)?.trim()
+    const className = (formData.get('className') as string)?.trim()
+    const guardianEmail = (formData.get('guardianEmail') as string)?.trim().toLowerCase()
+
+    if (!name || !className || !guardianEmail) {
+      throw new Error('Preencha nome, turma e e-mail do responsável.')
+    }
+
+    await prisma.catechismStudent.create({ data: { name, className, guardianEmail } })
+
+    revalidatePath('/admin/catequese')
+    return { success: true }
+  } catch (error: any) {
+    return { success: false, error: error.message || 'Falha ao cadastrar aluno.' }
+  }
+}
+
+export async function toggleStudentActive(id: string, active: boolean) {
+  try {
+    await requirePermission('MANAGE_CATECHISM')
+    await prisma.catechismStudent.update({ where: { id }, data: { active } })
+    revalidatePath('/admin/catequese')
+    return { success: true }
+  } catch (error: any) {
+    return { success: false, error: error.message || 'Falha ao atualizar.' }
+  }
+}
+
+// Marcação manual pelo catequista (ex: aluno sem celular, ou correção)
+export async function markAttendanceManual(_prevState: unknown, formData: FormData) {
+  try {
+    const session = await requirePermission('MANAGE_CATECHISM')
+
+    const studentId = formData.get('studentId') as string
+    const massLabel = (formData.get('massLabel') as string)?.trim()
+    const dateRaw = formData.get('date') as string
+    const note = (formData.get('note') as string)?.trim() || null
+
+    if (!studentId || !massLabel || !dateRaw) {
+      throw new Error('Preencha aluno, missa e data.')
+    }
+
+    await prisma.catechismAttendance.create({
+      data: {
+        studentId,
+        massLabel,
+        attendedAt: new Date(dateRaw),
+        source: 'MANUAL',
+        markedByUserId: session.user.id,
+        note,
+      },
+    })
+
+    revalidatePath('/admin/catequese')
+    return { success: true }
+  } catch (error: any) {
+    return { success: false, error: error.message || 'Falha ao marcar presença.' }
+  }
+}
+
+export async function removeAttendance(id: string) {
+  try {
+    await requirePermission('MANAGE_CATECHISM')
+    await prisma.catechismAttendance.delete({ where: { id } })
+    revalidatePath('/admin/catequese')
+    return { success: true }
+  } catch (error: any) {
+    return { success: false, error: error.message || 'Falha ao remover.' }
+  }
+}
+
+================
+File: src/actions/contactRequest.ts
+================
+// src/actions/contactRequest.ts
+'use server'
+
+import { prisma } from '@/lib/prisma'
+import { revalidatePath } from 'next/cache'
+import { auth } from '@/auth'
+import { requirePermission } from '@/lib/permissions'
+import type { ContactRequestType, SacramentType, ContactRequestStatus } from '@prisma/client'
+
+// Login é sugerido, nunca obrigatório — se a pessoa estiver logada, guarda
+// o userId; senão, fica anônimo mesmo. Revisão de todo pedido é sempre
+// feita por uma pessoa humana no /admin/pedidos.
+export async function createContactRequest(_prevState: unknown, formData: FormData) {
+  try {
+    const session = await auth()
+
+    const type = formData.get('type') as ContactRequestType
+    const name = (formData.get('name') as string)?.trim()
+    const contact = (formData.get('contact') as string)?.trim()
+    const message = (formData.get('message') as string)?.trim()
+
+    if (!name || !contact || !message) {
+      throw new Error('Preencha nome, contato e mensagem.')
+    }
+
+    const preferredDateRaw = formData.get('preferredDate') as string
+    const preferredDate = preferredDateRaw ? new Date(preferredDateRaw) : null
+    const sacramentType = (formData.get('sacramentType') as SacramentType) || null
+    const wantsPublicWall = formData.get('wantsPublicWall') === 'on'
+
+    await prisma.contactRequest.create({
+      data: {
+        type,
+        name,
+        contact,
+        message,
+        userId: session?.user?.id ?? null,
+        preferredDate,
+        sacramentType,
+        wantsPublicWall,
+      },
+    })
+
+    revalidatePath('/admin/pedidos')
+    return { success: true }
+  } catch (error: any) {
+    return { success: false, error: error.message || 'Falha ao enviar. Tente novamente.' }
+  }
+}
+
+export async function updateContactRequestStatus(id: string, status: ContactRequestStatus) {
+  try {
+    await requirePermission('VIEW_PRAYER_REQUESTS')
+    await prisma.contactRequest.update({ where: { id }, data: { status } })
+    revalidatePath('/admin/pedidos')
+    return { success: true }
+  } catch (error: any) {
+    return { success: false, error: error.message || 'Falha ao atualizar.' }
+  }
+}
+
+export async function approveForWall(id: string) {
+  try {
+    await requirePermission('VIEW_PRAYER_REQUESTS')
+    await prisma.contactRequest.update({ where: { id }, data: { approvedForWall: true } })
+    revalidatePath('/admin/pedidos')
+    revalidatePath('/')
+    return { success: true }
+  } catch (error: any) {
+    return { success: false, error: error.message || 'Falha ao aprovar.' }
+  }
+}
 
 ================
 File: src/actions/event.ts
@@ -1264,6 +1713,323 @@ export default async function AParoquiaPage() {
       </div>
     </main>
   )
+}
+
+================
+File: src/app/admin/catequese/AdminCatechismClient.tsx
+================
+// src/app/admin/catequese/AdminCatechismClient.tsx
+'use client'
+
+import { useActionState, useState } from 'react'
+import {
+  createStudent,
+  toggleStudentActive,
+  markAttendanceManual,
+  removeAttendance,
+} from '@/actions/catechism'
+import { isoWeekKey } from '@/lib/catechism'
+
+type Student = {
+  id: string
+  name: string
+  className: string
+  guardianEmail: string
+  active: boolean
+}
+
+type Attendance = {
+  id: string
+  studentId: string
+  massLabel: string
+  attendedAt: Date
+  source: string
+  note: string | null
+}
+
+type ActionState = { success: boolean; error?: string }
+
+function fmtDate(date: Date) {
+  return new Date(date).toLocaleDateString('pt-BR')
+}
+
+function CreateStudentForm() {
+  const [state, formAction, pending] = useActionState<ActionState, FormData>(createStudent, {
+    success: false,
+  })
+
+  return (
+    <form action={formAction} className="space-y-3 rounded-lg border border-line bg-white p-4">
+      <p className="font-body text-xs font-bold uppercase tracking-wide text-navy/60">
+        Cadastrar aluno
+      </p>
+      <input
+        name="name"
+        required
+        placeholder="Nome do aluno"
+        className="w-full rounded border border-line px-3 py-2 font-body text-sm focus:border-gold focus:outline-none"
+      />
+      <input
+        name="className"
+        required
+        placeholder="Turma (ex: Crisma - Turma A)"
+        className="w-full rounded border border-line px-3 py-2 font-body text-sm focus:border-gold focus:outline-none"
+      />
+      <input
+        name="guardianEmail"
+        type="email"
+        required
+        placeholder="E-mail de quem vai marcar a presença (responsável ou o próprio aluno)"
+        className="w-full rounded border border-line px-3 py-2 font-body text-sm focus:border-gold focus:outline-none"
+      />
+      <button
+        type="submit"
+        disabled={pending}
+        className="rounded bg-navy px-4 py-2 font-body text-xs font-semibold uppercase tracking-wide text-cream disabled:opacity-60"
+      >
+        {pending ? 'Salvando...' : 'Cadastrar'}
+      </button>
+      {state.error && <p className="font-body text-xs text-red-600">{state.error}</p>}
+    </form>
+  )
+}
+
+function ManualAttendanceForm({ students }: { students: Student[] }) {
+  const [state, formAction, pending] = useActionState<ActionState, FormData>(
+    markAttendanceManual,
+    { success: false }
+  )
+
+  return (
+    <form action={formAction} className="space-y-3 rounded-lg border border-line bg-white p-4">
+      <p className="font-body text-xs font-bold uppercase tracking-wide text-navy/60">
+        Marcar presença manualmente (sem celular, ou correção)
+      </p>
+      <select
+        name="studentId"
+        required
+        className="w-full rounded border border-line bg-white px-3 py-2 font-body text-sm"
+      >
+        <option value="">Selecione o aluno</option>
+        {students.map((s) => (
+          <option key={s.id} value={s.id}>
+            {s.name} — {s.className}
+          </option>
+        ))}
+      </select>
+      <input
+        name="massLabel"
+        required
+        placeholder="Ex: Domingo 10h"
+        className="w-full rounded border border-line px-3 py-2 font-body text-sm focus:border-gold focus:outline-none"
+      />
+      <input
+        name="date"
+        type="date"
+        required
+        className="w-full rounded border border-line px-3 py-2 font-body text-sm focus:border-gold focus:outline-none"
+      />
+      <input
+        name="note"
+        placeholder="Observação (opcional)"
+        className="w-full rounded border border-line px-3 py-2 font-body text-sm focus:border-gold focus:outline-none"
+      />
+      <button
+        type="submit"
+        disabled={pending}
+        className="rounded bg-navy px-4 py-2 font-body text-xs font-semibold uppercase tracking-wide text-cream disabled:opacity-60"
+      >
+        {pending ? 'Salvando...' : 'Marcar presença'}
+      </button>
+      {state.error && <p className="font-body text-xs text-red-600">{state.error}</p>}
+    </form>
+  )
+}
+
+export function AdminCatechismClient({
+  students,
+  attendances,
+}: {
+  students: Student[]
+  attendances: Attendance[]
+}) {
+  const [tab, setTab] = useState<'relatorio' | 'alunos' | 'log'>('relatorio')
+
+  const thisWeek = isoWeekKey(new Date())
+  const activeStudents = students.filter((s) => s.active)
+
+  const statusByStudent = activeStudents.map((s) => {
+    const markedThisWeek = attendances.some(
+      (a) => a.studentId === s.id && isoWeekKey(a.attendedAt) === thisWeek
+    )
+    return { ...s, markedThisWeek }
+  })
+
+  const grouped = statusByStudent.reduce<Record<string, typeof statusByStudent>>((acc, s) => {
+    acc[s.className] = acc[s.className] || []
+    acc[s.className].push(s)
+    return acc
+  }, {})
+
+  return (
+    <main className="min-h-screen bg-cream px-6 py-12 text-navy">
+      <div className="mx-auto max-w-2xl">
+        <h1 className="font-display text-3xl font-bold">Catequese — Presença</h1>
+        <p className="mt-1 font-body text-sm text-navy/60">
+          Acompanhamento, não fiscalização — use pra iniciar uma conversa com quem está sumindo.
+        </p>
+
+        <div className="mt-6 flex gap-2">
+          {(['relatorio', 'alunos', 'log'] as const).map((t) => (
+            <button
+              key={t}
+              onClick={() => setTab(t)}
+              className={`rounded-full border px-3 py-1.5 font-body text-xs font-semibold uppercase tracking-wide ${
+                tab === t ? 'border-navy bg-navy text-cream' : 'border-line text-navy/60'
+              }`}
+            >
+              {t === 'relatorio' ? 'Relatório semanal' : t === 'alunos' ? 'Alunos' : 'Histórico'}
+            </button>
+          ))}
+        </div>
+
+        {tab === 'relatorio' && (
+          <div className="mt-6 space-y-6">
+            {Object.entries(grouped).map(([className, list]) => (
+              <div key={className}>
+                <p className="font-display font-semibold">{className}</p>
+                <div className="mt-2 space-y-2">
+                  {list.map((s) => (
+                    <div
+                      key={s.id}
+                      className="flex items-center justify-between rounded border border-line bg-white px-3 py-2"
+                    >
+                      <span className="font-body text-sm">{s.name}</span>
+                      <span
+                        className={`font-body text-xs font-semibold uppercase ${
+                          s.markedThisWeek ? 'text-green-700' : 'text-red-600'
+                        }`}
+                      >
+                        {s.markedThisWeek ? '✅ presente essa semana' : '⏳ sem marcação'}
+                      </span>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            ))}
+            {activeStudents.length === 0 && (
+              <p className="font-body text-sm text-navy/40">Nenhum aluno ativo cadastrado.</p>
+            )}
+          </div>
+        )}
+
+        {tab === 'alunos' && (
+          <div className="mt-6 space-y-6">
+            <CreateStudentForm />
+            <div className="space-y-2">
+              {students.map((s) => (
+                <div
+                  key={s.id}
+                  className="flex items-center justify-between rounded-lg border border-line bg-white p-3"
+                >
+                  <div>
+                    <p className="font-body text-sm font-semibold">{s.name}</p>
+                    <p className="font-body text-xs text-navy/50">
+                      {s.className} · {s.guardianEmail}
+                    </p>
+                  </div>
+                  <form
+                    action={async () => {
+                      await toggleStudentActive(s.id, !s.active)
+                    }}
+                  >
+                    <button
+                      type="submit"
+                      className={`rounded px-3 py-1 font-body text-xs font-semibold uppercase ${
+                        s.active ? 'text-red-600' : 'text-green-700'
+                      }`}
+                    >
+                      {s.active ? 'Desativar' : 'Reativar'}
+                    </button>
+                  </form>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+
+        {tab === 'log' && (
+          <div className="mt-6 space-y-6">
+            <ManualAttendanceForm students={activeStudents} />
+            <div className="space-y-2">
+              {attendances.map((a) => {
+                const student = students.find((s) => s.id === a.studentId)
+                return (
+                  <div
+                    key={a.id}
+                    className="flex items-center justify-between rounded-lg border border-line bg-white p-3"
+                  >
+                    <div>
+                      <p className="font-body text-sm font-semibold">
+                        {student?.name ?? 'Aluno removido'}
+                      </p>
+                      <p className="font-body text-xs text-navy/50">
+                        {a.massLabel} · {fmtDate(a.attendedAt)} ·{' '}
+                        {a.source === 'SELF' ? 'auto atribuída' : 'manual'}
+                      </p>
+                      {a.note && <p className="font-body text-xs text-navy/40">{a.note}</p>}
+                    </div>
+                    <form
+                      action={async () => {
+                        await removeAttendance(a.id)
+                      }}
+                    >
+                      <button
+                        type="submit"
+                        className="font-body text-xs font-semibold text-red-600 hover:underline"
+                      >
+                        Remover
+                      </button>
+                    </form>
+                  </div>
+                )
+              })}
+            </div>
+          </div>
+        )}
+      </div>
+    </main>
+  )
+}
+
+================
+File: src/app/admin/catequese/page.tsx
+================
+// src/app/admin/catequese/page.tsx
+import { redirect } from 'next/navigation'
+import { auth } from '@/auth'
+import { prisma } from '@/lib/prisma'
+import { AdminCatechismClient } from './AdminCatechismClient'
+
+export default async function AdminCatechismPage() {
+  const session = await auth()
+
+  const canManage =
+    session?.user?.staffRole === 'SUPER_ADMIN' ||
+    (session?.user?.staffRole === 'MINISTRY_LEADER' &&
+      session.user.permissions.includes('MANAGE_CATECHISM'))
+
+  if (!canManage) redirect('/')
+
+  const [students, attendances] = await Promise.all([
+    prisma.catechismStudent.findMany({ orderBy: [{ className: 'asc' }, { name: 'asc' }] }),
+    prisma.catechismAttendance.findMany({
+      orderBy: { attendedAt: 'desc' },
+      take: 200,
+    }),
+  ])
+
+  return <AdminCatechismClient students={students} attendances={attendances} />
 }
 
 ================
@@ -2889,6 +3655,172 @@ export function TodayWordCard({ word }: { word: DailyWord }) {
 }
 
 ================
+File: src/app/admin/pedidos/AdminRequestsClient.tsx
+================
+// src/app/admin/pedidos/AdminRequestsClient.tsx
+'use client'
+
+import { useState } from 'react'
+import { updateContactRequestStatus, approveForWall } from '@/actions/contactRequest'
+
+type Request = {
+  id: string
+  type: 'PRAYER' | 'MASS_INTENTION' | 'SACRAMENT' | 'GENERAL'
+  name: string
+  contact: string
+  message: string
+  preferredDate: Date | null
+  sacramentType: string | null
+  wantsPublicWall: boolean
+  approvedForWall: boolean
+  status: 'PENDING' | 'CONTACTED' | 'RESOLVED'
+  createdAt: Date
+}
+
+const TYPE_LABELS: Record<Request['type'], string> = {
+  PRAYER: 'Pedido de Oração',
+  MASS_INTENTION: 'Intenção de Missa',
+  SACRAMENT: 'Agendar Sacramento',
+  GENERAL: 'Contato Geral',
+}
+
+const STATUS_LABELS: Record<Request['status'], string> = {
+  PENDING: 'Pendente',
+  CONTACTED: 'Contatado',
+  RESOLVED: 'Resolvido',
+}
+
+function fmtDate(date: Date | null) {
+  if (!date) return null
+  return new Date(date).toLocaleDateString('pt-BR')
+}
+
+export function AdminRequestsClient({ requests }: { requests: Request[] }) {
+  const [filter, setFilter] = useState<'ALL' | Request['type']>('ALL')
+
+  const filtered = filter === 'ALL' ? requests : requests.filter((r) => r.type === filter)
+
+  return (
+    <main className="min-h-screen bg-cream px-6 py-12 text-navy">
+      <div className="mx-auto max-w-2xl">
+        <h1 className="font-display text-3xl font-bold">Pedidos Recebidos</h1>
+        <p className="mt-1 font-body text-sm text-navy/60">
+          Tudo que chega pelos formulários de contato da home.
+        </p>
+
+        <div className="mt-4 flex flex-wrap gap-2">
+          {(['ALL', 'PRAYER', 'MASS_INTENTION', 'SACRAMENT', 'GENERAL'] as const).map((t) => (
+            <button
+              key={t}
+              onClick={() => setFilter(t)}
+              className={`rounded-full border px-3 py-1.5 font-body text-xs font-semibold uppercase tracking-wide ${
+                filter === t
+                  ? 'border-navy bg-navy text-cream'
+                  : 'border-line text-navy/60 hover:border-navy/40'
+              }`}
+            >
+              {t === 'ALL' ? 'Todos' : TYPE_LABELS[t]}
+            </button>
+          ))}
+        </div>
+
+        <div className="mt-6 space-y-3">
+          {filtered.length === 0 && (
+            <p className="font-body text-sm text-navy/40">Nenhum pedido por aqui.</p>
+          )}
+
+          {filtered.map((r) => (
+            <div key={r.id} className="rounded-lg border border-line bg-white p-4">
+              <div className="flex items-start justify-between gap-3">
+                <div>
+                  <p className="font-body text-xs font-semibold uppercase tracking-wide text-navy/40">
+                    {TYPE_LABELS[r.type]} · {fmtDate(r.createdAt)}
+                  </p>
+                  <p className="mt-1 font-display font-semibold">{r.name}</p>
+                  <p className="font-body text-xs text-navy/50">{r.contact}</p>
+                  {r.sacramentType && (
+                    <p className="mt-1 font-mono text-xs text-navy/50">{r.sacramentType}</p>
+                  )}
+                  {r.preferredDate && (
+                    <p className="font-mono text-xs text-navy/50">
+                      Data desejada: {fmtDate(r.preferredDate)}
+                    </p>
+                  )}
+                  <p className="mt-2 font-body text-sm text-navy/80">{r.message}</p>
+                  {r.wantsPublicWall && (
+                    <p className="mt-2 font-body text-xs text-navy/50">
+                      {r.approvedForWall
+                        ? '✅ Aprovado no mural público'
+                        : '⏳ Quer aparecer no mural público — aguardando aprovação'}
+                    </p>
+                  )}
+                </div>
+
+                <select
+                  value={r.status}
+                  onChange={(e) =>
+                    updateContactRequestStatus(r.id, e.target.value as Request['status'])
+                  }
+                  className="shrink-0 rounded border border-line bg-white px-2 py-1 font-body text-xs"
+                >
+                  {(['PENDING', 'CONTACTED', 'RESOLVED'] as const).map((s) => (
+                    <option key={s} value={s}>
+                      {STATUS_LABELS[s]}
+                    </option>
+                  ))}
+                </select>
+              </div>
+
+              {r.wantsPublicWall && !r.approvedForWall && (
+                <form
+                  action={async () => {
+                    await approveForWall(r.id)
+                  }}
+                  className="mt-3"
+                >
+                  <button
+                    type="submit"
+                    className="rounded bg-navy px-3 py-1.5 font-body text-xs font-semibold uppercase tracking-wide text-cream"
+                  >
+                    Aprovar pro mural público
+                  </button>
+                </form>
+              )}
+            </div>
+          ))}
+        </div>
+      </div>
+    </main>
+  )
+}
+
+================
+File: src/app/admin/pedidos/page.tsx
+================
+// src/app/admin/pedidos/page.tsx
+import { redirect } from 'next/navigation'
+import { auth } from '@/auth'
+import { prisma } from '@/lib/prisma'
+import { AdminRequestsClient } from "./AdminRequestsClient"
+
+export default async function AdminRequestsPage() {
+  const session = await auth()
+
+  const canManage =
+    session?.user?.staffRole === 'SUPER_ADMIN' ||
+    (session?.user?.staffRole === 'MINISTRY_LEADER' &&
+      session.user.permissions.includes('VIEW_PRAYER_REQUESTS'))
+
+  if (!canManage) redirect('/')
+
+  const requests = await prisma.contactRequest.findMany({
+    orderBy: [{ status: 'asc' }, { createdAt: 'desc' }],
+  })
+
+  return <AdminRequestsClient requests={requests} />
+}
+
+================
 File: src/app/admin/usuarios/page.tsx
 ================
 // src/app/admin/usuarios/page.tsx
@@ -2989,6 +3921,249 @@ export async function POST(request: Request): Promise<NextResponse> {
   } catch (error) {
     return NextResponse.json({ error: (error as Error).message }, { status: 400 })
   }
+}
+
+================
+File: src/app/catequese/PresencaClient.tsx
+================
+// src/app/catequese/catequeseClient.tsx
+'use client'
+
+import { useActionState, useState } from 'react'
+import { markAttendanceSelf } from '@/actions/catechism'
+
+type Student = {
+  id: string
+  name: string
+  className: string
+  markedThisWeek: boolean
+}
+
+type EligibleMass = {
+  scheduleId: string
+  label: string
+  isOpenNow: boolean
+}
+
+type ActionState = { success: boolean; error?: string }
+
+export function PresencaClient({
+  students,
+  eligibleMasses,
+}: {
+  students: Student[]
+  eligibleMasses: EligibleMass[]
+}) {
+  const [state, formAction, pending] = useActionState<ActionState, FormData>(
+    markAttendanceSelf,
+    { success: false }
+  )
+  const [confirmed, setConfirmed] = useState(false)
+
+  if (students.length === 0) {
+    return (
+      <div className="mt-6 rounded-lg border border-dashed border-line bg-white p-4 text-center">
+        <p className="font-body text-sm text-navy/60">
+          Não encontramos nenhum aluno cadastrado com este e-mail. Fale com o catequista pra
+          cadastrar você ou seu filho(a).
+        </p>
+      </div>
+    )
+  }
+
+  const openMasses = eligibleMasses.filter((m) => m.isOpenNow)
+
+  if (state.success) {
+    return (
+      <div className="mt-6 rounded-lg border border-line bg-white p-6 text-center">
+        <p className="font-display text-lg font-semibold">Presença registrada! 🙏</p>
+        <p className="mt-2 font-body text-sm text-navy/60">
+          Obrigado por participar da caminhada da nossa comunidade.
+        </p>
+      </div>
+    )
+  }
+
+  if (openMasses.length === 0) {
+    return (
+      <div className="mt-6 rounded-lg border border-dashed border-line bg-white p-4 text-center">
+        <p className="font-body text-sm text-navy/60">
+          A presença só pode ser marcada perto do horário de uma missa. Volta aqui no fim de
+          semana, durante ou logo depois da celebração.
+        </p>
+      </div>
+    )
+  }
+
+  return (
+    <form action={formAction} className="mt-6 space-y-5 rounded-lg border border-line bg-white p-6">
+      <div>
+        <label className="block text-xs font-bold uppercase tracking-wide text-navy/60">
+          Aluno
+        </label>
+        <div className="mt-2 space-y-2">
+          {students.map((s) => (
+            <label
+              key={s.id}
+              className="flex items-center justify-between gap-2 rounded border border-line px-3 py-2 font-body text-sm"
+            >
+              <span className="flex items-center gap-2">
+                <input type="radio" name="studentId" value={s.id} required />
+                {s.name} <span className="text-navy/40">— {s.className}</span>
+              </span>
+              {s.markedThisWeek && (
+                <span className="font-body text-[10px] font-semibold uppercase text-green-700">
+                  já marcou essa semana
+                </span>
+              )}
+            </label>
+          ))}
+        </div>
+      </div>
+
+      <div>
+        <label className="block text-xs font-bold uppercase tracking-wide text-navy/60">
+          Qual missa
+        </label>
+        <div className="mt-2 space-y-2">
+          {openMasses.map((m) => (
+            <label
+              key={m.scheduleId}
+              className="flex items-center gap-2 rounded border border-line px-3 py-2 font-body text-sm"
+            >
+              <input type="radio" name="scheduleId" value={m.scheduleId} required />
+              {m.label}
+            </label>
+          ))}
+        </div>
+      </div>
+
+      <label className="flex items-start gap-2 rounded bg-cream/60 p-3 font-body text-sm text-navy/80">
+        <input
+          type="checkbox"
+          checked={confirmed}
+          onChange={(e) => setConfirmed(e.target.checked)}
+          className="mt-0.5"
+        />
+        Confirmo, com honestidade, que participei desta celebração.
+      </label>
+
+      <button
+        type="submit"
+        disabled={pending || !confirmed}
+        className="w-full rounded bg-navy py-3 font-body text-sm font-semibold uppercase tracking-wide text-cream transition-opacity disabled:opacity-40"
+      >
+        {pending ? 'Enviando...' : 'Confirmar presença'}
+      </button>
+
+      {state.error && <p className="font-body text-sm text-red-600">{state.error}</p>}
+    </form>
+  )
+}
+
+================
+File: src/app/contato/geral/page.tsx
+================
+// src/app/contato/geral/page.tsx
+import { auth } from '@/auth'
+import { ContactForm } from '@/components/ContactForm'
+
+export default async function ContatoGeralPage() {
+  const session = await auth()
+
+  return (
+    <main className="min-h-screen bg-cream px-6 py-12 text-navy">
+      <div className="mx-auto max-w-md">
+        <h1 className="font-display text-3xl font-bold">Contato Geral</h1>
+        <p className="mt-2 font-body text-sm text-navy/60">
+          Dúvidas, sugestões ou qualquer outro assunto — escreva pra gente.
+        </p>
+        <div className="mt-6">
+          <ContactForm type="GENERAL" isLoggedIn={!!session?.user} />
+        </div>
+      </div>
+    </main>
+  )
+}
+
+================
+File: src/app/contato/intencao/page.tsx
+================
+// src/app/contato/intencao/page.tsx
+import { auth } from '@/auth'
+import { ContactForm } from '@/components/ContactForm'
+
+export default async function IntencaoPage() {
+  const session = await auth()
+
+  return (
+    <main className="min-h-screen bg-cream px-6 py-12 text-navy">
+      <div className="mx-auto max-w-md">
+        <h1 className="font-display text-3xl font-bold">Intenção de Missa</h1>
+        <p className="mt-2 font-body text-sm text-navy/60">
+          Conte pra gente por quem ou por qual intenção você quer que a missa seja celebrada.
+        </p>
+        <div className="mt-6">
+          <ContactForm type="MASS_INTENTION" isLoggedIn={!!session?.user} showDateField />
+        </div>
+      </div>
+    </main>
+  )
+}
+
+================
+File: src/app/contato/oracao/page.tsx
+================
+// src/app/contato/oracao/page.tsx
+import { auth } from '@/auth'
+import { ContactForm } from '@/components/ContactForm'
+
+export default async function OracaoPage() {
+  const session = await auth()
+
+  return (
+    <main className="min-h-screen bg-cream px-6 py-12 text-navy">
+      <div className="mx-auto max-w-md">
+        <h1 className="font-display text-3xl font-bold">Pedido de Oração</h1>
+        <p className="mt-2 font-body text-sm text-navy/60">
+          Compartilhe seu pedido — nossa comunidade vai rezar por você.
+        </p>
+        <div className="mt-6">
+          <ContactForm type="PRAYER" isLoggedIn={!!session?.user} showPublicWallCheckbox />
+        </div>
+      </div>
+    </main>
+  )
+}
+
+================
+File: src/app/contato/sacramento/page.tsx
+================
+// src/app/contato/sacramento/page.tsx
+import { auth } from '@/auth'
+import { ContactForm } from '@/components/ContactForm'
+
+export default async function SacramentoPage() {
+  const session = await auth()
+
+  return (
+    <main className="min-h-screen bg-cream px-6 py-12 text-navy">
+      <div className="mx-auto max-w-md">
+        <h1 className="font-display text-3xl font-bold">Agendar Sacramento</h1>
+        <p className="mt-2 font-body text-sm text-navy/60">
+          Preencha os dados e a secretaria entra em contato pra confirmar data e preparação.
+        </p>
+        <div className="mt-6">
+          <ContactForm
+            type="SACRAMENT"
+            isLoggedIn={!!session?.user}
+            showSacramentField
+            showDateField
+          />
+        </div>
+      </div>
+    </main>
+  )
 }
 
 ================
@@ -3710,6 +4885,146 @@ export function TestimonialsBlock({ testimonials }: { testimonials: Testimonial[
 }
 
 ================
+File: src/components/ContactForm.tsx
+================
+// src/components/ContactForm.tsx
+'use client'
+
+import { useActionState } from 'react'
+import { createContactRequest } from '@/actions/contactRequest'
+
+type ActionState = { success: boolean; error?: string }
+
+type Props = {
+  type: 'PRAYER' | 'MASS_INTENTION' | 'SACRAMENT' | 'GENERAL'
+  isLoggedIn: boolean
+  showDateField?: boolean
+  showSacramentField?: boolean
+  showPublicWallCheckbox?: boolean
+}
+
+export function ContactForm({
+  type,
+  isLoggedIn,
+  showDateField,
+  showSacramentField,
+  showPublicWallCheckbox,
+}: Props) {
+  const [state, formAction, pending] = useActionState<ActionState, FormData>(
+    createContactRequest,
+    { success: false }
+  )
+
+  if (state.success) {
+    return (
+      <div className="rounded-lg border border-line bg-white p-6 text-center">
+        <p className="font-display text-lg font-semibold">Recebemos sua mensagem!</p>
+        <p className="mt-2 font-body text-sm text-navy/60">
+          Alguém da paróquia vai entrar em contato em breve.
+        </p>
+      </div>
+    )
+  }
+
+  return (
+    <form action={formAction} className="space-y-4 rounded-lg border border-line bg-white p-6">
+      <input type="hidden" name="type" value={type} />
+
+      {!isLoggedIn && (
+        <div className="rounded border border-dashed border-line bg-cream/40 p-3">
+          <p className="font-body text-xs text-navy/60">
+            Prefere entrar com Google? Ajuda a gente a acompanhar melhor seu pedido — mas não é
+            obrigatório, pode preencher direto abaixo.
+          </p>
+        </div>
+      )}
+
+      <div>
+        <label className="block text-xs font-bold uppercase tracking-wide text-navy/60">
+          Nome
+        </label>
+        <input
+          name="name"
+          required
+          className="mt-1 w-full rounded border border-line px-3 py-2 font-body text-sm focus:border-gold focus:outline-none"
+        />
+      </div>
+
+      <div>
+        <label className="block text-xs font-bold uppercase tracking-wide text-navy/60">
+          Telefone ou e-mail
+        </label>
+        <input
+          name="contact"
+          required
+          className="mt-1 w-full rounded border border-line px-3 py-2 font-body text-sm focus:border-gold focus:outline-none"
+        />
+      </div>
+
+      {showSacramentField && (
+        <div>
+          <label className="block text-xs font-bold uppercase tracking-wide text-navy/60">
+            Sacramento
+          </label>
+          <select
+            name="sacramentType"
+            required
+            className="mt-1 w-full rounded border border-line bg-white px-3 py-2 font-body text-sm focus:border-gold focus:outline-none"
+          >
+            <option value="BAPTISM">Batismo</option>
+            <option value="MARRIAGE">Casamento</option>
+            <option value="CONFIRMATION">Crisma</option>
+            <option value="FIRST_COMMUNION">Primeira Comunhão</option>
+          </select>
+        </div>
+      )}
+
+      {showDateField && (
+        <div>
+          <label className="block text-xs font-bold uppercase tracking-wide text-navy/60">
+            Data desejada
+          </label>
+          <input
+            name="preferredDate"
+            type="date"
+            className="mt-1 w-full rounded border border-line px-3 py-2 font-body text-sm focus:border-gold focus:outline-none"
+          />
+        </div>
+      )}
+
+      <div>
+        <label className="block text-xs font-bold uppercase tracking-wide text-navy/60">
+          Mensagem
+        </label>
+        <textarea
+          name="message"
+          required
+          rows={4}
+          className="mt-1 w-full rounded border border-line px-3 py-2 font-body text-sm focus:border-gold focus:outline-none"
+        />
+      </div>
+
+      {showPublicWallCheckbox && (
+        <label className="flex items-start gap-2 font-body text-sm text-navy/70">
+          <input type="checkbox" name="wantsPublicWall" className="mt-1" />
+          Quero que este pedido apareça (após aprovação) no mural público de orações
+        </label>
+      )}
+
+      <button
+        type="submit"
+        disabled={pending}
+        className="w-full rounded bg-navy py-3 font-body text-sm font-semibold uppercase tracking-wide text-cream transition-opacity disabled:opacity-60"
+      >
+        {pending ? 'Enviando...' : 'Enviar'}
+      </button>
+
+      {state.error && <p className="font-body text-sm text-red-600">{state.error}</p>}
+    </form>
+  )
+}
+
+================
 File: src/components/CopyPixButton.tsx
 ================
 // src/components/CopyPixButton.tsx
@@ -3871,6 +5186,94 @@ export async function TestimonialsSubmitArea() {
       </button>
     </form>
   )
+}
+
+================
+File: src/lib/catechism.ts
+================
+// src/lib/catechism.ts
+//
+// Decide quais missas de hoje estão "abertas" pra auto atribuição de
+// presença da catequese, e em qual janela de horário cada uma libera.
+// Heurística por rótulo (mesma lógica do ícone dos cards de Horários) —
+// se a paróquia usar rótulos muito diferentes de "Domingo"/"Sábado"/
+// "Segunda a Sexta", isso precisa evoluir pra um campo estruturado.
+
+type MassSchedule = { id: string; label: string; times: string[] }
+
+export type EligibleMass = {
+  scheduleId: string
+  label: string
+  time: string // "08h00"
+  attendedAt: Date
+  windowOpensAt: Date
+  windowClosesAt: Date
+  isOpenNow: boolean
+}
+
+function scheduleAppliesToday(label: string, weekday: number): boolean {
+  const l = label.toLowerCase()
+  if (l.includes('adora')) return false // adoração não é missa
+  if (l.includes('domingo')) return weekday === 0
+  if (l.includes('sábado') || l.includes('sabado')) return weekday === 6
+  if (l.includes('segunda') && l.includes('sexta')) return weekday >= 1 && weekday <= 5
+  return false // rótulo não reconhecido — não conta pra presença automática
+}
+
+function parseTimeToDate(time: string, base: Date): Date | null {
+  // aceita "08h00", "08:00", "8h"
+  const match = time.match(/(\d{1,2})[h:](\d{0,2})/)
+  if (!match) return null
+  const hours = Number(match[1])
+  const minutes = match[2] ? Number(match[2]) : 0
+  const d = new Date(base)
+  d.setHours(hours, minutes, 0, 0)
+  return d
+}
+
+const WINDOW_BEFORE_MIN = 15
+const WINDOW_AFTER_MIN = 120
+
+export function getTodayEligibleMasses(massSchedules: MassSchedule[]): EligibleMass[] {
+  const now = new Date()
+  const weekday = now.getDay()
+
+  const result: EligibleMass[] = []
+
+  for (const schedule of massSchedules) {
+    if (!scheduleAppliesToday(schedule.label, weekday)) continue
+
+    for (const time of schedule.times) {
+      const attendedAt = parseTimeToDate(time, now)
+      if (!attendedAt) continue
+
+      const windowOpensAt = new Date(attendedAt.getTime() - WINDOW_BEFORE_MIN * 60_000)
+      const windowClosesAt = new Date(attendedAt.getTime() + WINDOW_AFTER_MIN * 60_000)
+
+      result.push({
+        scheduleId: schedule.id,
+        label: `${schedule.label} ${time}`,
+        time,
+        attendedAt,
+        windowOpensAt,
+        windowClosesAt,
+        isOpenNow: now >= windowOpensAt && now <= windowClosesAt,
+      })
+    }
+  }
+
+  return result.sort((a, b) => a.attendedAt.getTime() - b.attendedAt.getTime())
+}
+
+// Chave de semana (ano-semana ISO) — usada só pro relatório do catequista
+// agrupar "quem já marcou presença essa semana"
+export function isoWeekKey(date: Date): string {
+  const d = new Date(Date.UTC(date.getFullYear(), date.getMonth(), date.getDate()))
+  const dayNum = d.getUTCDay() || 7
+  d.setUTCDate(d.getUTCDate() + 4 - dayNum)
+  const yearStart = new Date(Date.UTC(d.getUTCFullYear(), 0, 1))
+  const weekNo = Math.ceil(((d.getTime() - yearStart.getTime()) / 86400000 + 1) / 7)
+  return `${d.getUTCFullYear()}-W${String(weekNo).padStart(2, '0')}`
 }
 
 ================
@@ -4197,6 +5600,11 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
 })
 
 ================
+File: drift.sql
+================
+-- This is an empty migration.
+
+================
 File: eslint.config.mjs
 ================
 import { defineConfig, globalIgnores } from "eslint/config";
@@ -4217,6 +5625,11 @@ const eslintConfig = defineConfig([
 ]);
 
 export default eslintConfig;
+
+================
+File: migration_catechism.sql
+================
+
 
 ================
 File: pnpm-workspace.yaml
@@ -4358,64 +5771,6 @@ File: vercel.json
 }
 
 ================
-File: src/actions/staffAccess.ts
-================
-// src/actions/staffAccess.ts
-'use server'
-
-import { prisma } from '@/lib/prisma'
-import { revalidatePath } from 'next/cache'
-import { requireSuperAdmin } from '@/lib/permissions'
-import type { StaffPermission, StaffRole } from '@prisma/client'
-
-const ALL_PERMISSIONS: StaffPermission[] = [
-  'VIEW_PRAYER_REQUESTS',
-  'MANAGE_TITHE_RAFFLE',
-  'MANAGE_EVENTS',
-  'MANAGE_GALLERY',
-  'MANAGE_MASS_SCHEDULE',
-  'MANAGE_MINISTRIES',
-  'MANAGE_FAQ',
-  'MANAGE_LITURGICAL_THEME',
-  'MANAGE_TESTIMONIALS',
-]
-
-export async function updateStaffAccess(_prevState: unknown, formData: FormData) {
-  try {
-    const session = await requireSuperAdmin()
-
-    const userId = formData.get('userId') as string
-    if (!userId) throw new Error('Usuário não identificado.')
-
-    const staffRoleRaw = formData.get('staffRole') as string
-    const staffRole: StaffRole | null = staffRoleRaw === '' ? null : (staffRoleRaw as StaffRole)
-
-    // SUPER_ADMIN não impede a última administradora de se rebaixar sem querer
-    if (userId === session.user.id && staffRole !== 'SUPER_ADMIN') {
-      throw new Error('Você não pode remover seu próprio acesso de Super Admin por aqui.')
-    }
-
-    const ministryIdRaw = formData.get('ministryId') as string
-    const ministryId = staffRole === 'MINISTRY_LEADER' && ministryIdRaw ? ministryIdRaw : null
-
-    const permissions =
-      staffRole === 'MINISTRY_LEADER'
-        ? ALL_PERMISSIONS.filter((p) => formData.getAll('permissions').includes(p))
-        : []
-
-    await prisma.user.update({
-      where: { id: userId },
-      data: { staffRole, ministryId, permissions },
-    })
-
-    revalidatePath('/admin/usuarios')
-    return { success: true }
-  } catch (error: any) {
-    return { success: false, error: error.message || 'Falha ao atualizar acesso.' }
-  }
-}
-
-================
 File: src/app/admin/palavra-do-dia/AdminDailyWordClient.tsx
 ================
 // src/app/admin/palavra-do-dia/AdminDailyWordClient.tsx
@@ -4460,218 +5815,6 @@ export function AdminDailyWordClient({ todayWord }: { todayWord: DailyWord }) {
 }
 
 ================
-File: src/app/admin/usuarios/AdminUsersClient.tsx
-================
-// src/app/admin/usuarios/AdminUsersClient.tsx
-'use client'
-
-import { useActionState, useState } from 'react'
-import { updateStaffAccess } from '@/actions/staffAccess'
-
-type StaffRole = 'SUPER_ADMIN' | 'MINISTRY_LEADER'
-
-type User = {
-  id: string
-  name: string | null
-  email: string | null
-  image: string | null
-  staffRole: StaffRole | null
-  ministryId: string | null
-  permissions: string[]
-}
-
-type Ministry = { id: string; name: string }
-
-type ActionState = { success: boolean; error?: string }
-
-const PERMISSION_LABELS: Record<string, string> = {
-  VIEW_PRAYER_REQUESTS: 'Ver pedidos de oração',
-  MANAGE_TITHE_RAFFLE: 'Sorteio do dízimo',
-  MANAGE_EVENTS: 'Eventos',
-  MANAGE_GALLERY: 'Galeria',
-  MANAGE_MASS_SCHEDULE: 'Horários de missa',
-  MANAGE_MINISTRIES: 'Pastorais e ministérios',
-  MANAGE_FAQ: 'FAQ',
-  MANAGE_LITURGICAL_THEME: 'Cores litúrgicas especiais (coordenador litúrgico)',
-  MANAGE_TESTIMONIALS: 'Moderar depoimentos',
-}
-
-function roleLabel(role: StaffRole | null) {
-  if (role === 'SUPER_ADMIN') return 'Super Admin'
-  if (role === 'MINISTRY_LEADER') return 'Líder de Ministério'
-  return 'Sem acesso ao painel'
-}
-
-function UserEditForm({
-  user,
-  ministries,
-  isSelf,
-  onDone,
-}: {
-  user: User
-  ministries: Ministry[]
-  isSelf: boolean
-  onDone: () => void
-}) {
-  const [state, formAction, pending] = useActionState<ActionState, FormData>(updateStaffAccess, {
-    success: false,
-  })
-  const [role, setRole] = useState<'' | StaffRole>(user.staffRole ?? '')
-
-  return (
-    <form
-      action={formAction}
-      className="mt-3 space-y-3 rounded border border-dashed border-line bg-cream/40 p-4"
-    >
-      <input type="hidden" name="userId" value={user.id} />
-
-      <div>
-        <label className="block text-xs font-bold uppercase tracking-wide text-navy/60">
-          Cargo
-        </label>
-        <select
-          name="staffRole"
-          value={role}
-          onChange={(e) => setRole(e.target.value as '' | StaffRole)}
-          disabled={isSelf}
-          className="mt-1 w-full rounded border border-line bg-white px-3 py-2 font-body text-sm focus:border-gold focus:outline-none disabled:opacity-60"
-        >
-          <option value="">Sem acesso ao painel</option>
-          <option value="MINISTRY_LEADER">Líder de Ministério</option>
-          <option value="SUPER_ADMIN">Super Admin</option>
-        </select>
-        {isSelf && (
-          <p className="mt-1 font-body text-xs text-navy/40">
-            Você não pode alterar seu próprio cargo por aqui.
-          </p>
-        )}
-      </div>
-
-      {role === 'MINISTRY_LEADER' && (
-        <>
-          <div>
-            <label className="block text-xs font-bold uppercase tracking-wide text-navy/60">
-              Ministério que lidera
-            </label>
-            <select
-              name="ministryId"
-              defaultValue={user.ministryId ?? ''}
-              className="mt-1 w-full rounded border border-line bg-white px-3 py-2 font-body text-sm focus:border-gold focus:outline-none"
-            >
-              <option value="">Nenhum</option>
-              {ministries.map((m) => (
-                <option key={m.id} value={m.id}>
-                  {m.name}
-                </option>
-              ))}
-            </select>
-          </div>
-
-          <div>
-            <label className="block text-xs font-bold uppercase tracking-wide text-navy/60">
-              Permissões
-            </label>
-            <div className="mt-1 space-y-1">
-              {Object.entries(PERMISSION_LABELS).map(([value, label]) => (
-                <label key={value} className="flex items-center gap-2 font-body text-sm">
-                  <input
-                    type="checkbox"
-                    name="permissions"
-                    value={value}
-                    defaultChecked={user.permissions.includes(value)}
-                  />
-                  {label}
-                </label>
-              ))}
-            </div>
-          </div>
-        </>
-      )}
-
-      <div className="flex gap-2">
-        <button
-          type="submit"
-          disabled={pending}
-          className="flex-1 rounded bg-navy py-2 font-body text-xs font-semibold uppercase tracking-wide text-cream disabled:opacity-60"
-        >
-          {pending ? 'Salvando...' : 'Salvar'}
-        </button>
-        <button
-          type="button"
-          onClick={onDone}
-          className="flex-1 rounded border border-line py-2 font-body text-xs font-semibold uppercase tracking-wide text-navy/60"
-        >
-          Cancelar
-        </button>
-      </div>
-
-      {state?.error && <p className="font-body text-xs text-red-600">{state.error}</p>}
-      {state?.success && <p className="font-body text-xs text-green-700">Salvo!</p>}
-    </form>
-  )
-}
-
-export function AdminUsersClient({
-  users,
-  ministries,
-  currentUserId,
-}: {
-  users: User[]
-  ministries: Ministry[]
-  currentUserId: string
-}) {
-  const [editingId, setEditingId] = useState<string | null>(null)
-
-  return (
-    <main className="min-h-screen bg-cream px-6 py-12 text-navy">
-      <div className="mx-auto max-w-2xl">
-        <h1 className="font-display text-3xl font-bold">Usuários e Permissões</h1>
-        <p className="mt-1 font-body text-sm text-navy/60">
-          Só aparecem aqui pessoas que já entraram no site com Google pelo menos uma vez.
-        </p>
-
-        <div className="mt-8 space-y-3">
-          {users.map((u) => (
-            <div key={u.id} className="rounded-lg border border-line bg-white p-4">
-              <div className="flex items-start justify-between gap-3">
-                <div className="flex items-center gap-3">
-                  {u.image && (
-                    // eslint-disable-next-line @next/next/no-img-element
-                    <img src={u.image} alt="" className="h-10 w-10 rounded-full" />
-                  )}
-                  <div>
-                    <p className="font-display font-semibold">{u.name ?? 'Sem nome'}</p>
-                    <p className="font-body text-xs text-navy/50">{u.email}</p>
-                    <p className="mt-1 font-body text-xs font-semibold text-navy/70">
-                      {roleLabel(u.staffRole)}
-                    </p>
-                  </div>
-                </div>
-                <button
-                  onClick={() => setEditingId(editingId === u.id ? null : u.id)}
-                  className="shrink-0 font-body text-xs font-semibold text-navy/60 hover:underline"
-                >
-                  {editingId === u.id ? 'Fechar' : 'Editar acesso'}
-                </button>
-              </div>
-
-              {editingId === u.id && (
-                <UserEditForm
-                  user={u}
-                  ministries={ministries}
-                  isSelf={u.id === currentUserId}
-                  onDone={() => setEditingId(null)}
-                />
-              )}
-            </div>
-          ))}
-        </div>
-      </div>
-    </main>
-  )
-}
-
-================
 File: src/app/api/cron/palavra-do-dia/route.ts
 ================
 // src/app/api/cron/palavra-do-dia/route.ts
@@ -4699,6 +5842,60 @@ export async function GET(request: Request) {
     console.error('Cron falhou:', e)
     return NextResponse.json({ ok: false, error: message }, { status: 500 })
   }
+}
+
+================
+File: src/app/catequese/page.tsx
+================
+// src/app/admin/catequese/page.tsx
+import { redirect } from 'next/navigation'
+import { auth } from '@/auth'
+import { prisma } from '@/lib/prisma'
+import { AdminCatechismClient } from './AdminCatechismClient'
+
+export default async function AdminCatechismPage() {
+  const session = await auth()
+
+  const canManage =
+    session?.user?.staffRole === 'SUPER_ADMIN' ||
+    (session?.user?.staffRole === 'MINISTRY_LEADER' &&
+      session.user.permissions?.includes('MANAGE_CATECHISM'))
+
+  if (!canManage) redirect('/')
+
+  const [openWeek, weeks, catechists, attendances] = await Promise.all([
+    prisma.catechismWeek.findFirst({
+      where: { isOpen: true },
+      orderBy: { startsAt: 'desc' },
+    }),
+    prisma.catechismWeek.findMany({
+      orderBy: { startsAt: 'desc' },
+      take: 12,
+    }),
+    prisma.catechist.findMany({
+      orderBy: { name: 'asc' },
+    }),
+    prisma.catechismAttendance.findMany({
+      orderBy: { createdAt: 'desc' },
+      take: 300,
+      include: {
+        catechist: { select: { id: true, name: true } },
+        week: { select: { id: true, title: true } },
+      },
+    }),
+  ])
+
+  const baseUrl = process.env.NEXT_PUBLIC_SITE_URL ?? 'http://localhost:3000'
+
+  return (
+    <AdminCatechismClient
+      openWeek={openWeek}
+      weeks={weeks}
+      catechists={catechists}
+      attendances={attendances}
+      baseUrl={baseUrl}
+    />
+  )
 }
 
 ================
@@ -5164,6 +6361,345 @@ File: tsconfig.json
 }
 
 ================
+File: src/actions/staffAccess.ts
+================
+// src/actions/staffAccess.ts
+'use server'
+
+import { prisma } from '@/lib/prisma'
+import { revalidatePath } from 'next/cache'
+import { requireSuperAdmin } from '@/lib/permissions'
+import type { StaffPermission, StaffRole } from '@prisma/client'
+
+const ALL_PERMISSIONS: StaffPermission[] = [
+  'VIEW_PRAYER_REQUESTS',
+  'MANAGE_TITHE_RAFFLE',
+  'MANAGE_EVENTS',
+  'MANAGE_GALLERY',
+  'MANAGE_MASS_SCHEDULE',
+  'MANAGE_MINISTRIES',
+  'MANAGE_FAQ',
+  'MANAGE_LITURGICAL_THEME',
+  'MANAGE_TESTIMONIALS',
+  'MANAGE_CATECHISM',
+]
+
+export async function updateStaffAccess(_prevState: unknown, formData: FormData) {
+  try {
+    const session = await requireSuperAdmin()
+
+    const userId = formData.get('userId') as string
+    if (!userId) throw new Error('Usuário não identificado.')
+
+    const staffRoleRaw = formData.get('staffRole') as string
+    const staffRole: StaffRole | null = staffRoleRaw === '' ? null : (staffRoleRaw as StaffRole)
+
+    // SUPER_ADMIN não impede a última administradora de se rebaixar sem querer
+    if (userId === session.user.id && staffRole !== 'SUPER_ADMIN') {
+      throw new Error('Você não pode remover seu próprio acesso de Super Admin por aqui.')
+    }
+
+    const ministryIdRaw = formData.get('ministryId') as string
+    const ministryId = staffRole === 'MINISTRY_LEADER' && ministryIdRaw ? ministryIdRaw : null
+
+    const permissions =
+      staffRole === 'MINISTRY_LEADER'
+        ? ALL_PERMISSIONS.filter((p) => formData.getAll('permissions').includes(p))
+        : []
+
+    await prisma.user.update({
+      where: { id: userId },
+      data: { staffRole, ministryId, permissions },
+    })
+
+    revalidatePath('/admin/usuarios')
+    return { success: true }
+  } catch (error: any) {
+    return { success: false, error: error.message || 'Falha ao atualizar acesso.' }
+  }
+}
+
+================
+File: src/app/admin/usuarios/AdminUsersClient.tsx
+================
+// src/app/admin/usuarios/AdminUsersClient.tsx
+'use client'
+
+import { useActionState, useState } from 'react'
+import { updateStaffAccess } from '@/actions/staffAccess'
+
+type StaffRole = 'SUPER_ADMIN' | 'MINISTRY_LEADER'
+
+type User = {
+  id: string
+  name: string | null
+  email: string | null
+  image: string | null
+  staffRole: StaffRole | null
+  ministryId: string | null
+  permissions: string[]
+}
+
+type Ministry = { id: string; name: string }
+
+type ActionState = { success: boolean; error?: string }
+
+const PERMISSION_LABELS: Record<string, string> = {
+  VIEW_PRAYER_REQUESTS: 'Ver pedidos de oração',
+  MANAGE_TITHE_RAFFLE: 'Sorteio do dízimo',
+  MANAGE_EVENTS: 'Eventos',
+  MANAGE_GALLERY: 'Galeria',
+  MANAGE_MASS_SCHEDULE: 'Horários de missa',
+  MANAGE_MINISTRIES: 'Pastorais e ministérios',
+  MANAGE_FAQ: 'FAQ',
+  MANAGE_LITURGICAL_THEME: 'Cores litúrgicas especiais (coordenador litúrgico)',
+  MANAGE_TESTIMONIALS: 'Moderar depoimentos',
+  MANAGE_CATECHISM: 'Catequese (alunos e presença)',
+}
+
+function roleLabel(role: StaffRole | null) {
+  if (role === 'SUPER_ADMIN') return 'Super Admin'
+  if (role === 'MINISTRY_LEADER') return 'Líder de Ministério'
+  return 'Sem acesso ao painel'
+}
+
+function UserEditForm({
+  user,
+  ministries,
+  isSelf,
+  onDone,
+}: {
+  user: User
+  ministries: Ministry[]
+  isSelf: boolean
+  onDone: () => void
+}) {
+  const [state, formAction, pending] = useActionState<ActionState, FormData>(updateStaffAccess, {
+    success: false,
+  })
+  const [role, setRole] = useState<'' | StaffRole>(user.staffRole ?? '')
+
+  return (
+    <form
+      action={formAction}
+      className="mt-3 space-y-3 rounded border border-dashed border-line bg-cream/40 p-4"
+    >
+      <input type="hidden" name="userId" value={user.id} />
+
+      <div>
+        <label className="block text-xs font-bold uppercase tracking-wide text-navy/60">
+          Cargo
+        </label>
+        <select
+          name="staffRole"
+          value={role}
+          onChange={(e) => setRole(e.target.value as '' | StaffRole)}
+          disabled={isSelf}
+          className="mt-1 w-full rounded border border-line bg-white px-3 py-2 font-body text-sm focus:border-gold focus:outline-none disabled:opacity-60"
+        >
+          <option value="">Sem acesso ao painel</option>
+          <option value="MINISTRY_LEADER">Líder de Ministério</option>
+          <option value="SUPER_ADMIN">Super Admin</option>
+        </select>
+        {isSelf && (
+          <p className="mt-1 font-body text-xs text-navy/40">
+            Você não pode alterar seu próprio cargo por aqui.
+          </p>
+        )}
+      </div>
+
+      {role === 'MINISTRY_LEADER' && (
+        <>
+          <div>
+            <label className="block text-xs font-bold uppercase tracking-wide text-navy/60">
+              Ministério que lidera
+            </label>
+            <select
+              name="ministryId"
+              defaultValue={user.ministryId ?? ''}
+              className="mt-1 w-full rounded border border-line bg-white px-3 py-2 font-body text-sm focus:border-gold focus:outline-none"
+            >
+              <option value="">Nenhum</option>
+              {ministries.map((m) => (
+                <option key={m.id} value={m.id}>
+                  {m.name}
+                </option>
+              ))}
+            </select>
+          </div>
+
+          <div>
+            <label className="block text-xs font-bold uppercase tracking-wide text-navy/60">
+              Permissões
+            </label>
+            <div className="mt-1 space-y-1">
+              {Object.entries(PERMISSION_LABELS).map(([value, label]) => (
+                <label key={value} className="flex items-center gap-2 font-body text-sm">
+                  <input
+                    type="checkbox"
+                    name="permissions"
+                    value={value}
+                    defaultChecked={user.permissions.includes(value)}
+                  />
+                  {label}
+                </label>
+              ))}
+            </div>
+          </div>
+        </>
+      )}
+
+      <div className="flex gap-2">
+        <button
+          type="submit"
+          disabled={pending}
+          className="flex-1 rounded bg-navy py-2 font-body text-xs font-semibold uppercase tracking-wide text-cream disabled:opacity-60"
+        >
+          {pending ? 'Salvando...' : 'Salvar'}
+        </button>
+        <button
+          type="button"
+          onClick={onDone}
+          className="flex-1 rounded border border-line py-2 font-body text-xs font-semibold uppercase tracking-wide text-navy/60"
+        >
+          Cancelar
+        </button>
+      </div>
+
+      {state?.error && <p className="font-body text-xs text-red-600">{state.error}</p>}
+      {state?.success && <p className="font-body text-xs text-green-700">Salvo!</p>}
+    </form>
+  )
+}
+
+export function AdminUsersClient({
+  users,
+  ministries,
+  currentUserId,
+}: {
+  users: User[]
+  ministries: Ministry[]
+  currentUserId: string
+}) {
+  const [editingId, setEditingId] = useState<string | null>(null)
+
+  return (
+    <main className="min-h-screen bg-cream px-6 py-12 text-navy">
+      <div className="mx-auto max-w-2xl">
+        <h1 className="font-display text-3xl font-bold">Usuários e Permissões</h1>
+        <p className="mt-1 font-body text-sm text-navy/60">
+          Só aparecem aqui pessoas que já entraram no site com Google pelo menos uma vez.
+        </p>
+
+        <div className="mt-8 space-y-3">
+          {users.map((u) => (
+            <div key={u.id} className="rounded-lg border border-line bg-white p-4">
+              <div className="flex items-start justify-between gap-3">
+                <div className="flex items-center gap-3">
+                  {u.image && (
+                    // eslint-disable-next-line @next/next/no-img-element
+                    <img src={u.image} alt="" className="h-10 w-10 rounded-full" />
+                  )}
+                  <div>
+                    <p className="font-display font-semibold">{u.name ?? 'Sem nome'}</p>
+                    <p className="font-body text-xs text-navy/50">{u.email}</p>
+                    <p className="mt-1 font-body text-xs font-semibold text-navy/70">
+                      {roleLabel(u.staffRole)}
+                    </p>
+                  </div>
+                </div>
+                <button
+                  onClick={() => setEditingId(editingId === u.id ? null : u.id)}
+                  className="shrink-0 font-body text-xs font-semibold text-navy/60 hover:underline"
+                >
+                  {editingId === u.id ? 'Fechar' : 'Editar acesso'}
+                </button>
+              </div>
+
+              {editingId === u.id && (
+                <UserEditForm
+                  user={u}
+                  ministries={ministries}
+                  isSelf={u.id === currentUserId}
+                  onDone={() => setEditingId(null)}
+                />
+              )}
+            </div>
+          ))}
+        </div>
+      </div>
+    </main>
+  )
+}
+
+================
+File: src/components/home/DailyWordSection.tsx
+================
+// src/components/home/DailyWordSection.tsx
+import { InstagramEmbed } from '@/components/InstagramEmbed'
+
+type DailyWord = {
+  verseReference: string
+  text: string
+  reflection: string | null
+  instagramReelUrl?: string | null
+  showTextWithReel?: boolean
+}
+
+export function DailyWordSection({ dailyWord }: { dailyWord: DailyWord | null }) {
+  if (!dailyWord) return null
+
+  const hasReel = Boolean(dailyWord.instagramReelUrl)
+  // Sem reels → sempre mostra texto
+  // Com reels → só mostra texto se a chavinha estiver ligada (default true)
+  const showText = !hasReel || dailyWord.showTextWithReel !== false
+
+  return (
+    <section className="mx-auto max-w-3xl px-6 py-10">
+      <p className="text-center font-body text-xs font-bold uppercase tracking-widest text-gold">
+        Palavra do Dia
+      </p>
+
+      <div className="mt-4 rounded-lg border border-line bg-white p-6 text-center">
+        <span className="inline-block rounded-full bg-navy px-3 py-1 font-mono text-[10px] font-bold uppercase tracking-widest text-cream">
+          {new Date().toLocaleDateString('pt-BR', { day: '2-digit', month: 'long' })}
+        </span>
+
+        {showText && (
+          <>
+            <p className="mt-3 font-mono text-xs uppercase text-navy/50">
+              {dailyWord.verseReference}
+            </p>
+            <p className="mt-2 font-display text-lg italic">&ldquo;{dailyWord.text}&rdquo;</p>
+            {dailyWord.reflection && (
+              <p className="mx-auto mt-3 max-w-md font-body text-sm text-navy/70">
+                {dailyWord.reflection}
+              </p>
+            )}
+          </>
+        )}
+
+        {hasReel && (
+          <div className={showText ? 'mt-6' : 'mt-4'}>
+            <div className="flex justify-center">
+              <InstagramEmbed url={dailyWord.instagramReelUrl!} />
+            </div>
+            <a
+              href={dailyWord.instagramReelUrl!}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="mt-3 inline-block font-body text-xs font-semibold text-navy/50 hover:text-gold"
+            >
+              Ver no Instagram ↗
+            </a>
+          </div>
+        )}
+      </div>
+    </section>
+  )
+}
+
+================
 File: prisma/schema.prisma
 ================
 // prisma/schema.prisma
@@ -5201,6 +6737,7 @@ enum StaffPermission {
   MANAGE_FAQ
   MANAGE_LITURGICAL_THEME // NOVO — coordenador litúrgico
   MANAGE_TESTIMONIALS // NOVO — moderação dos depoimentos
+  MANAGE_CATECHISM // NOVO — catequista: cadastra alunos e revisa presença
 }
 
 model User {
@@ -5217,6 +6754,7 @@ model User {
   ministryId  String?
   ministry    Ministry?         @relation(fields: [ministryId], references: [id])
   permissions StaffPermission[] @default([])
+  catechismMarks CatechismAttendance[]
 
   accounts Account[]
   sessions Session[]
@@ -5522,133 +7060,85 @@ model LiturgicalOverride {
   @@index([approved])
 }
 
-================
-File: src/app/admin/page.tsx
-================
-// src/app/admin/page.tsx
 
-import Link from 'next/link'
-import { auth } from '@/auth'
-import { redirect } from 'next/navigation'
+// NOVOS models:
+model CatechismStudent {
+  id            String   @id @default(cuid())
+  name          String
+  className     String   // turma, ex: "Crisma - Turma A"
+  // e-mail de quem vai logar pra marcar presença — o responsável, ou o
+  // próprio aluno se for adolescente com conta Google própria
+  guardianEmail String
+  active        Boolean  @default(true)
+  createdAt     DateTime @default(now())
+ 
+  attendances CatechismAttendance[]
+ 
+  @@index([guardianEmail])
+}
+ 
+model CatechismAttendance {
+  id     String @id @default(cuid())
 
-const MENU = [
-  { label: 'Horários de Missa', href: '/admin/horarios', ready: true },
-  { label: 'Próximos Eventos', href: '/admin/eventos', ready: true },
-  { label: 'Galeria', href: '/admin/galeria', ready: true },
-  { label: 'Pastorais e Ministérios', href: '/admin/ministerios', ready: true },
-  { label: 'FAQ', href: '/admin/faq', ready: true },
-  { label: 'Palavra do Dia', href: '/admin/palavra-do-dia', ready: true },
-  { label: 'Dados Institucionais', href: '/admin/configuracoes', ready: true },
-  { label: 'Usuários e Permissões', href: '/admin/usuarios', ready: true },
-  { label: 'Cores Litúrgicas', href: '/admin/liturgico', ready: true },
-  { label: 'Depoimentos', href: '/admin/depoimentos', ready: true },
-]
+  // Forms: nome livre (principal no MVP)
+  studentName String
 
-export default async function AdminPage() {
-  const session = await auth()
+  // opcional: se no futuro ligar ao cadastro
+  studentId String?
+  student   CatechismStudent? @relation(fields: [studentId], references: [id], onDelete: SetNull)
 
-  if (session?.user?.staffRole !== 'SUPER_ADMIN') {
-    redirect('/')
-  }
+  weekId String
+  week   CatechismWeek @relation(fields: [weekId], references: [id], onDelete: Cascade)
 
-  return (
-    <main className="min-h-screen bg-cream px-6 py-12 text-navy">
-      <div className="mx-auto max-w-2xl">
-        <h1 className="font-display text-3xl font-bold">Painel — Dona Maria</h1>
-        <p className="mt-2 font-body text-sm text-navy/60">
-          Bem-vinda, {session.user.name}.
-        </p>
+  massLabel String          // "Sábado - 19h"
+  stage     CatechismStage
 
-        <div className="mt-8 grid gap-3 sm:grid-cols-2">
-          {MENU.map((item) =>
-            item.ready ? (
-              <Link
-                key={item.href}
-                href={item.href}
-                className="rounded-lg border border-line bg-white p-4 font-body font-semibold transition-colors hover:border-gold"
-              >
-                {item.label}
-              </Link>
-            ) : (
-              <div
-                key={item.href}
-                className="cursor-not-allowed rounded-lg border border-dashed border-line bg-white/50 p-4 font-body font-semibold text-navy/30"
-              >
-                {item.label} <span className="font-mono text-[10px]">(em breve)</span>
-              </div>
-            )
-          )}
-        </div>
-      </div>
-    </main>
-  )
+  catechistId   String
+  catechist     Catechist @relation(fields: [catechistId], references: [id])
+  catechistName String    // snapshot (relatório não quebra se renomear)
+
+  attendedAt DateTime      // dia da missa (pode ser date da semana)
+  source     String   @default("SELF") // SELF | MANUAL
+  markedByUserId String?
+  markedByUser   User?  @relation(fields: [markedByUserId], references: [id])
+  note       String?  @db.Text
+
+  createdAt DateTime @default(now()) // horário do preenchimento ← relatório
+
+  @@index([weekId, catechistId])
+  @@index([catechistId, createdAt])
+  @@index([studentId, attendedAt])
 }
 
-================
-File: src/components/home/DailyWordSection.tsx
-================
-// src/components/home/DailyWordSection.tsx
-import { InstagramEmbed } from '@/components/InstagramEmbed'
+enum CatechismStage {
+  PRE
+  ETAPA_1
+  ETAPA_2
+}
+model Catechist {
+  id        String           @id @default(cuid())
+  name      String
+  stages    CatechismStage[] // pode atuar em mais de uma etapa
+  active    Boolean          @default(true)
+  createdAt DateTime         @default(now())
 
-type DailyWord = {
-  verseReference: string
-  text: string
-  reflection: string | null
-  instagramReelUrl?: string | null
-  showTextWithReel?: boolean
+  attendances CatechismAttendance[]
 }
 
-export function DailyWordSection({ dailyWord }: { dailyWord: DailyWord | null }) {
-  if (!dailyWord) return null
+model CatechismWeek {
+  id        String    @id @default(cuid())
+  title     String    // "4ª Semana – Junho"
+  token     String    @unique // URL: /catequese?s=TOKEN
+  isOpen    Boolean   @default(true)
+  startsAt  DateTime  @default(now())
+  endsAt    DateTime?
 
-  const hasReel = Boolean(dailyWord.instagramReelUrl)
-  // Sem reels → sempre mostra texto
-  // Com reels → só mostra texto se a chavinha estiver ligada (default true)
-  const showText = !hasReel || dailyWord.showTextWithReel !== false
+  // preparado p/ anti-fraude futuro (UI desligada)
+  weeklyPassword  String?
+  requirePassword Boolean @default(false)
 
-  return (
-    <section className="mx-auto max-w-3xl px-6 py-10">
-      <p className="text-center font-body text-xs font-bold uppercase tracking-widest text-gold">
-        Palavra do Dia
-      </p>
-
-      <div className="mt-4 rounded-lg border border-line bg-white p-6 text-center">
-        <span className="inline-block rounded-full bg-navy px-3 py-1 font-mono text-[10px] font-bold uppercase tracking-widest text-cream">
-          {new Date().toLocaleDateString('pt-BR', { day: '2-digit', month: 'long' })}
-        </span>
-
-        {showText && (
-          <>
-            <p className="mt-3 font-mono text-xs uppercase text-navy/50">
-              {dailyWord.verseReference}
-            </p>
-            <p className="mt-2 font-display text-lg italic">&ldquo;{dailyWord.text}&rdquo;</p>
-            {dailyWord.reflection && (
-              <p className="mx-auto mt-3 max-w-md font-body text-sm text-navy/70">
-                {dailyWord.reflection}
-              </p>
-            )}
-          </>
-        )}
-
-        {hasReel && (
-          <div className={showText ? 'mt-6' : 'mt-4'}>
-            <div className="flex justify-center">
-              <InstagramEmbed url={dailyWord.instagramReelUrl!} />
-            </div>
-            <a
-              href={dailyWord.instagramReelUrl!}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="mt-3 inline-block font-body text-xs font-semibold text-navy/50 hover:text-gold"
-            >
-              Ver no Instagram ↗
-            </a>
-          </div>
-        )}
-      </div>
-    </section>
-  )
+  createdAt   DateTime @default(now())
+  attendances CatechismAttendance[]
 }
 
 ================
@@ -5719,6 +7209,70 @@ export async function saveManualDailyWord(_prevState: unknown, formData: FormDat
   } catch (error: any) {
     return { success: false, error: error.message || 'Falha ao salvar.' }
   }
+}
+
+================
+File: src/app/admin/page.tsx
+================
+// src/app/admin/page.tsx
+
+import Link from 'next/link'
+import { auth } from '@/auth'
+import { redirect } from 'next/navigation'
+
+const MENU = [
+  { label: 'Horários de Missa', href: '/admin/horarios', ready: true },
+  { label: 'Próximos Eventos', href: '/admin/eventos', ready: true },
+  { label: 'Galeria', href: '/admin/galeria', ready: true },
+  { label: 'Pastorais e Ministérios', href: '/admin/ministerios', ready: true },
+  { label: 'FAQ', href: '/admin/faq', ready: true },
+  { label: 'Palavra do Dia', href: '/admin/palavra-do-dia', ready: true },
+  { label: 'Dados Institucionais', href: '/admin/configuracoes', ready: true },
+  { label: 'Usuários e Permissões', href: '/admin/usuarios', ready: true },
+  { label: 'Cores Litúrgicas', href: '/admin/liturgico', ready: true },
+  { label: 'Depoimentos', href: '/admin/depoimentos', ready: true },
+  { label: 'Pedidos Recebidos', href: '/admin/pedidos', ready: true },
+  { label: 'Catequese', href: '/admin/catequese', ready: true },
+]
+
+export default async function AdminPage() {
+  const session = await auth()
+
+  if (session?.user?.staffRole !== 'SUPER_ADMIN') {
+    redirect('/')
+  }
+
+  return (
+    <main className="min-h-screen bg-cream px-6 py-12 text-navy">
+      <div className="mx-auto max-w-2xl">
+        <h1 className="font-display text-3xl font-bold">Painel — Dona Maria</h1>
+        <p className="mt-2 font-body text-sm text-navy/60">
+          Bem-vinda, {session.user.name}.
+        </p>
+
+        <div className="mt-8 grid gap-3 sm:grid-cols-2">
+          {MENU.map((item) =>
+            item.ready ? (
+              <Link
+                key={item.href}
+                href={item.href}
+                className="rounded-lg border border-line bg-white p-4 font-body font-semibold transition-colors hover:border-gold"
+              >
+                {item.label}
+              </Link>
+            ) : (
+              <div
+                key={item.href}
+                className="cursor-not-allowed rounded-lg border border-dashed border-line bg-white/50 p-4 font-body font-semibold text-navy/30"
+              >
+                {item.label} <span className="font-mono text-[10px]">(em breve)</span>
+              </div>
+            )
+          )}
+        </div>
+      </div>
+    </main>
+  )
 }
 
 ================

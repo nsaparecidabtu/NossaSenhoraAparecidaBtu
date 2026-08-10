@@ -16,3 +16,8 @@ body {
   background-color: var(--color-cream);
   color: var(--color-navy);
 }
+
+@keyframes fadein {
+  from { opacity: 0; transform: translateY(6px); }
+  to { opacity: 1; transform: translateY(0); }
+}

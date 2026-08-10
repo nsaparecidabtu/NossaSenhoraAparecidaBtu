@@ -1,67 +1,98 @@
 // src/app/admin/catequese/AdminCatechismClient.tsx
 'use client'
 
-import { useActionState, useState } from 'react'
+import { useActionState, useMemo, useState } from 'react'
 import {
-  createStudent,
+  createWeek,
+  toggleWeekOpen,
+  createCatechist,
+  toggleCatechistActive,
+  createStudentAdmin,
   toggleStudentActive,
   markAttendanceManual,
-  removeAttendance,
+  deleteAttendance,
 } from '@/actions/catechism'
-import { isoWeekKey } from '@/lib/catechism'
+import { STAGE_LABELS, MASS_OPTIONS } from '@/lib/catechism'
 
+type Week = { id: string; title: string; token: string; isOpen: boolean; startsAt: Date }
+type Catechist = { id: string; name: string; stages: string[]; active: boolean }
 type Student = {
   id: string
   name: string
-  className: string
-  guardianEmail: string
+  stage: string
+  catechistId: string
   active: boolean
+  catechist: { name: string }
 }
-
 type Attendance = {
   id: string
-  studentId: string
+  studentName: string
   massLabel: string
-  attendedAt: Date
-  source: string
+  stage: string
+  catechistName: string
+  createdAt: Date
   note: string | null
+  source: string
 }
 
 type ActionState = { success: boolean; error?: string }
 
-function fmtDate(date: Date) {
-  return new Date(date).toLocaleDateString('pt-BR')
+function fmtTime(date: Date) {
+  return new Date(date).toLocaleString('pt-BR', {
+    day: '2-digit',
+    month: '2-digit',
+    hour: '2-digit',
+    minute: '2-digit',
+  })
 }
 
-function CreateStudentForm() {
-  const [state, formAction, pending] = useActionState<ActionState, FormData>(createStudent, {
+function CreateWeekForm() {
+  const [state, formAction, pending] = useActionState<ActionState, FormData>(createWeek, {
     success: false,
   })
-
   return (
-    <form action={formAction} className="space-y-3 rounded-lg border border-line bg-white p-4">
+    <form action={formAction} className="flex gap-2">
+      <input
+        name="title"
+        required
+        placeholder='Ex: "4ª Semana - Junho"'
+        className="flex-1 rounded border border-line px-3 py-2 font-body text-sm focus:border-gold focus:outline-none"
+      />
+      <button
+        type="submit"
+        disabled={pending}
+        className="shrink-0 rounded bg-navy px-4 py-2 font-body text-xs font-semibold uppercase tracking-wide text-cream disabled:opacity-60"
+      >
+        {pending ? '...' : 'Abrir semana'}
+      </button>
+      {state.error && <p className="font-body text-xs text-red-600">{state.error}</p>}
+    </form>
+  )
+}
+
+function CreateCatechistForm() {
+  const [state, formAction, pending] = useActionState<ActionState, FormData>(createCatechist, {
+    success: false,
+  })
+  return (
+    <form action={formAction} className="space-y-2 rounded-lg border border-line bg-white p-4">
       <p className="font-body text-xs font-bold uppercase tracking-wide text-navy/60">
-        Cadastrar aluno
+        Novo catequista
       </p>
       <input
         name="name"
         required
-        placeholder="Nome do aluno"
+        placeholder="Nome"
         className="w-full rounded border border-line px-3 py-2 font-body text-sm focus:border-gold focus:outline-none"
       />
-      <input
-        name="className"
-        required
-        placeholder="Turma (ex: Crisma - Turma A)"
-        className="w-full rounded border border-line px-3 py-2 font-body text-sm focus:border-gold focus:outline-none"
-      />
-      <input
-        name="guardianEmail"
-        type="email"
-        required
-        placeholder="E-mail de quem vai marcar a presença (responsável ou o próprio aluno)"
-        className="w-full rounded border border-line px-3 py-2 font-body text-sm focus:border-gold focus:outline-none"
-      />
+      <div className="flex gap-4 font-body text-sm">
+        {Object.entries(STAGE_LABELS).map(([value, label]) => (
+          <label key={value} className="flex items-center gap-1.5">
+            <input type="checkbox" name="stages" value={value} />
+            {label}
+          </label>
+        ))}
+      </div>
       <button
         type="submit"
         disabled={pending}
@@ -74,41 +105,99 @@ function CreateStudentForm() {
   )
 }
 
-function ManualAttendanceForm({ students }: { students: Student[] }) {
+function CreateStudentForm({ catechists }: { catechists: Catechist[] }) {
+  const [state, formAction, pending] = useActionState<ActionState, FormData>(
+    createStudentAdmin,
+    { success: false }
+  )
+  const [stage, setStage] = useState('')
+
+  return (
+    <form action={formAction} className="space-y-2 rounded-lg border border-line bg-white p-4">
+      <p className="font-body text-xs font-bold uppercase tracking-wide text-navy/60">
+        Novo catequizando
+      </p>
+      <input
+        name="name"
+        required
+        placeholder="Nome completo"
+        className="w-full rounded border border-line px-3 py-2 font-body text-sm focus:border-gold focus:outline-none"
+      />
+      <select
+        name="stage"
+        required
+        value={stage}
+        onChange={(e) => setStage(e.target.value)}
+        className="w-full rounded border border-line bg-white px-3 py-2 font-body text-sm"
+      >
+        <option value="">Etapa</option>
+        {Object.entries(STAGE_LABELS).map(([value, label]) => (
+          <option key={value} value={value}>
+            {label}
+          </option>
+        ))}
+      </select>
+      <select
+        name="catechistId"
+        required
+        className="w-full rounded border border-line bg-white px-3 py-2 font-body text-sm"
+      >
+        <option value="">Catequista</option>
+        {catechists
+          .filter((c) => c.stages.includes(stage))
+          .map((c) => (
+            <option key={c.id} value={c.id}>
+              {c.name}
+            </option>
+          ))}
+      </select>
+      <button
+        type="submit"
+        disabled={pending}
+        className="rounded bg-navy px-4 py-2 font-body text-xs font-semibold uppercase tracking-wide text-cream disabled:opacity-60"
+      >
+        {pending ? 'Salvando...' : 'Cadastrar'}
+      </button>
+      {state.error && <p className="font-body text-xs text-red-600">{state.error}</p>}
+    </form>
+  )
+}
+
+function ManualAttendanceForm({ weekId, students }: { weekId: string; students: Student[] }) {
   const [state, formAction, pending] = useActionState<ActionState, FormData>(
     markAttendanceManual,
     { success: false }
   )
-
   return (
-    <form action={formAction} className="space-y-3 rounded-lg border border-line bg-white p-4">
+    <form action={formAction} className="space-y-2 rounded-lg border border-line bg-white p-4">
       <p className="font-body text-xs font-bold uppercase tracking-wide text-navy/60">
-        Marcar presença manualmente (sem celular, ou correção)
+        Marcar manualmente
       </p>
+      <input type="hidden" name="weekId" value={weekId} />
       <select
         name="studentId"
         required
         className="w-full rounded border border-line bg-white px-3 py-2 font-body text-sm"
       >
-        <option value="">Selecione o aluno</option>
+        <option value="">Catequizando</option>
         {students.map((s) => (
           <option key={s.id} value={s.id}>
-            {s.name} — {s.className}
+            {s.name} — {STAGE_LABELS[s.stage]}
           </option>
         ))}
       </select>
-      <input
+      <select
         name="massLabel"
         required
-        placeholder="Ex: Domingo 10h"
-        className="w-full rounded border border-line px-3 py-2 font-body text-sm focus:border-gold focus:outline-none"
-      />
-      <input
-        name="date"
-        type="date"
-        required
-        className="w-full rounded border border-line px-3 py-2 font-body text-sm focus:border-gold focus:outline-none"
-      />
+        className="w-full rounded border border-line bg-white px-3 py-2 font-body text-sm"
+      >
+        <option value="">Missa</option>
+        {MASS_OPTIONS.map((m) => (
+          <option key={m.label} value={m.label}>
+            {m.label}
+          </option>
+        ))}
+      </select>
       <input
         name="note"
         placeholder="Observação (opcional)"
@@ -127,85 +216,167 @@ function ManualAttendanceForm({ students }: { students: Student[] }) {
 }
 
 export function AdminCatechismClient({
+  openWeek,
+  weeks,
+  catechists,
   students,
   attendances,
+  baseUrl,
 }: {
+  openWeek: Week | null
+  weeks: Week[]
+  catechists: Catechist[]
   students: Student[]
   attendances: Attendance[]
+  baseUrl: string
 }) {
-  const [tab, setTab] = useState<'relatorio' | 'alunos' | 'log'>('relatorio')
+  const [tab, setTab] = useState<'semana' | 'catequistas' | 'alunos' | 'relatorio'>('semana')
+  const [filterCatechist, setFilterCatechist] = useState('all')
 
-  const thisWeek = isoWeekKey(new Date())
-  const activeStudents = students.filter((s) => s.active)
+  const weekLink = openWeek ? `${baseUrl}/catequese?s=${openWeek.token}` : null
+  const qrSrc = weekLink
+    ? `https://api.qrserver.com/v1/create-qr-code/?size=220x220&data=${encodeURIComponent(weekLink)}`
+    : null
 
-  const statusByStudent = activeStudents.map((s) => {
-    const markedThisWeek = attendances.some(
-      (a) => a.studentId === s.id && isoWeekKey(a.attendedAt) === thisWeek
-    )
-    return { ...s, markedThisWeek }
-  })
-
-  const grouped = statusByStudent.reduce<Record<string, typeof statusByStudent>>((acc, s) => {
-    acc[s.className] = acc[s.className] || []
-    acc[s.className].push(s)
-    return acc
-  }, {})
+  const filteredAttendances = useMemo(
+    () =>
+      filterCatechist === 'all'
+        ? attendances
+        : attendances.filter((a) => a.catechistName === filterCatechist),
+    [attendances, filterCatechist]
+  )
 
   return (
     <main className="min-h-screen bg-cream px-6 py-12 text-navy">
       <div className="mx-auto max-w-2xl">
-        <h1 className="font-display text-3xl font-bold">Catequese — Presença</h1>
+        <h1 className="font-display text-3xl font-bold">Catequese</h1>
         <p className="mt-1 font-body text-sm text-navy/60">
-          Acompanhamento, não fiscalização — use pra iniciar uma conversa com quem está sumindo.
+          Semana/QR, catequistas, catequizandos e relatório.
         </p>
 
-        <div className="mt-6 flex gap-2">
-          {(['relatorio', 'alunos', 'log'] as const).map((t) => (
+        <div className="mt-6 flex flex-wrap gap-2">
+          {(
+            [
+              ['semana', 'Semana / QR'],
+              ['catequistas', 'Catequistas'],
+              ['alunos', 'Catequizandos'],
+              ['relatorio', 'Relatório'],
+            ] as const
+          ).map(([key, label]) => (
             <button
-              key={t}
-              onClick={() => setTab(t)}
+              key={key}
+              onClick={() => setTab(key)}
               className={`rounded-full border px-3 py-1.5 font-body text-xs font-semibold uppercase tracking-wide ${
-                tab === t ? 'border-navy bg-navy text-cream' : 'border-line text-navy/60'
+                tab === key ? 'border-navy bg-navy text-cream' : 'border-line text-navy/60'
               }`}
             >
-              {t === 'relatorio' ? 'Relatório semanal' : t === 'alunos' ? 'Alunos' : 'Histórico'}
+              {label}
             </button>
           ))}
         </div>
 
-        {tab === 'relatorio' && (
-          <div className="mt-6 space-y-6">
-            {Object.entries(grouped).map(([className, list]) => (
-              <div key={className}>
-                <p className="font-display font-semibold">{className}</p>
-                <div className="mt-2 space-y-2">
-                  {list.map((s) => (
-                    <div
-                      key={s.id}
-                      className="flex items-center justify-between rounded border border-line bg-white px-3 py-2"
-                    >
-                      <span className="font-body text-sm">{s.name}</span>
-                      <span
-                        className={`font-body text-xs font-semibold uppercase ${
-                          s.markedThisWeek ? 'text-green-700' : 'text-red-600'
-                        }`}
+        {tab === 'semana' && (
+          <div className="mt-6 space-y-4">
+            <div className="rounded-lg border border-line bg-white p-5 text-center">
+              {openWeek ? (
+                <>
+                  <p className="font-body text-xs font-bold uppercase tracking-wide text-green-700">
+                    Semana aberta
+                  </p>
+                  <p className="mt-1 font-display text-xl font-semibold">{openWeek.title}</p>
+                  {qrSrc && (
+                    // eslint-disable-next-line @next/next/no-img-element
+                    <img src={qrSrc} alt="QR da semana" className="mx-auto mt-3 h-52 w-52" />
+                  )}
+                  {weekLink && (
+                    <>
+                      <p className="mt-3 break-all font-mono text-xs text-navy/60">{weekLink}</p>
+                      <button
+                        type="button"
+                        onClick={() => navigator.clipboard.writeText(weekLink)}
+                        className="mt-2 rounded border border-line px-3 py-1.5 font-body text-xs font-semibold"
                       >
-                        {s.markedThisWeek ? '✅ presente essa semana' : '⏳ sem marcação'}
-                      </span>
-                    </div>
+                        Copiar link
+                      </button>
+                    </>
+                  )}
+                  <form
+                    action={async () => {
+                      await toggleWeekOpen(openWeek.id, false)
+                    }}
+                    className="mt-4"
+                  >
+                    <button
+                      type="submit"
+                      className="font-body text-xs font-semibold text-red-600 hover:underline"
+                    >
+                      Encerrar esta semana
+                    </button>
+                  </form>
+                </>
+              ) : (
+                <p className="font-body text-sm text-navy/60">
+                  Nenhuma semana aberta no momento.
+                </p>
+              )}
+            </div>
+            <CreateWeekForm />
+
+            {weeks.length > 0 && (
+              <div>
+                <p className="font-body text-xs font-bold uppercase tracking-wide text-navy/50">
+                  Semanas anteriores
+                </p>
+                <div className="mt-2 space-y-1">
+                  {weeks.map((w) => (
+                    <p key={w.id} className="font-body text-xs text-navy/50">
+                      {w.title} — {w.isOpen ? 'aberta' : 'encerrada'}
+                    </p>
                   ))}
                 </div>
               </div>
-            ))}
-            {activeStudents.length === 0 && (
-              <p className="font-body text-sm text-navy/40">Nenhum aluno ativo cadastrado.</p>
             )}
           </div>
         )}
 
+        {tab === 'catequistas' && (
+          <div className="mt-6 space-y-4">
+            <CreateCatechistForm />
+            <div className="space-y-2">
+              {catechists.map((c) => (
+                <div
+                  key={c.id}
+                  className="flex items-center justify-between rounded-lg border border-line bg-white p-3"
+                >
+                  <div>
+                    <p className="font-body text-sm font-semibold">{c.name}</p>
+                    <p className="font-body text-xs text-navy/50">
+                      {c.stages.map((s) => STAGE_LABELS[s]).join(', ')}
+                    </p>
+                  </div>
+                  <form
+                    action={async () => {
+                      await toggleCatechistActive(c.id, !c.active)
+                    }}
+                  >
+                    <button
+                      type="submit"
+                      className={`rounded px-3 py-1 font-body text-xs font-semibold uppercase ${
+                        c.active ? 'text-red-600' : 'text-green-700'
+                      }`}
+                    >
+                      {c.active ? 'Desativar' : 'Reativar'}
+                    </button>
+                  </form>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+
         {tab === 'alunos' && (
-          <div className="mt-6 space-y-6">
-            <CreateStudentForm />
+          <div className="mt-6 space-y-4">
+            <CreateStudentForm catechists={catechists} />
             <div className="space-y-2">
               {students.map((s) => (
                 <div
@@ -215,7 +386,7 @@ export function AdminCatechismClient({
                   <div>
                     <p className="font-body text-sm font-semibold">{s.name}</p>
                     <p className="font-body text-xs text-navy/50">
-                      {s.className} · {s.guardianEmail}
+                      {STAGE_LABELS[s.stage]} · catequista {s.catechist.name}
                     </p>
                   </div>
                   <form
@@ -238,42 +409,60 @@ export function AdminCatechismClient({
           </div>
         )}
 
-        {tab === 'log' && (
-          <div className="mt-6 space-y-6">
-            <ManualAttendanceForm students={activeStudents} />
+        {tab === 'relatorio' && (
+          <div className="mt-6 space-y-4">
+            {openWeek && <ManualAttendanceForm weekId={openWeek.id} students={students} />}
+
+            <select
+              value={filterCatechist}
+              onChange={(e) => setFilterCatechist(e.target.value)}
+              className="w-full rounded border border-line bg-white px-3 py-2 font-body text-sm"
+            >
+              <option value="all">Todos os catequistas</option>
+              {catechists.map((c) => (
+                <option key={c.id} value={c.name}>
+                  {c.name}
+                </option>
+              ))}
+            </select>
+
+            <p className="font-body text-xs text-navy/50">
+              {filteredAttendances.length} registro(s){openWeek ? ` · ${openWeek.title}` : ''}
+            </p>
+
             <div className="space-y-2">
-              {attendances.map((a) => {
-                const student = students.find((s) => s.id === a.studentId)
-                return (
-                  <div
-                    key={a.id}
-                    className="flex items-center justify-between rounded-lg border border-line bg-white p-3"
-                  >
+              {filteredAttendances.map((a) => (
+                <div key={a.id} className="rounded-lg border border-line bg-white p-3">
+                  <div className="flex items-start justify-between gap-3">
                     <div>
-                      <p className="font-body text-sm font-semibold">
-                        {student?.name ?? 'Aluno removido'}
-                      </p>
+                      <p className="font-body text-sm font-semibold">{a.studentName}</p>
                       <p className="font-body text-xs text-navy/50">
-                        {a.massLabel} · {fmtDate(a.attendedAt)} ·{' '}
+                        {STAGE_LABELS[a.stage] ?? a.stage} · {a.massLabel} · {a.catechistName}
+                      </p>
+                      <p className="mt-1 font-mono text-[11px] text-navy/40">
+                        preenchido em {fmtTime(a.createdAt)} ·{' '}
                         {a.source === 'SELF' ? 'auto atribuída' : 'manual'}
                       </p>
                       {a.note && <p className="font-body text-xs text-navy/40">{a.note}</p>}
                     </div>
                     <form
                       action={async () => {
-                        await removeAttendance(a.id)
+                        await deleteAttendance(a.id)
                       }}
                     >
                       <button
                         type="submit"
-                        className="font-body text-xs font-semibold text-red-600 hover:underline"
+                        className="shrink-0 font-body text-xs font-semibold text-red-600 hover:underline"
                       >
                         Remover
                       </button>
                     </form>
                   </div>
-                )
-              })}
+                </div>
+              ))}
+              {filteredAttendances.length === 0 && (
+                <p className="font-body text-sm text-navy/40">Nenhum registro ainda.</p>
+              )}
             </div>
           </div>
         )}

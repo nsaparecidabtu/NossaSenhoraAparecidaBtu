@@ -1,0 +1,1077 @@
+This file is a merged representation of a subset of the codebase, containing specifically included files and files not matching ignore patterns, combined into a single document by Repomix.
+
+================================================================
+File Summary
+================================================================
+
+Purpose:
+--------
+This file contains a packed representation of a subset of the repository's contents that is considered the most important context.
+It is designed to be easily consumable by AI systems for analysis, code review,
+or other automated processes.
+
+File Format:
+------------
+The content is organized as follows:
+1. This summary section
+2. Repository information
+3. Directory structure
+4. Repository files (if enabled)
+5. Multiple file entries, each consisting of:
+  a. A separator line (================)
+  b. The file path (File: path/to/file)
+  c. Another separator line
+  d. The full contents of the file
+  e. A blank line
+
+Usage Guidelines:
+-----------------
+- This file should be treated as read-only. Any changes should be made to the
+  original repository files, not this packed version.
+- When processing this file, use the file path to distinguish
+  between different files in the repository.
+- Be aware that this file may contain sensitive information. Handle it with
+  the same level of security as you would the original repository.
+
+Notes:
+------
+- Some files may have been excluded based on .gitignore rules and Repomix's configuration
+- Binary files are not included in this packed representation. Please refer to the Repository Structure section for a complete list of file paths, including binary files
+- Only files matching these patterns are included: src/app/admin/catequese/**, src/app/catequese/**, src/actions/catechism.ts, src/lib/catechism.ts
+- Files matching these patterns are excluded: .agents/**, .claude/**, .next/**, .node_modules/**, node_modules/**, .env, .env.*, AGENTS.md, CLAUDE.md, README.md, repomix.txt, repomix-output.*
+- Files matching patterns in .gitignore are excluded
+- Files matching default ignore patterns are excluded
+- Files are sorted by Git change count (files with more changes are at the bottom)
+
+
+================================================================
+Directory Structure
+================================================================
+src/
+  actions/
+    catechism.ts
+  app/
+    admin/
+      catequese/
+        AdminCatechismClient.tsx
+        page.tsx
+    catequese/
+      AdminCatechismClient.tsx
+      page.tsx
+      PresencaClient.tsx
+  lib/
+    catechism.ts
+
+================================================================
+Files
+================================================================
+
+================
+File: src/app/catequese/AdminCatechismClient.tsx
+================
+// src/app/admin/catequese/AdminCatechismClient.tsx
+'use client'
+
+import { useMemo, useState } from 'react'
+// actions que você vai criar:
+// openWeek, closeWeek, createCatechist, toggleCatechist
+
+type Week = {
+  id: string
+  title: string
+  token: string
+  isOpen: boolean
+  startsAt: Date
+}
+
+type Catechist = {
+  id: string
+  name: string
+  stages: string[]
+  active: boolean
+}
+
+type Attendance = {
+  id: string
+  studentName: string
+  massLabel: string
+  stage: string
+  catechistName: string
+  catechistId: string
+  createdAt: Date
+  week: { id: string; title: string }
+}
+
+export function AdminCatechismClient({
+  openWeek,
+  weeks,
+  catechists,
+  attendances,
+  baseUrl,
+}: {
+  openWeek: Week | null
+  weeks: Week[]
+  catechists: Catechist[]
+  attendances: Attendance[]
+  baseUrl: string
+}) {
+  const [tab, setTab] = useState<'semana' | 'catequistas' | 'relatorio'>('semana')
+  const [filterCatechistId, setFilterCatechistId] = useState<string>('all')
+
+  const weekLink = openWeek ? `${baseUrl}/catequese?s=${openWeek.token}` : null
+  const qrSrc = weekLink
+    ? `https://api.qrserver.com/v1/create-qr-code/?size=220x220&data=${encodeURIComponent(weekLink)}`
+    : null
+
+  const reportRows = useMemo(() => {
+    const weekId = openWeek?.id
+    return attendances.filter((a) => {
+      if (weekId && a.week.id !== weekId) return false
+      if (filterCatechistId !== 'all' && a.catechistId !== filterCatechistId) return false
+      return true
+    })
+  }, [attendances, openWeek, filterCatechistId])
+
+  return (
+    <main className="min-h-screen bg-cream px-6 py-12 text-navy">
+      <div className="mx-auto max-w-2xl">
+        <h1 className="font-display text-3xl font-bold">Catequese</h1>
+        <p className="mt-1 font-body text-sm text-navy/60">
+          Semana com QR, catequistas e relatório por turma.
+        </p>
+
+        <div className="mt-6 flex flex-wrap gap-2">
+          {(
+            [
+              ['semana', 'Semana / QR'],
+              ['catequistas', 'Catequistas'],
+              ['relatorio', 'Relatório'],
+            ] as const
+          ).map(([key, label]) => (
+            <button
+              key={key}
+              type="button"
+              onClick={() => setTab(key)}
+              className={`rounded-full border px-3 py-1.5 font-body text-xs font-semibold uppercase tracking-wide ${
+                tab === key ? 'border-navy bg-navy text-cream' : 'border-line text-navy/60'
+              }`}
+            >
+              {label}
+            </button>
+          ))}
+        </div>
+
+        {tab === 'semana' && (
+          <section className="mt-6 space-y-4 rounded-lg border border-line bg-white p-5">
+            {openWeek ? (
+              <>
+                <p className="font-body text-xs font-bold uppercase tracking-wide text-green-700">
+                  Semana aberta
+                </p>
+                <p className="font-display text-xl font-semibold">{openWeek.title}</p>
+                {weekLink && (
+                  <div className="space-y-2">
+                    <p className="break-all font-mono text-xs text-navy/70">{weekLink}</p>
+                    <button
+                      type="button"
+                      className="rounded border border-line px-3 py-1.5 text-xs font-semibold"
+                      onClick={() => navigator.clipboard.writeText(weekLink)}
+                    >
+                      Copiar link
+                    </button>
+                  </div>
+                )}
+                {qrSrc && (
+                  // eslint-disable-next-line @next/next/no-img-element
+                  <img src={qrSrc} alt="QR da semana" className="mx-auto h-52 w-52" />
+                )}
+                <p className="font-body text-xs text-navy/50">
+                  Imprima o QR e cole no mural. Cada semana nova gera link novo.
+                </p>
+                {/* botões: Fechar semana / Abrir nova — ligar nas actions */}
+              </>
+            ) : (
+              <p className="font-body text-sm text-navy/60">
+                Nenhuma semana aberta. Abra uma para gerar o QR.
+              </p>
+            )}
+          </section>
+        )}
+
+        {tab === 'catequistas' && (
+          <section className="mt-6 space-y-4">
+            {/* form criar catequista: name + stages[] + active */}
+            <div className="space-y-2">
+              {catechists.map((c) => (
+                <div
+                  key={c.id}
+                  className="flex items-center justify-between rounded-lg border border-line bg-white p-3"
+                >
+                  <div>
+                    <p className="font-body text-sm font-semibold">{c.name}</p>
+                    <p className="font-body text-xs text-navy/50">
+                      {c.stages.join(', ')} · {c.active ? 'ativo' : 'inativo'}
+                    </p>
+                  </div>
+                  {/* botão ativar/desativar */}
+                </div>
+              ))}
+            </div>
+          </section>
+        )}
+
+        {tab === 'relatorio' && (
+          <section className="mt-6 space-y-4">
+            <select
+              value={filterCatechistId}
+              onChange={(e) => setFilterCatechistId(e.target.value)}
+              className="w-full rounded border border-line bg-white px-3 py-2 text-sm"
+            >
+              <option value="all">Todos os catequistas</option>
+              {catechists.map((c) => (
+                <option key={c.id} value={c.id}>
+                  {c.name}
+                </option>
+              ))}
+            </select>
+
+            <p className="font-body text-xs text-navy/50">
+              {reportRows.length} registro(s)
+              {openWeek ? ` · ${openWeek.title}` : ''}
+            </p>
+
+            <div className="space-y-2">
+              {reportRows.map((a) => (
+                <div key={a.id} className="rounded-lg border border-line bg-white p-3">
+                  <p className="font-body text-sm font-semibold">{a.studentName}</p>
+                  <p className="font-body text-xs text-navy/50">
+                    {a.massLabel} · {a.stage} · {a.catechistName}
+                  </p>
+                  <p className="font-body text-xs text-navy/40">
+                    Enviado em{' '}
+                    {new Date(a.createdAt).toLocaleString('pt-BR')}
+                  </p>
+                </div>
+              ))}
+            </div>
+          </section>
+        )}
+      </div>
+    </main>
+  )
+}
+
+================
+File: src/actions/catechism.ts
+================
+// src/actions/catechism.ts
+'use server'
+
+import { prisma } from '@/lib/prisma'
+import { revalidatePath } from 'next/cache'
+import { requirePermission } from '@/lib/permissions'
+import { generateWeekToken } from '@/lib/catechism'
+import type { CatechismStage } from '@prisma/client'
+
+// ------- Formulário público (via link com token da semana, sem login) -------
+
+export async function submitAttendance(_prevState: unknown, formData: FormData) {
+  try {
+    const token = formData.get('token') as string
+    const studentName = (formData.get('studentName') as string)?.trim()
+    const massLabel = (formData.get('massLabel') as string)?.trim()
+    const stage = formData.get('stage') as CatechismStage
+    const catechistId = formData.get('catechistId') as string
+
+    if (!token || !studentName || !massLabel || !stage || !catechistId) {
+      throw new Error('Preencha todos os campos.')
+    }
+
+    // Revalida o token no servidor — é ele quem prova que a pessoa tem o
+    // link/QR da semana certa, nunca confia só no que veio escondido no form.
+    const week = await prisma.catechismWeek.findUnique({ where: { token } })
+    if (!week || !week.isOpen) {
+      throw new Error('Este link não está mais disponível pra marcar presença.')
+    }
+
+    const catechist = await prisma.catechist.findUnique({ where: { id: catechistId } })
+    if (!catechist || !catechist.stages.includes(stage)) {
+      throw new Error('Catequista inválido pra essa etapa.')
+    }
+
+    await prisma.catechismAttendance.create({
+      data: {
+        studentName,
+        weekId: week.id,
+        massLabel,
+        stage,
+        catechistId,
+        catechistName: catechist.name,
+        attendedAt: new Date(),
+        source: 'SELF',
+      },
+    })
+
+    return { success: true }
+  } catch (error: any) {
+    return { success: false, error: error.message || 'Falha ao enviar. Tente novamente.' }
+  }
+}
+
+// ------- Portal do coordenador -------
+
+export async function createWeek(_prevState: unknown, formData: FormData) {
+  try {
+    await requirePermission('MANAGE_CATECHISM')
+
+    const title = (formData.get('title') as string)?.trim()
+    if (!title) throw new Error('Digite o título da semana.')
+
+    const token = generateWeekToken()
+    await prisma.catechismWeek.create({ data: { title, token } })
+
+    revalidatePath('/admin/catequese')
+    return { success: true }
+  } catch (error: any) {
+    return { success: false, error: error.message || 'Falha ao criar semana.' }
+  }
+}
+
+export async function toggleWeekOpen(id: string, isOpen: boolean) {
+  try {
+    await requirePermission('MANAGE_CATECHISM')
+    await prisma.catechismWeek.update({
+      where: { id },
+      data: { isOpen, endsAt: isOpen ? null : new Date() },
+    })
+    revalidatePath('/admin/catequese')
+    return { success: true }
+  } catch (error: any) {
+    return { success: false, error: error.message || 'Falha ao atualizar.' }
+  }
+}
+
+export async function createCatechist(_prevState: unknown, formData: FormData) {
+  try {
+    await requirePermission('MANAGE_CATECHISM')
+
+    const name = (formData.get('name') as string)?.trim()
+    const stages = formData.getAll('stages') as CatechismStage[]
+
+    if (!name || stages.length === 0) {
+      throw new Error('Digite o nome e selecione ao menos uma etapa.')
+    }
+
+    await prisma.catechist.create({ data: { name, stages } })
+
+    revalidatePath('/admin/catequese')
+    return { success: true }
+  } catch (error: any) {
+    return { success: false, error: error.message || 'Falha ao cadastrar catequista.' }
+  }
+}
+
+export async function toggleCatechistActive(id: string, active: boolean) {
+  try {
+    await requirePermission('MANAGE_CATECHISM')
+    await prisma.catechist.update({ where: { id }, data: { active } })
+    revalidatePath('/admin/catequese')
+    return { success: true }
+  } catch (error: any) {
+    return { success: false, error: error.message || 'Falha ao atualizar.' }
+  }
+}
+
+// Marcação manual pelo coordenador (sem celular, ou correção)
+export async function markAttendanceManual(_prevState: unknown, formData: FormData) {
+  try {
+    const session = await requirePermission('MANAGE_CATECHISM')
+
+    const weekId = formData.get('weekId') as string
+    const studentName = (formData.get('studentName') as string)?.trim()
+    const massLabel = (formData.get('massLabel') as string)?.trim()
+    const stage = formData.get('stage') as CatechismStage
+    const catechistId = formData.get('catechistId') as string
+    const note = (formData.get('note') as string)?.trim() || null
+
+    if (!weekId || !studentName || !massLabel || !stage || !catechistId) {
+      throw new Error('Preencha todos os campos.')
+    }
+
+    const catechist = await prisma.catechist.findUnique({ where: { id: catechistId } })
+    if (!catechist) throw new Error('Catequista não encontrado.')
+
+    await prisma.catechismAttendance.create({
+      data: {
+        studentName,
+        weekId,
+        massLabel,
+        stage,
+        catechistId,
+        catechistName: catechist.name,
+        attendedAt: new Date(),
+        source: 'MANUAL',
+        markedByUserId: session.user.id,
+        note,
+      },
+    })
+
+    revalidatePath('/admin/catequese')
+    return { success: true }
+  } catch (error: any) {
+    return { success: false, error: error.message || 'Falha ao marcar presença.' }
+  }
+}
+
+export async function deleteAttendance(id: string) {
+  try {
+    await requirePermission('MANAGE_CATECHISM')
+    await prisma.catechismAttendance.delete({ where: { id } })
+    revalidatePath('/admin/catequese')
+    return { success: true }
+  } catch (error: any) {
+    return { success: false, error: error.message || 'Falha ao remover.' }
+  }
+}
+
+================
+File: src/app/admin/catequese/AdminCatechismClient.tsx
+================
+// src/app/admin/catequese/AdminCatechismClient.tsx
+'use client'
+
+import { useActionState, useState } from 'react'
+import {
+  createStudent,
+  toggleStudentActive,
+  markAttendanceManual,
+  removeAttendance,
+} from '@/actions/catechism'
+import { isoWeekKey } from '@/lib/catechism'
+
+type Student = {
+  id: string
+  name: string
+  className: string
+  guardianEmail: string
+  active: boolean
+}
+
+type Attendance = {
+  id: string
+  studentId: string
+  massLabel: string
+  attendedAt: Date
+  source: string
+  note: string | null
+}
+
+type ActionState = { success: boolean; error?: string }
+
+function fmtDate(date: Date) {
+  return new Date(date).toLocaleDateString('pt-BR')
+}
+
+function CreateStudentForm() {
+  const [state, formAction, pending] = useActionState<ActionState, FormData>(createStudent, {
+    success: false,
+  })
+
+  return (
+    <form action={formAction} className="space-y-3 rounded-lg border border-line bg-white p-4">
+      <p className="font-body text-xs font-bold uppercase tracking-wide text-navy/60">
+        Cadastrar aluno
+      </p>
+      <input
+        name="name"
+        required
+        placeholder="Nome do aluno"
+        className="w-full rounded border border-line px-3 py-2 font-body text-sm focus:border-gold focus:outline-none"
+      />
+      <input
+        name="className"
+        required
+        placeholder="Turma (ex: Crisma - Turma A)"
+        className="w-full rounded border border-line px-3 py-2 font-body text-sm focus:border-gold focus:outline-none"
+      />
+      <input
+        name="guardianEmail"
+        type="email"
+        required
+        placeholder="E-mail de quem vai marcar a presença (responsável ou o próprio aluno)"
+        className="w-full rounded border border-line px-3 py-2 font-body text-sm focus:border-gold focus:outline-none"
+      />
+      <button
+        type="submit"
+        disabled={pending}
+        className="rounded bg-navy px-4 py-2 font-body text-xs font-semibold uppercase tracking-wide text-cream disabled:opacity-60"
+      >
+        {pending ? 'Salvando...' : 'Cadastrar'}
+      </button>
+      {state.error && <p className="font-body text-xs text-red-600">{state.error}</p>}
+    </form>
+  )
+}
+
+function ManualAttendanceForm({ students }: { students: Student[] }) {
+  const [state, formAction, pending] = useActionState<ActionState, FormData>(
+    markAttendanceManual,
+    { success: false }
+  )
+
+  return (
+    <form action={formAction} className="space-y-3 rounded-lg border border-line bg-white p-4">
+      <p className="font-body text-xs font-bold uppercase tracking-wide text-navy/60">
+        Marcar presença manualmente (sem celular, ou correção)
+      </p>
+      <select
+        name="studentId"
+        required
+        className="w-full rounded border border-line bg-white px-3 py-2 font-body text-sm"
+      >
+        <option value="">Selecione o aluno</option>
+        {students.map((s) => (
+          <option key={s.id} value={s.id}>
+            {s.name} — {s.className}
+          </option>
+        ))}
+      </select>
+      <input
+        name="massLabel"
+        required
+        placeholder="Ex: Domingo 10h"
+        className="w-full rounded border border-line px-3 py-2 font-body text-sm focus:border-gold focus:outline-none"
+      />
+      <input
+        name="date"
+        type="date"
+        required
+        className="w-full rounded border border-line px-3 py-2 font-body text-sm focus:border-gold focus:outline-none"
+      />
+      <input
+        name="note"
+        placeholder="Observação (opcional)"
+        className="w-full rounded border border-line px-3 py-2 font-body text-sm focus:border-gold focus:outline-none"
+      />
+      <button
+        type="submit"
+        disabled={pending}
+        className="rounded bg-navy px-4 py-2 font-body text-xs font-semibold uppercase tracking-wide text-cream disabled:opacity-60"
+      >
+        {pending ? 'Salvando...' : 'Marcar presença'}
+      </button>
+      {state.error && <p className="font-body text-xs text-red-600">{state.error}</p>}
+    </form>
+  )
+}
+
+export function AdminCatechismClient({
+  students,
+  attendances,
+}: {
+  students: Student[]
+  attendances: Attendance[]
+}) {
+  const [tab, setTab] = useState<'relatorio' | 'alunos' | 'log'>('relatorio')
+
+  const thisWeek = isoWeekKey(new Date())
+  const activeStudents = students.filter((s) => s.active)
+
+  const statusByStudent = activeStudents.map((s) => {
+    const markedThisWeek = attendances.some(
+      (a) => a.studentId === s.id && isoWeekKey(a.attendedAt) === thisWeek
+    )
+    return { ...s, markedThisWeek }
+  })
+
+  const grouped = statusByStudent.reduce<Record<string, typeof statusByStudent>>((acc, s) => {
+    acc[s.className] = acc[s.className] || []
+    acc[s.className].push(s)
+    return acc
+  }, {})
+
+  return (
+    <main className="min-h-screen bg-cream px-6 py-12 text-navy">
+      <div className="mx-auto max-w-2xl">
+        <h1 className="font-display text-3xl font-bold">Catequese — Presença</h1>
+        <p className="mt-1 font-body text-sm text-navy/60">
+          Acompanhamento, não fiscalização — use pra iniciar uma conversa com quem está sumindo.
+        </p>
+
+        <div className="mt-6 flex gap-2">
+          {(['relatorio', 'alunos', 'log'] as const).map((t) => (
+            <button
+              key={t}
+              onClick={() => setTab(t)}
+              className={`rounded-full border px-3 py-1.5 font-body text-xs font-semibold uppercase tracking-wide ${
+                tab === t ? 'border-navy bg-navy text-cream' : 'border-line text-navy/60'
+              }`}
+            >
+              {t === 'relatorio' ? 'Relatório semanal' : t === 'alunos' ? 'Alunos' : 'Histórico'}
+            </button>
+          ))}
+        </div>
+
+        {tab === 'relatorio' && (
+          <div className="mt-6 space-y-6">
+            {Object.entries(grouped).map(([className, list]) => (
+              <div key={className}>
+                <p className="font-display font-semibold">{className}</p>
+                <div className="mt-2 space-y-2">
+                  {list.map((s) => (
+                    <div
+                      key={s.id}
+                      className="flex items-center justify-between rounded border border-line bg-white px-3 py-2"
+                    >
+                      <span className="font-body text-sm">{s.name}</span>
+                      <span
+                        className={`font-body text-xs font-semibold uppercase ${
+                          s.markedThisWeek ? 'text-green-700' : 'text-red-600'
+                        }`}
+                      >
+                        {s.markedThisWeek ? '✅ presente essa semana' : '⏳ sem marcação'}
+                      </span>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            ))}
+            {activeStudents.length === 0 && (
+              <p className="font-body text-sm text-navy/40">Nenhum aluno ativo cadastrado.</p>
+            )}
+          </div>
+        )}
+
+        {tab === 'alunos' && (
+          <div className="mt-6 space-y-6">
+            <CreateStudentForm />
+            <div className="space-y-2">
+              {students.map((s) => (
+                <div
+                  key={s.id}
+                  className="flex items-center justify-between rounded-lg border border-line bg-white p-3"
+                >
+                  <div>
+                    <p className="font-body text-sm font-semibold">{s.name}</p>
+                    <p className="font-body text-xs text-navy/50">
+                      {s.className} · {s.guardianEmail}
+                    </p>
+                  </div>
+                  <form
+                    action={async () => {
+                      await toggleStudentActive(s.id, !s.active)
+                    }}
+                  >
+                    <button
+                      type="submit"
+                      className={`rounded px-3 py-1 font-body text-xs font-semibold uppercase ${
+                        s.active ? 'text-red-600' : 'text-green-700'
+                      }`}
+                    >
+                      {s.active ? 'Desativar' : 'Reativar'}
+                    </button>
+                  </form>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+
+        {tab === 'log' && (
+          <div className="mt-6 space-y-6">
+            <ManualAttendanceForm students={activeStudents} />
+            <div className="space-y-2">
+              {attendances.map((a) => {
+                const student = students.find((s) => s.id === a.studentId)
+                return (
+                  <div
+                    key={a.id}
+                    className="flex items-center justify-between rounded-lg border border-line bg-white p-3"
+                  >
+                    <div>
+                      <p className="font-body text-sm font-semibold">
+                        {student?.name ?? 'Aluno removido'}
+                      </p>
+                      <p className="font-body text-xs text-navy/50">
+                        {a.massLabel} · {fmtDate(a.attendedAt)} ·{' '}
+                        {a.source === 'SELF' ? 'auto atribuída' : 'manual'}
+                      </p>
+                      {a.note && <p className="font-body text-xs text-navy/40">{a.note}</p>}
+                    </div>
+                    <form
+                      action={async () => {
+                        await removeAttendance(a.id)
+                      }}
+                    >
+                      <button
+                        type="submit"
+                        className="font-body text-xs font-semibold text-red-600 hover:underline"
+                      >
+                        Remover
+                      </button>
+                    </form>
+                  </div>
+                )
+              })}
+            </div>
+          </div>
+        )}
+      </div>
+    </main>
+  )
+}
+
+================
+File: src/app/admin/catequese/page.tsx
+================
+// src/app/admin/catequese/page.tsx
+import { redirect } from 'next/navigation'
+import { auth } from '@/auth'
+import { prisma } from '@/lib/prisma'
+import { AdminCatechismClient } from './AdminCatechismClient'
+
+export default async function AdminCatechismPage() {
+  const session = await auth()
+
+  const canManage =
+    session?.user?.staffRole === 'SUPER_ADMIN' ||
+    (session?.user?.staffRole === 'MINISTRY_LEADER' &&
+      session.user.permissions.includes('MANAGE_CATECHISM'))
+
+  if (!canManage) redirect('/')
+
+  const [students, attendances] = await Promise.all([
+    prisma.catechismStudent.findMany({ orderBy: [{ className: 'asc' }, { name: 'asc' }] }),
+    prisma.catechismAttendance.findMany({
+      orderBy: { attendedAt: 'desc' },
+      take: 200,
+    }),
+  ])
+
+  return <AdminCatechismClient students={students} attendances={attendances} />
+}
+
+================
+File: src/app/catequese/PresencaClient.tsx
+================
+// src/app/catequese/catequeseClient.tsx
+'use client'
+
+import { useActionState, useState } from 'react'
+import { markAttendanceSelf } from '@/actions/catechism'
+
+type Student = {
+  id: string
+  name: string
+  className: string
+  markedThisWeek: boolean
+}
+
+type EligibleMass = {
+  scheduleId: string
+  label: string
+  isOpenNow: boolean
+}
+
+type ActionState = { success: boolean; error?: string }
+
+export function PresencaClient({
+  students,
+  eligibleMasses,
+}: {
+  students: Student[]
+  eligibleMasses: EligibleMass[]
+}) {
+  const [state, formAction, pending] = useActionState<ActionState, FormData>(
+    markAttendanceSelf,
+    { success: false }
+  )
+  const [confirmed, setConfirmed] = useState(false)
+
+  if (students.length === 0) {
+    return (
+      <div className="mt-6 rounded-lg border border-dashed border-line bg-white p-4 text-center">
+        <p className="font-body text-sm text-navy/60">
+          Não encontramos nenhum aluno cadastrado com este e-mail. Fale com o catequista pra
+          cadastrar você ou seu filho(a).
+        </p>
+      </div>
+    )
+  }
+
+  const openMasses = eligibleMasses.filter((m) => m.isOpenNow)
+
+  if (state.success) {
+    return (
+      <div className="mt-6 rounded-lg border border-line bg-white p-6 text-center">
+        <p className="font-display text-lg font-semibold">Presença registrada! 🙏</p>
+        <p className="mt-2 font-body text-sm text-navy/60">
+          Obrigado por participar da caminhada da nossa comunidade.
+        </p>
+      </div>
+    )
+  }
+
+  if (openMasses.length === 0) {
+    return (
+      <div className="mt-6 rounded-lg border border-dashed border-line bg-white p-4 text-center">
+        <p className="font-body text-sm text-navy/60">
+          A presença só pode ser marcada perto do horário de uma missa. Volta aqui no fim de
+          semana, durante ou logo depois da celebração.
+        </p>
+      </div>
+    )
+  }
+
+  return (
+    <form action={formAction} className="mt-6 space-y-5 rounded-lg border border-line bg-white p-6">
+      <div>
+        <label className="block text-xs font-bold uppercase tracking-wide text-navy/60">
+          Aluno
+        </label>
+        <div className="mt-2 space-y-2">
+          {students.map((s) => (
+            <label
+              key={s.id}
+              className="flex items-center justify-between gap-2 rounded border border-line px-3 py-2 font-body text-sm"
+            >
+              <span className="flex items-center gap-2">
+                <input type="radio" name="studentId" value={s.id} required />
+                {s.name} <span className="text-navy/40">— {s.className}</span>
+              </span>
+              {s.markedThisWeek && (
+                <span className="font-body text-[10px] font-semibold uppercase text-green-700">
+                  já marcou essa semana
+                </span>
+              )}
+            </label>
+          ))}
+        </div>
+      </div>
+
+      <div>
+        <label className="block text-xs font-bold uppercase tracking-wide text-navy/60">
+          Qual missa
+        </label>
+        <div className="mt-2 space-y-2">
+          {openMasses.map((m) => (
+            <label
+              key={m.scheduleId}
+              className="flex items-center gap-2 rounded border border-line px-3 py-2 font-body text-sm"
+            >
+              <input type="radio" name="scheduleId" value={m.scheduleId} required />
+              {m.label}
+            </label>
+          ))}
+        </div>
+      </div>
+
+      <label className="flex items-start gap-2 rounded bg-cream/60 p-3 font-body text-sm text-navy/80">
+        <input
+          type="checkbox"
+          checked={confirmed}
+          onChange={(e) => setConfirmed(e.target.checked)}
+          className="mt-0.5"
+        />
+        Confirmo, com honestidade, que participei desta celebração.
+      </label>
+
+      <button
+        type="submit"
+        disabled={pending || !confirmed}
+        className="w-full rounded bg-navy py-3 font-body text-sm font-semibold uppercase tracking-wide text-cream transition-opacity disabled:opacity-40"
+      >
+        {pending ? 'Enviando...' : 'Confirmar presença'}
+      </button>
+
+      {state.error && <p className="font-body text-sm text-red-600">{state.error}</p>}
+    </form>
+  )
+}
+
+================
+File: src/lib/catechism.ts
+================
+// src/lib/catechism.ts
+//
+// Decide quais missas de hoje estão "abertas" pra auto atribuição de
+// presença da catequese, e em qual janela de horário cada uma libera.
+// Heurística por rótulo (mesma lógica do ícone dos cards de Horários) —
+// se a paróquia usar rótulos muito diferentes de "Domingo"/"Sábado"/
+// "Segunda a Sexta", isso precisa evoluir pra um campo estruturado.
+
+// src/lib/catechism.ts
+import { randomBytes } from 'crypto'
+
+export const STAGE_LABELS: Record<string, string> = {
+  PRE: 'Pré Catequese',
+  ETAPA_1: '1ª Etapa',
+  ETAPA_2: '2ª Etapa',
+}
+
+export const MASS_OPTIONS = [
+  'Sábado - 15h',
+  'Sábado - 19h',
+  'Domingo - 8h',
+  'Domingo - 9:30h',
+  'Domingo - 17h',
+  'Domingo - 19h',
+]
+
+export function generateWeekToken(): string {
+  return randomBytes(6).toString('hex') // 12 caracteres, único por semana
+}
+
+type MassSchedule = { id: string; label: string; times: string[] }
+
+export type EligibleMass = {
+  scheduleId: string
+  label: string
+  time: string // "08h00"
+  attendedAt: Date
+  windowOpensAt: Date
+  windowClosesAt: Date
+  isOpenNow: boolean
+}
+
+function scheduleAppliesToday(label: string, weekday: number): boolean {
+  const l = label.toLowerCase()
+  if (l.includes('adora')) return false // adoração não é missa
+  if (l.includes('domingo')) return weekday === 0
+  if (l.includes('sábado') || l.includes('sabado')) return weekday === 6
+  if (l.includes('segunda') && l.includes('sexta')) return weekday >= 1 && weekday <= 5
+  return false // rótulo não reconhecido — não conta pra presença automática
+}
+
+function parseTimeToDate(time: string, base: Date): Date | null {
+  // aceita "08h00", "08:00", "8h"
+  const match = time.match(/(\d{1,2})[h:](\d{0,2})/)
+  if (!match) return null
+  const hours = Number(match[1])
+  const minutes = match[2] ? Number(match[2]) : 0
+  const d = new Date(base)
+  d.setHours(hours, minutes, 0, 0)
+  return d
+}
+
+const WINDOW_BEFORE_MIN = 15
+const WINDOW_AFTER_MIN = 120
+
+export function getTodayEligibleMasses(massSchedules: MassSchedule[]): EligibleMass[] {
+  const now = new Date()
+  const weekday = now.getDay()
+
+  const result: EligibleMass[] = []
+
+  for (const schedule of massSchedules) {
+    if (!scheduleAppliesToday(schedule.label, weekday)) continue
+
+    for (const time of schedule.times) {
+      const attendedAt = parseTimeToDate(time, now)
+      if (!attendedAt) continue
+
+      const windowOpensAt = new Date(attendedAt.getTime() - WINDOW_BEFORE_MIN * 60_000)
+      const windowClosesAt = new Date(attendedAt.getTime() + WINDOW_AFTER_MIN * 60_000)
+
+      result.push({
+        scheduleId: schedule.id,
+        label: `${schedule.label} ${time}`,
+        time,
+        attendedAt,
+        windowOpensAt,
+        windowClosesAt,
+        isOpenNow: now >= windowOpensAt && now <= windowClosesAt,
+      })
+    }
+  }
+
+  return result.sort((a, b) => a.attendedAt.getTime() - b.attendedAt.getTime())
+}
+
+// Chave de semana (ano-semana ISO) — usada só pro relatório do catequista
+// agrupar "quem já marcou presença essa semana"
+export function isoWeekKey(date: Date): string {
+  const d = new Date(Date.UTC(date.getFullYear(), date.getMonth(), date.getDate()))
+  const dayNum = d.getUTCDay() || 7
+  d.setUTCDate(d.getUTCDate() + 4 - dayNum)
+  const yearStart = new Date(Date.UTC(d.getUTCFullYear(), 0, 1))
+  const weekNo = Math.ceil(((d.getTime() - yearStart.getTime()) / 86400000 + 1) / 7)
+  return `${d.getUTCFullYear()}-W${String(weekNo).padStart(2, '0')}`
+}
+
+// src/lib/catechism.ts
+
+const WORD_BANK = [
+  'Esperança', 'Fé', 'Alegria', 'Paz', 'Graça', 'Luz', 'Caminho',
+  'Semente', 'Amor', 'Misericórdia', 'Aliança', 'Bênção', 'Partilha',
+  'Acolhida', 'Comunhão',
+]
+
+
+export function randomAccessWord(): string {
+  return WORD_BANK[Math.floor(Math.random() * WORD_BANK.length)]
+}
+
+================
+File: src/app/catequese/page.tsx
+================
+// src/app/admin/catequese/page.tsx
+import { redirect } from 'next/navigation'
+import { auth } from '@/auth'
+import { prisma } from '@/lib/prisma'
+import { AdminCatechismClient } from './AdminCatechismClient'
+
+export const dynamic = 'force-dynamic'
+
+export default async function AdminCatechismPage() {
+  const session = await auth()
+
+  const canManage =
+    session?.user?.staffRole === 'SUPER_ADMIN' ||
+    (session?.user?.staffRole === 'MINISTRY_LEADER' &&
+      session.user.permissions?.includes('MANAGE_CATECHISM'))
+
+  if (!canManage) redirect('/')
+
+  const [openWeek, weeks, catechists, attendances] = await Promise.all([
+    prisma.catechismWeek.findFirst({
+      where: { isOpen: true },
+      orderBy: { startsAt: 'desc' },
+    }),
+    prisma.catechismWeek.findMany({
+      orderBy: { startsAt: 'desc' },
+      take: 12,
+    }),
+    prisma.catechist.findMany({
+      orderBy: { name: 'asc' },
+    }),
+    prisma.catechismAttendance.findMany({
+      orderBy: { createdAt: 'desc' },
+      take: 300,
+      include: {
+        catechist: { select: { id: true, name: true } },
+        week: { select: { id: true, title: true } },
+      },
+    }),
+  ])
+
+  const baseUrl = process.env.NEXT_PUBLIC_SITE_URL ?? 'http://localhost:3000'
+
+  return (
+    <AdminCatechismClient
+      openWeek={openWeek}
+      weeks={weeks}
+      catechists={catechists}
+      attendances={attendances}
+      baseUrl={baseUrl}
+    />
+  )
+}
+
+
+
+
+
+================================================================
+End of Codebase
+================================================================
