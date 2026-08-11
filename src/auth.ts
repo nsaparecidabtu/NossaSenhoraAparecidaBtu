@@ -1,5 +1,4 @@
 // src/auth.ts
-
 import NextAuth from 'next-auth'
 import Google from 'next-auth/providers/google'
 import { PrismaAdapter } from '@auth/prisma-adapter'
@@ -10,21 +9,26 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
   providers: [Google], // lê AUTH_GOOGLE_ID / AUTH_GOOGLE_SECRET do .env
   session: { strategy: 'database' },
   callbacks: {
-    session({ session, user }) {
-      // Sessão em banco não expõe esses campos por padrão — os guards de
-      // /admin e das rotas de ministério dependem deles existirem aqui.
-      const dbUser = user as typeof user & {
-        staffRole: 'SUPER_ADMIN' | 'MINISTRY_LEADER' | null
-        ministryId: string | null
-        permissions: string[]
-      }
+    async session({ session, user }) {
+      // Buscamos diretamente no banco os dados mais recentes do usuário para garantir 
+      // que alterações de cargo feitas no painel reflitam imediatamente sem precisar re-login obrigatório.
+      const dbUser = await prisma.user.findUnique({
+        where: { id: user.id },
+        select: {
+          id: true,
+          staffRole: true,
+          ministryId: true,
+          permissions: true,
+        },
+      })
 
-      if (session.user) {
+      if (session.user && dbUser) {
         session.user.id = user.id
         session.user.staffRole = dbUser.staffRole
         session.user.ministryId = dbUser.ministryId
         session.user.permissions = dbUser.permissions
       }
+      
       return session
     },
   },

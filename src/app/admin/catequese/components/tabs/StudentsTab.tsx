@@ -1,22 +1,43 @@
+// src/app/admin/catequese/components/tabs/StudentsTab.tsx
 import { prisma } from '@/lib/prisma'
 import { STAGE_LABELS } from '@/lib/catechism'
-import { toggleStudentActive } from '@/actions/catechism'
+import { toggleStudentActive } from '@/actions/catechism/admin-catechism'
 import { CreateStudentForm } from '../forms/CreateStudentForm'
+import type { CatechismStage } from '@prisma/client'
 
-export async function StudentsTab() {
+type StudentsTabProps = {
+  isGlobalAdmin: boolean
+  linkedCatechistId: string | null
+}
+
+function getStageLabel(stage: string): string {
+  return STAGE_LABELS[stage as CatechismStage] || stage
+}
+
+export async function StudentsTab({ isGlobalAdmin, linkedCatechistId }: StudentsTabProps) {
+  // 1. Construímos a condição de filtro de acordo com o nível de acesso
+  const studentWhere: any = {}
+  
+  if (!isGlobalAdmin && linkedCatechistId) {
+    studentWhere.catechistId = linkedCatechistId
+  }
+
+  // 2. Buscamos dados em paralelo respeitando o escopo
   const [students, catechists] = await Promise.all([
     prisma.catechismStudent.findMany({
+      where: studentWhere,
       orderBy: { name: 'asc' },
       include: { catechist: { select: { name: true } } },
     }),
     prisma.catechist.findMany({ 
-      where: { active: true },
+      where: isGlobalAdmin ? { active: true } : { id: linkedCatechistId ?? undefined },
       orderBy: { name: 'asc' } 
     })
   ])
 
   return (
     <div className="space-y-4 animate-[fadein_0.3s_ease]">
+      {/* Opcional: Se for admin global, exibe o form de criação. Catequista comum gerencia apenas os seus alunos se permitido */}
       <CreateStudentForm catechists={catechists} />
       
       <div className="space-y-2">
@@ -25,7 +46,7 @@ export async function StudentsTab() {
             <div>
               <p className="font-body text-sm font-semibold">{s.name}</p>
               <p className="font-body text-xs text-navy/50">
-                {STAGE_LABELS[s.stage]} · catequista {s.catechist.name}
+                {getStageLabel(s.stage)} · catequista {s.catechist.name}
               </p>
             </div>
             <form action={async () => {
@@ -43,6 +64,9 @@ export async function StudentsTab() {
             </form>
           </div>
         ))}
+        {students.length === 0 && (
+          <p className="font-body text-sm text-navy/40">Nenhum catequizando encontrado para esta turma.</p>
+        )}
       </div>
     </div>
   )

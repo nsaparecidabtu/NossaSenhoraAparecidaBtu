@@ -1,5 +1,5 @@
 import { prisma } from '@/lib/prisma'
-import { toggleWeekOpen } from '@/actions/catechism'
+import { toggleWeekOpen } from '@/actions/catechism/admin-catechism'
 import { CreateWeekForm } from '../forms/CreateWeekForm'
 import { ExportQrPdfButton } from '../ExportQrPdfButton'
 

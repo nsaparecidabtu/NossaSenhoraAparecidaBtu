@@ -6,22 +6,48 @@ datasource db {
   provider = "postgresql"
 }
 
+// ==========================================
+// MÓDULO DE AUTENTICAÇÃO E USUÁRIOS (RBAC)
+// ==========================================
+
 model User {
-  id              String                @id @default(cuid())
+  id              String            @id @default(cuid())
   name            String?
-  email           String?               @unique
+  email           String?           @unique
   emailVerified   DateTime?
   image           String?
-  staffRole       StaffRole?
-  ministryId      String?
-  permissions     StaffPermission[]     @default([])
-  createdAt       DateTime              @default(now())
+  staffRole       StaffRole?        // Papel global (ex: SUPER_ADMIN)
+  permissions     StaffPermission[] @default([]) // Permissões globais legadas
+  createdAt       DateTime          @default(now())
+
+  // Relação cruzada: Um usuário pode participar de múltiplos ministérios com papéis diferentes
+  memberships     UserMinistryMembership[]
+
+  // Relação opcional caso este usuário seja também um Catequista operando o sistema
+  catechistProfile Catechist?
+
+  // Relações padrão do Auth.js e do sistema
   accounts        Account[]
-  catechismMarks  CatechismAttendance[]
-  contactRequests ContactRequest[]
   sessions        Session[]
+  contactRequests ContactRequest[]
   testimonials    Testimonial[]
-  ministry        Ministry?             @relation(fields: [ministryId], references: [id])
+  catechismMarks  CatechismAttendance[]
+  ministry        Ministry?         @relation(fields: [ministryId], references: [id]) // Mantido para retrocompatibilidade
+  ministryId      String?
+}
+
+// Tabela intermediária para resolver o cruzamento de pastorais (Ex: Líder no Dízimo, Membro na Pascom)
+model UserMinistryMembership {
+  id         String       @id @default(cuid())
+  userId     String
+  ministryId String
+  role       MinistryRole @default(MEMBER)
+  createdAt  DateTime     @default(now())
+
+  user       User         @relation(fields: [userId], references: [id], onDelete: Cascade)
+  ministry   Ministry     @relation(fields: [ministryId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, ministryId])
 }
 
 model Account {
@@ -57,6 +83,10 @@ model VerificationToken {
 
   @@unique([identifier, token])
 }
+
+// ==========================================
+// CONFIGURAÇÕES E CONTEÚDO PAROQUIAL
+// ==========================================
 
 model ParishSettings {
   id                           String              @id @default("singleton")
@@ -111,16 +141,18 @@ model GalleryImage {
 }
 
 model Ministry {
-  id              String   @id @default(cuid())
+  id              String                   @id @default(cuid())
   name            String
-  slug            String   @unique
+  slug            String                   @unique
   description     String?
   contactInfo     String?
   meetingSchedule String?
-  order           Int      @default(0)
-  createdAt       DateTime @default(now())
-  updatedAt       DateTime @updatedAt
-  members         User[]
+  order           Int                      @default(0)
+  createdAt       DateTime                 @default(now())
+  updatedAt       DateTime                 @updatedAt
+  
+  members         User[]                   // Relacionamento legado
+  userMemberships UserMinistryMembership[] // Novo relacionamento flexível N-para-N
 }
 
 model FaqItem {
@@ -206,6 +238,10 @@ model Testimonial {
   @@index([approved])
 }
 
+// ==========================================
+// MÓDULO DE CATEQUESE
+// ==========================================
+
 model CatechismStudent {
   id          String                @id @default(cuid())
   name        String
@@ -248,6 +284,11 @@ model Catechist {
   stages      CatechismStage[]
   active      Boolean               @default(true)
   createdAt   DateTime              @default(now())
+  
+  // Vínculo inteligente opcional com a tabela de Usuários do sistema
+  userId      String?               @unique
+  user        User?                 @relation(fields: [userId], references: [id], onDelete: SetNull)
+
   attendances CatechismAttendance[]
   students    CatechismStudent[]
 }
@@ -265,9 +306,18 @@ model CatechismWeek {
   attendances     CatechismAttendance[]
 }
 
+// ==========================================
+// ENUMS DO SISTEMA
+// ==========================================
+
 enum StaffRole {
   SUPER_ADMIN
   MINISTRY_LEADER
+}
+
+enum MinistryRole {
+  COORDINATOR
+  MEMBER
 }
 
 enum StaffPermission {
@@ -318,4 +368,7 @@ enum CatechismStage {
   PRE
   ETAPA_1
   ETAPA_2
+  PERSEVERANCE
+  ADULT
+  
 }

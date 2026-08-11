@@ -2,12 +2,17 @@
 'use client'
 
 import { useActionState } from 'react'
-import { markAttendanceManual } from '@/actions/catechism'
+import { markAttendanceManual } from '@/actions/catechism/admin-catechism'
 import { STAGE_LABELS, MASS_OPTIONS } from '@/lib/catechism'
+import type { CatechismStage } from '@prisma/client'
 
-// Tipagens importadas ou declaradas localmente
 type Student = { id: string; name: string; stage: string }
 type ActionState = { success: boolean; error?: string }
+
+// Função auxiliar segura para evitar indexação implícita de 'string' em 'Record<CatechismStage, string>'
+function getStageLabel(stage: string): string {
+  return STAGE_LABELS[stage as CatechismStage] || stage
+}
 
 export function ManualAttendanceForm({ weekId, students }: { weekId: string; students: Student[] }) {
   const [state, formAction, pending] = useActionState<ActionState, FormData>(
@@ -26,7 +31,7 @@ export function ManualAttendanceForm({ weekId, students }: { weekId: string; stu
         <option value="">Catequizando</option>
         {students.map((s) => (
           <option key={s.id} value={s.id}>
-            {s.name} — {STAGE_LABELS[s.stage]}
+            {s.name} — {getStageLabel(s.stage)}
           </option>
         ))}
       </select>

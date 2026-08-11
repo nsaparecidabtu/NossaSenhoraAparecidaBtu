@@ -2,6 +2,7 @@
 'use client'
 
 import { STAGE_LABELS } from '@/lib/catechism'
+import type { CatechismStage } from '@prisma/client'
 import jsPDF from 'jspdf'
 import autoTable from 'jspdf-autotable'
 
@@ -16,6 +17,10 @@ type AttendanceData = {
   week: { title: string };
 }
 
+function getStageLabel(stage: string): string {
+  return STAGE_LABELS[stage as CatechismStage] || stage
+}
+
 export function ExportButtons({ data }: { data: AttendanceData[] }) {
   
   function exportToCSV() {
@@ -26,7 +31,7 @@ export function ExportButtons({ data }: { data: AttendanceData[] }) {
       new Date(a.createdAt).toLocaleDateString('pt-BR'),
       a.week?.title || '',
       a.studentName,
-      STAGE_LABELS[a.stage] ?? a.stage,
+      getStageLabel(a.stage),
       a.catechistName,
       a.massLabel,
       a.source === 'SELF' ? 'Auto-atribuída' : 'Manual'
@@ -66,7 +71,7 @@ export function ExportButtons({ data }: { data: AttendanceData[] }) {
       new Date(a.createdAt).toLocaleDateString('pt-BR'),
       a.week?.title || '-',
       a.studentName,
-      STAGE_LABELS[a.stage] ?? a.stage,
+      getStageLabel(a.stage),
       a.catechistName,
       a.massLabel
     ])
@@ -78,7 +83,7 @@ export function ExportButtons({ data }: { data: AttendanceData[] }) {
       startY: 28,
       theme: 'grid',
       styles: { fontSize: 8, font: 'helvetica' },
-      headStyles: { fillColor: [15, 23, 42] }, // Cor navy (#0f172a) para combinar com a identidade visual
+      headStyles: { fillColor: [15, 23, 42] }, // Cor navy (#0f172a)
     })
 
     doc.save(`relatorio_catequese_${Date.now()}.pdf`)

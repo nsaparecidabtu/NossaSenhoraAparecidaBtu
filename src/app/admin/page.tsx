@@ -1,58 +1,63 @@
 // src/app/admin/page.tsx
-
 import Link from 'next/link'
 import { auth } from '@/auth'
 import { redirect } from 'next/navigation'
+import type { StaffPermission } from '@prisma/client'
 
-const MENU = [
-  { label: 'Horários de Missa', href: '/admin/horarios', ready: true },
-  { label: 'Próximos Eventos', href: '/admin/eventos', ready: true },
-  { label: 'Galeria', href: '/admin/galeria', ready: true },
-  { label: 'Pastorais e Ministérios', href: '/admin/ministerios', ready: true },
-  { label: 'FAQ', href: '/admin/faq', ready: true },
-  { label: 'Palavra do Dia', href: '/admin/palavra-do-dia', ready: true },
-  { label: 'Dados Institucionais', href: '/admin/configuracoes', ready: true },
-  { label: 'Usuários e Permissões', href: '/admin/usuarios', ready: true },
-  { label: 'Cores Litúrgicas', href: '/admin/liturgico', ready: true },
-  { label: 'Depoimentos', href: '/admin/depoimentos', ready: true },
-  { label: 'Pedidos Recebidos', href: '/admin/pedidos', ready: true },
-  { label: 'Catequese', href: '/admin/catequese', ready: true },
+// Tipagem explícita para os itens do menu administrativo
+type MenuItem = {
+  label: string
+  href: string
+  permission?: StaffPermission | null
+  adminOnly?: boolean
+}
+
+const MENU: MenuItem[] = [
+  { label: 'Horários de Missa', href: '/admin/horarios', permission: 'MANAGE_MASS_SCHEDULE' },
+  { label: 'Próximos Eventos', href: '/admin/eventos', permission: 'MANAGE_EVENTS' },
+  { label: 'Galeria', href: '/admin/galeria', permission: 'MANAGE_GALLERY' },
+  { label: 'Pastorais', href: '/admin/ministerios', permission: 'MANAGE_MINISTRIES' },
+  { label: 'FAQ', href: '/admin/faq', permission: 'MANAGE_FAQ' },
+  { label: 'Catequese', href: '/admin/catequese', permission: 'MANAGE_CATECHISM' },
+  { label: 'Usuários', href: '/admin/usuarios', adminOnly: true }, // Apenas Super Admin
 ]
 
 export default async function AdminPage() {
   const session = await auth()
+  
+  if (!session?.user) redirect('/')
 
-  if (session?.user?.staffRole !== 'SUPER_ADMIN') {
-    redirect('/')
-  }
+  const isSuperAdmin = session.user.staffRole === 'SUPER_ADMIN'
+  const userPermissions = session.user.permissions ?? []
+
+  // Filtra o menu de forma inteligente baseada no contexto do usuário logado
+  const allowedMenu = MENU.filter((item) => {
+    if (item.adminOnly) return isSuperAdmin
+    if (!item.permission) return true // Sem restrição específica
+    return isSuperAdmin || userPermissions.includes(item.permission)
+  })
+
+  // Se o usuário não tiver acesso a absolutamente nenhum módulo, redireciona para a home
+  if (allowedMenu.length === 0) redirect('/')
 
   return (
     <main className="min-h-screen bg-cream px-6 py-12 text-navy">
       <div className="mx-auto max-w-2xl">
-        <h1 className="font-display text-3xl font-bold">Painel — Dona Maria</h1>
+        <h1 className="font-display text-3xl font-bold">Painel Administrativo</h1>
         <p className="mt-2 font-body text-sm text-navy/60">
-          Bem-vinda, {session.user.name}.
+          Bem-vindo(a), {session.user.name}.
         </p>
 
         <div className="mt-8 grid gap-3 sm:grid-cols-2">
-          {MENU.map((item) =>
-            item.ready ? (
-              <Link
-                key={item.href}
-                href={item.href}
-                className="rounded-lg border border-line bg-white p-4 font-body font-semibold transition-colors hover:border-gold"
-              >
-                {item.label}
-              </Link>
-            ) : (
-              <div
-                key={item.href}
-                className="cursor-not-allowed rounded-lg border border-dashed border-line bg-white/50 p-4 font-body font-semibold text-navy/30"
-              >
-                {item.label} <span className="font-mono text-[10px]">(em breve)</span>
-              </div>
-            )
-          )}
+          {allowedMenu.map((item) => (
+            <Link
+              key={item.href}
+              href={item.href}
+              className="rounded-lg border border-line bg-white p-4 font-body font-semibold transition-all hover:border-gold hover:shadow-sm"
+            >
+              {item.label}
+            </Link>
+          ))}
         </div>
       </div>
     </main>

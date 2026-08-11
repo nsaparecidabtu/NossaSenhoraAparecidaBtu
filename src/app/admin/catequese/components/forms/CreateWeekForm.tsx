@@ -1,7 +1,7 @@
 'use client'
 
 import { useActionState } from 'react'
-import { createWeek } from '@/actions/catechism'
+import { createWeek } from '@/actions/catechism/admin-catechism'
 
 type ActionState = { success: boolean; error?: string }
 

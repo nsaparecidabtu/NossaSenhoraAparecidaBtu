@@ -11,8 +11,9 @@ import {
   toggleStudentActive,
   markAttendanceManual,
   deleteAttendance,
-} from '@/actions/catechism'
+} from '@/actions/catechism/admin-catechism'
 import { STAGE_LABELS, MASS_OPTIONS } from '@/lib/catechism'
+import type { CatechismStage } from '@prisma/client'
 
 type Week = { id: string; title: string; token: string; isOpen: boolean; startsAt: Date }
 type Catechist = { id: string; name: string; stages: string[]; active: boolean }
@@ -36,6 +37,11 @@ type Attendance = {
 }
 
 type ActionState = { success: boolean; error?: string }
+
+// Função auxiliar segura para exibir o rótulo da etapa sem conflito de tipo
+function getStageLabel(stage: string): string {
+  return STAGE_LABELS[stage as CatechismStage] || stage
+}
 
 function fmtTime(date: Date) {
   return new Date(date).toLocaleString('pt-BR', {
@@ -182,7 +188,7 @@ function ManualAttendanceForm({ weekId, students }: { weekId: string; students: 
         <option value="">Catequizando</option>
         {students.map((s) => (
           <option key={s.id} value={s.id}>
-            {s.name} — {STAGE_LABELS[s.stage]}
+            {s.name} — {getStageLabel(s.stage)}
           </option>
         ))}
       </select>
@@ -351,7 +357,7 @@ export function AdminCatechismClient({
                   <div>
                     <p className="font-body text-sm font-semibold">{c.name}</p>
                     <p className="font-body text-xs text-navy/50">
-                      {c.stages.map((s) => STAGE_LABELS[s]).join(', ')}
+                      {c.stages.map((s) => getStageLabel(s)).join(', ')} · catequista {c.name}
                     </p>
                   </div>
                   <form
@@ -386,7 +392,7 @@ export function AdminCatechismClient({
                   <div>
                     <p className="font-body text-sm font-semibold">{s.name}</p>
                     <p className="font-body text-xs text-navy/50">
-                      {STAGE_LABELS[s.stage]} · catequista {s.catechist.name}
+                      {getStageLabel(s.stage)} · {s.catechist.name}
                     </p>
                   </div>
                   <form
@@ -437,7 +443,7 @@ export function AdminCatechismClient({
                     <div>
                       <p className="font-body text-sm font-semibold">{a.studentName}</p>
                       <p className="font-body text-xs text-navy/50">
-                        {STAGE_LABELS[a.stage] ?? a.stage} · {a.massLabel} · {a.catechistName}
+                        {getStageLabel(a.stage)} · {a.massLabel} · {a.catechistName}
                       </p>
                       <p className="mt-1 font-mono text-[11px] text-navy/40">
                         preenchido em {fmtTime(a.createdAt)} ·{' '}

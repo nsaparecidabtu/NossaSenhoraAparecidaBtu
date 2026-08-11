@@ -3,11 +3,11 @@
 import { useEffect, useRef, useState, useTransition } from 'react'
 import { Search, Heart, Sparkles, CheckCircle2, ArrowLeft } from 'lucide-react'
 import { motion, AnimatePresence, Variants } from 'framer-motion'
-import { searchStudents, quickRegisterStudent, submitAttendance } from '@/actions/catechism'
+import { searchStudents, quickRegisterStudent, submitAttendance } from '@/actions/catechism/public-attendance'
 import { STAGE_LABELS, MASS_OPTIONS, suggestMass } from '@/lib/catechism'
 
 type Catechist = { id: string; name: string; stages: string[] }
-type StudentResult = { id: string; name: string; stage: string; catechistName: string }
+type StudentResult = { id: string; name: string; stage: keyof typeof STAGE_LABELS; catechistName: string }
 
 type Phase = 'search' | 'confirmMass' | 'chooseMass' | 'quickRegister' | 'sending' | 'done'
 

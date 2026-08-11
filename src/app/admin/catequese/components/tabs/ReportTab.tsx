@@ -1,15 +1,20 @@
 // src/app/admin/catequese/components/tabs/ReportTab.tsx
 import { prisma } from '@/lib/prisma'
 import { STAGE_LABELS } from '@/lib/catechism'
-import { deleteAttendance } from '@/actions/catechism'
+import { deleteAttendance } from '@/actions/catechism/admin-catechism'
 import { ReportFilters } from '../ReportFilters'
 import { ExportButtons } from '../ExportButtons'
 import { ManualAttendanceForm } from '../forms/ManualAttendanceForm'
+import type { CatechismStage } from '@prisma/client'
 
 function fmtTime(date: Date) {
   return new Date(date).toLocaleString('pt-BR', {
     day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit',
   })
+}
+
+function getStageLabel(stage: string): string {
+  return STAGE_LABELS[stage as CatechismStage] || stage
 }
 
 type ReportFiltersProps = {
@@ -18,20 +23,42 @@ type ReportFiltersProps = {
   stage: string;
 }
 
-export async function ReportTab({ filters }: { filters: ReportFiltersProps }) {
-  // 1. Buscamos os dados auxiliares para popular os selects de filtro e formulários
-  const [weeks, catechists, openWeek, students] = await Promise.all([
-    prisma.catechismWeek.findMany({ orderBy: { startsAt: 'desc' } }),
-    prisma.catechist.findMany({ orderBy: { name: 'asc' } }),
-    prisma.catechismWeek.findFirst({ where: { isOpen: true } }),
-    prisma.catechismStudent.findMany({ where: { active: true }, orderBy: { name: 'asc' } })
-  ])
+type ReportTabProps = {
+  filters: ReportFiltersProps
+  isGlobalAdmin: boolean
+  linkedCatechistId: string | null
+}
 
-  // 2. Construímos a query condicional baseada na URL
+export async function ReportTab({ filters, isGlobalAdmin, linkedCatechistId }: ReportTabProps) {
+  // 1. Buscamos os dados auxiliares respeitando o escopo do usuário
+  const [weeks, catechists, openWeek, students] = await Promise.all([
+  prisma.catechismWeek.findMany({ orderBy: { startsAt: 'desc' } }),
+  // ORDENAÇÃO FORA DO WHERE:
+  prisma.catechist.findMany({ 
+    where: isGlobalAdmin ? undefined : { id: linkedCatechistId ?? undefined },
+    orderBy: { name: 'asc' } 
+  }),
+  prisma.catechismWeek.findFirst({ where: { isOpen: true } }),
+  prisma.catechismStudent.findMany({ 
+    where: isGlobalAdmin ? { active: true } : { active: true, catechistId: linkedCatechistId ?? undefined }, 
+    orderBy: { name: 'asc' } 
+  })
+])
+
+  // 2. Construímos a query condicional de presenças baseada na URL e no Escopo
   const whereClause: any = {}
+  
   if (filters.weekId !== 'all') whereClause.weekId = filters.weekId
-  if (filters.catechistName !== 'all') whereClause.catechistName = filters.catechistName
   if (filters.stage !== 'all') whereClause.stage = filters.stage
+
+  // Se for admin global, respeita o filtro de nome da tela. Se for catequista comum, trava direto no ID dele.
+  if (isGlobalAdmin) {
+    if (filters.catechistName !== 'all') {
+      whereClause.catechistName = filters.catechistName
+    }
+  } else if (linkedCatechistId) {
+    whereClause.catechistId = linkedCatechistId
+  }
 
   // 3. Executamos a busca otimizada de presenças
   const attendances = await prisma.catechismAttendance.findMany({
@@ -44,13 +71,14 @@ export async function ReportTab({ filters }: { filters: ReportFiltersProps }) {
     <div className="space-y-4 animate-[fadein_0.3s_ease]">
       {openWeek && <ManualAttendanceForm weekId={openWeek.id} students={students} />}
 
-      {/* Componente Client responsável apenas por mudar a URL */}
-      <ReportFilters 
-        weeks={weeks} 
-        catechists={catechists} 
-        currentFilters={filters} 
-      />
-
+      {/* Componente Client responsável por mudar a URL (Ocultamos ou limitamos se necessário) */}
+      {isGlobalAdmin && (
+        <ReportFilters 
+          weeks={weeks} 
+          catechists={catechists} 
+          currentFilters={filters} 
+        />
+      )}
         
       <div className="flex items-center justify-between">
         <p className="font-body text-xs text-navy/50">
@@ -68,7 +96,7 @@ export async function ReportTab({ filters }: { filters: ReportFiltersProps }) {
               <div>
                 <p className="font-body text-sm font-semibold">{a.studentName}</p>
                 <p className="font-body text-xs text-navy/50">
-                  {STAGE_LABELS[a.stage] ?? a.stage} · {a.massLabel} · {a.catechistName}
+                  {getStageLabel(a.stage)} · {a.massLabel} · {a.catechistName}
                 </p>
                 <p className="mt-1 font-mono text-[11px] text-navy/40">
                   Semana: {a.week.title} · preenchido em {fmtTime(a.createdAt)} · {a.source === 'SELF' ? 'auto' : 'manual'}
@@ -86,6 +114,9 @@ export async function ReportTab({ filters }: { filters: ReportFiltersProps }) {
             </div>
           </div>
         ))}
+        {attendances.length === 0 && (
+          <p className="font-body text-sm text-navy/40">Nenhum registro encontrado.</p>
+        )}
       </div>
     </div>
   )

@@ -1,13 +1,14 @@
-// src/actions/catechism.ts
+// src/actions/catechism/admin-catechism.ts
 'use server'
 
 import { prisma } from '@/lib/prisma'
+import { auth } from '@/auth'
 import { revalidatePath } from 'next/cache'
 import { requirePermission } from '@/lib/permissions'
 import { generateWeekToken } from '@/lib/catechism'
 import type { CatechismStage } from '@prisma/client'
 
-const VALID_STAGES: CatechismStage[] = ['PRE', 'ETAPA_1', 'ETAPA_2']
+const VALID_STAGES: CatechismStage[] = ['PRE', 'ETAPA_1', 'ETAPA_2', 'PERSEVERANCE', 'ADULT']
 
 function parseStage(value: FormDataEntryValue | null | string): CatechismStage {
   const s = String(value ?? '').trim()
@@ -28,98 +29,6 @@ function parseStages(values: FormDataEntryValue[]): CatechismStage[] {
   return stages
 }
 
-async function requireOpenWeek(token: string) {
-  const week = await prisma.catechismWeek.findUnique({ where: { token } })
-  if (!week || !week.isOpen) {
-    throw new Error('Este link não está mais disponível.')
-  }
-  return week
-}
-
-// ------- Acolhida pública (QR / token) -------
-
-export async function searchStudents(token: string, query: string) {
-  await requireOpenWeek(token)
-
-  const q = query.trim()
-  if (q.length < 2) return []
-
-  const students = await prisma.catechismStudent.findMany({
-    where: { active: true, name: { contains: q, mode: 'insensitive' } },
-    include: { catechist: { select: { name: true } } },
-    take: 8,
-    orderBy: { name: 'asc' },
-  })
-
-  return students.map((s) => ({
-    id: s.id,
-    name: s.name,
-    stage: s.stage,
-    catechistName: s.catechist.name,
-  }))
-}
-
-export async function quickRegisterStudent(
-  token: string,
-  data: { name: string; stage: string; catechistId: string }
-) {
-  await requireOpenWeek(token)
-
-  const name = data.name.trim()
-  const stage = parseStage(data.stage)
-  const catechistId = data.catechistId
-
-  if (!name || !catechistId) {
-    throw new Error('Preencha nome, etapa e catequista.')
-  }
-
-  const catechist = await prisma.catechist.findUnique({ where: { id: catechistId } })
-  if (!catechist || !catechist.stages.includes(stage)) {
-    throw new Error('Catequista inválido pra essa etapa.')
-  }
-
-  const student = await prisma.catechismStudent.create({
-    data: { name, stage, catechistId },
-  })
-
-  return {
-    id: student.id,
-    name: student.name,
-    stage: student.stage,
-    catechistName: catechist.name,
-  }
-}
-
-export async function submitAttendance(token: string, studentId: string, massLabel: string) {
-  const week = await requireOpenWeek(token)
-
-  const student = await prisma.catechismStudent.findUnique({
-    where: { id: studentId },
-    include: { catechist: { select: { id: true, name: true } } },
-  })
-  if (!student || !student.active) {
-    throw new Error('Catequizando não encontrado.')
-  }
-
-  await prisma.catechismAttendance.create({
-    data: {
-      studentId: student.id,
-      studentName: student.name,
-      weekId: week.id,
-      massLabel,
-      stage: student.stage,
-      catechistId: student.catechist.id,
-      catechistName: student.catechist.name,
-      attendedAt: new Date(),
-      source: 'SELF',
-    },
-  })
-
-  return { success: true }
-}
-
-// ------- Portal do coordenador -------
-
 export async function createWeek(_prevState: unknown, formData: FormData) {
   try {
     await requirePermission('MANAGE_CATECHISM')
@@ -127,7 +36,6 @@ export async function createWeek(_prevState: unknown, formData: FormData) {
     const title = (formData.get('title') as string)?.trim()
     if (!title) throw new Error('Digite o título da semana.')
 
-    // Fecha semanas abertas antes de abrir a nova
     await prisma.catechismWeek.updateMany({
       where: { isOpen: true },
       data: { isOpen: false, endsAt: new Date() },
@@ -279,26 +187,46 @@ export async function deleteAttendance(id: string) {
   }
 }
 
+// Relatório integrado com escopo dinâmico
 export async function getAttendancesReport(filters: { 
   weekId?: string; 
   catechistName?: string; 
   stage?: string; 
+  viewAll?: boolean;
 }) {
   try {
-    // Garantir segurança e permissão de admin
-    await requirePermission('MANAGE_CATECHISM');
+    const session = await auth()
+    if (!session?.user) throw new Error('Não autenticado.')
 
-    // Construção dinâmica da query
-    const whereClause: any = {};
+    const isSuperAdmin = session.user.staffRole === 'SUPER_ADMIN'
+    const hasGlobalPermission = session.user.permissions?.includes('MANAGE_CATECHISM')
+
+    const whereClause: any = {}
     
     if (filters.weekId && filters.weekId !== 'all') {
-      whereClause.weekId = filters.weekId;
-    }
-    if (filters.catechistName && filters.catechistName !== 'all') {
-      whereClause.catechistName = filters.catechistName;
+      whereClause.weekId = filters.weekId
     }
     if (filters.stage && filters.stage !== 'all') {
-      whereClause.stage = filters.stage;
+      whereClause.stage = filters.stage
+    }
+
+    // Regra de escopo por perfil
+    if (!isSuperAdmin && !hasGlobalPermission) {
+      const catechistProfile = await prisma.catechist.findUnique({
+        where: { userId: session.user.id }
+      })
+
+      if (!catechistProfile) {
+        throw new Error('Perfil de catequista não vinculado ao seu usuário.')
+      }
+
+      if (!filters.viewAll) {
+        whereClause.catechistId = catechistProfile.id
+      }
+    } else {
+      if (filters.catechistName && filters.catechistName !== 'all') {
+        whereClause.catechistName = filters.catechistName
+      }
     }
 
     const data = await prisma.catechismAttendance.findMany({
@@ -307,10 +235,10 @@ export async function getAttendancesReport(filters: {
       include: {
         week: { select: { title: true } }
       }
-    });
+    })
 
-    return { success: true, data };
+    return { success: true, data }
   } catch (error: any) {
-    return { success: false, error: error.message || 'Erro ao gerar relatório' };
+    return { success: false, error: error.message || 'Erro ao gerar relatório' }
   }
 }

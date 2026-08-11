@@ -1,10 +1,13 @@
 // src/lib/catechism.ts
 import { randomBytes } from 'crypto'
+import type { CatechismStage } from '@prisma/client'
 
-export const STAGE_LABELS: Record<string, string> = {
+export const STAGE_LABELS: Record<CatechismStage | 'PERSEVERANCE' | 'ADULT', string> = {
   PRE: 'Pré Catequese',
   ETAPA_1: '1ª Etapa',
   ETAPA_2: '2ª Etapa',
+  PERSEVERANCE: 'Perseverança / Crisma',
+  ADULT: 'Catequese de Adultos',
 }
 
 export type MassOption = {
@@ -14,9 +17,7 @@ export type MassOption = {
   minute: number
 }
 
-// "Missa Dominical" pra este projeto começa sábado ao meio-dia e termina
-// depois da última missa de domingo — daí só ter opções de sábado à
-// tarde/noite e domingo.
+// Missa Dominical: começa sábado ao meio-dia e termina após a última missa de domingo
 export const MASS_OPTIONS: MassOption[] = [
   { label: 'Sábado - 15h', day: 'SAT', hour: 15, minute: 0 },
   { label: 'Sábado - 19h', day: 'SAT', hour: 19, minute: 0 },
@@ -26,9 +27,7 @@ export const MASS_OPTIONS: MassOption[] = [
   { label: 'Domingo - 19h', day: 'SUN', hour: 19, minute: 0 },
 ]
 
-// Sugere a missa mais próxima do horário atual (a que a pessoa
-// provavelmente acabou de participar), pra perguntar direto sem ela
-// precisar escolher numa lista.
+// Sugere a missa mais próxima do horário atual (para o check-in fluido)
 export function suggestMass(now: Date = new Date()): MassOption {
   let best = MASS_OPTIONS[0]
   let bestDiff = Infinity
@@ -52,5 +51,5 @@ export function suggestMass(now: Date = new Date()): MassOption {
 }
 
 export function generateWeekToken(): string {
-  return randomBytes(6).toString('hex') // 12 caracteres, único por semana
+  return randomBytes(6).toString('hex') // 12 caracteres hexadecimais, único por semana
 }

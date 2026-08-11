@@ -1,6 +1,6 @@
 import { prisma } from '@/lib/prisma'
 import { STAGE_LABELS } from '@/lib/catechism'
-import { toggleCatechistActive } from '@/actions/catechism'
+import { toggleCatechistActive } from '@/actions/catechism/admin-catechism'
 import { CreateCatechistForm } from '../forms/CreateCatechistForm'
 
 export async function CatechistsTab() {

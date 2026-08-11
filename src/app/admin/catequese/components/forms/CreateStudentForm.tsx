@@ -1,7 +1,7 @@
 'use client'
 
 import { useActionState, useState } from 'react'
-import { createStudentAdmin } from '@/actions/catechism'
+import { createStudentAdmin } from '@/actions/catechism/admin-catechism'
 import { STAGE_LABELS } from '@/lib/catechism'
 
 type ActionState = { success: boolean; error?: string }
