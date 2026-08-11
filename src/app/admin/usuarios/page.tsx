@@ -3,6 +3,7 @@ import { prisma } from '@/lib/prisma'
 import { auth } from '@/auth'
 import { redirect } from 'next/navigation'
 import Link from 'next/link'
+import { AdminUsersClient } from './AdminUsersClient'
 
 type PageProps = {
   searchParams: Promise<{
@@ -19,7 +20,6 @@ export default async function AdminUsersPage({ searchParams }: PageProps) {
   const pageSize = 10
   const currentPage = Math.max(1, parseInt(page, 10))
 
-  // Filtro de busca por nome ou email
   const whereClause = q
     ? {
         OR: [
@@ -29,15 +29,25 @@ export default async function AdminUsersPage({ searchParams }: PageProps) {
       }
     : {}
 
-  // Busca paginada no banco
-  const [users, totalCount] = await Promise.all([
+  // Buscamos em paralelo usuários, total para paginação e os ministérios
+  const [users, totalCount, ministries] = await Promise.all([
     prisma.user.findMany({
       where: whereClause,
       orderBy: { createdAt: 'desc' },
       skip: (currentPage - 1) * pageSize,
       take: pageSize,
+      select: {
+        id: true,
+        name: true,
+        email: true,
+        image: true,
+        staffRole: true,
+        ministryId: true,
+        permissions: true,
+      },
     }),
     prisma.user.count({ where: whereClause }),
+    prisma.ministry.findMany({ select: { id: true, name: true }, orderBy: { name: 'asc' } }),
   ])
 
   const totalPages = Math.ceil(totalCount / pageSize)
@@ -66,39 +76,12 @@ export default async function AdminUsersPage({ searchParams }: PageProps) {
           </button>
         </form>
 
-        {/* Lista de Usuários */}
-        <div className="mt-6 space-y-3">
-          {users.map((user) => (
-            <div key={user.id} className="flex items-center justify-between rounded-xl border border-line bg-white p-4 shadow-sm">
-              <div className="flex items-center gap-3">
-                {user.image ? (
-                  <img src={user.image} alt={user.name ?? ''} className="h-10 w-10 rounded-full border border-line" />
-                ) : (
-                  <div className="flex h-10 w-10 items-center justify-center rounded-full bg-navy text-cream font-bold">
-                    {user.name?.[0] ?? 'U'}
-                  </div>
-                )}
-                <div>
-                  <p className="font-body text-sm font-semibold text-navy">{user.name || 'Sem nome'}</p>
-                  <p className="font-body text-xs text-navy/60">{user.email}</p>
-                  <span className="mt-1 inline-block rounded bg-navy/5 px-2 py-0.5 font-mono text-[10px] uppercase text-navy/70">
-                    {user.staffRole || 'Sem acesso administrativo'}
-                  </span>
-                </div>
-              </div>
-              <Link
-                href={`/admin/usuarios/${user.id}`}
-                className="rounded border border-line px-3 py-1.5 font-body text-xs font-semibold text-navy transition-colors hover:border-gold hover:bg-navy/5"
-              >
-                Editar acesso
-              </Link>
-            </div>
-          ))}
-
-          {users.length === 0 && (
-            <p className="py-8 text-center font-body text-sm text-navy/40">Nenhum usuário encontrado.</p>
-          )}
-        </div>
+        {/* Renderização interativa limpa sem URLs com 404 */}
+        <AdminUsersClient
+          users={users}
+          ministries={ministries}
+          currentUserId={session.user.id}
+        />
 
         {/* Paginação */}
         {totalPages > 1 && (

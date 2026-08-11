@@ -1,3 +1,4 @@
+// src/app/admin/usuarios/components/EditUserModal.tsx
 'use client'
 
 import { useState, useActionState } from 'react'
@@ -56,10 +57,10 @@ export function EditUserModal({
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-navy/60 p-4 backdrop-blur-sm animate-[fadein_0.2s_ease]">
-      <div className="w-full max-w-lg rounded-2xl border border-line bg-white p-6 shadow-2xl max-h-[90vh] overflow-y-auto">
+      <div className="w-full max-w-lg rounded-2xl border border-line bg-white p-6 shadow-2xl max-h-[90vh] overflow-y-auto text-navy">
         <div className="flex items-center justify-between border-b border-line pb-3">
           <div>
-            <h3 className="font-display text-lg font-bold text-navy">Gerenciar Nível e Permissões</h3>
+            <h3 className="font-display text-lg font-bold">Gerenciar Acesso & Permissões</h3>
             <p className="font-body text-xs text-navy/60">{user.name ?? 'Sem nome'} ({user.email})</p>
           </div>
           <button 
@@ -82,16 +83,16 @@ export function EditUserModal({
               name="staffRole" 
               value={selectedRole} 
               onChange={(e) => setSelectedRole(e.target.value)}
-              className="mt-1 w-full rounded border border-line bg-white px-3 py-2 text-sm focus:border-gold focus:outline-none"
+              className="mt-1 w-full rounded border border-line bg-white px-3 py-2 text-sm focus:border-gold focus:outline-none font-body"
             >
-              <option value="">Fiel / Membro Comum (Sem acesso admin)</option>
+              <option value="">Fiel / Membro Comum (Sem painel)</option>
               <option value="CATECHIST">Catequista</option>
               <option value="MINISTRY_LEADER">Líder de Ministério / Pastoral</option>
               <option value="SUPER_ADMIN">Administrador Geral (Super Admin)</option>
             </select>
           </div>
 
-          {/* Renderização condicional de ministério e permissões dinâmicas */}
+          {/* Exibe seleção de ministério e checkboxes apenas se for Líder */}
           {isLeader && (
             <div className="space-y-4 rounded-xl border border-line bg-cream/30 p-4 animate-[fadein_0.2s_ease]">
               {ministries.length > 0 && (
@@ -102,7 +103,7 @@ export function EditUserModal({
                   <select 
                     name="ministryId" 
                     defaultValue={user.ministryId ?? ''} 
-                    className="mt-1 w-full rounded border border-line bg-white px-3 py-2 text-sm focus:border-gold focus:outline-none"
+                    className="mt-1 w-full rounded border border-line bg-white px-3 py-2 text-sm focus:border-gold focus:outline-none font-body"
                   >
                     <option value="">Selecione o ministério...</option>
                     {ministries.map((m) => (
@@ -114,11 +115,11 @@ export function EditUserModal({
 
               <div>
                 <label className="mb-2 block text-xs font-bold uppercase tracking-wider text-navy/60">
-                  Permissões Concedidas
+                  Permissões Permitidas
                 </label>
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 max-h-48 overflow-y-auto pr-1">
                   {ALL_PERMISSIONS.map((p) => (
-                    <label key={p.id} className="flex items-center gap-2 rounded border border-line/60 bg-white p-2 text-xs hover:border-gold cursor-pointer">
+                    <label key={p.id} className="flex items-center gap-2 rounded border border-line/60 bg-white p-2 text-xs hover:border-gold cursor-pointer font-body">
                       <input 
                         type="checkbox" 
                         name="permissions" 
@@ -137,17 +138,17 @@ export function EditUserModal({
           <div className="flex justify-end gap-2 pt-3 border-t border-line">
             <button 
               type="button" 
-              onClick={onClose}
-              className="rounded border border-line px-4 py-2 font-body text-xs font-semibold uppercase text-navy/70 hover:bg-black/5 transition-colors"
+              onClick={onClose} 
+              className="rounded border border-line px-4 py-2 font-body text-xs font-semibold uppercase text-navy/70 hover:bg-black/5"
             >
               Cancelar
             </button>
             <button 
               type="submit" 
-              disabled={pending}
+              disabled={pending} 
               className="rounded bg-navy px-4 py-2 font-body text-xs font-semibold uppercase tracking-wide text-cream hover:bg-gold hover:text-navy transition-colors disabled:opacity-50"
             >
-              {pending ? 'Salvando...' : 'Salvar Alterações'}
+              {pending ? 'Salvando...' : 'Atualizar Acesso'}
             </button>
           </div>
 
