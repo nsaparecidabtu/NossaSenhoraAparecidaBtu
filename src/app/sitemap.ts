@@ -1,10 +1,10 @@
 // src/app/sitemap.ts
 import type { MetadataRoute } from 'next'
 
-export default async function sitemap(): MetadataRoute.Sitemap {
+export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   const baseUrl = process.env.NEXT_PUBLIC_SITE_URL || 'https://paroquiaaparecidabtu.com.br'
 
-  // Páginas estáticas principais da paróquia
+  // Rotas públicas estáticas do portal paroquial
   const routes = [
     '',
     '/a-paroquia',
@@ -16,5 +16,5 @@ export default async function sitemap(): MetadataRoute.Sitemap {
     priority: route === '' ? 1.0 : 0.8,
   }))
 
-  return [...routes]
+  return routes
 }

@@ -97,10 +97,10 @@ export default async function Home() {
         name={settings?.name}
         phone={settings?.phone}
         email={settings?.email}
-        address={settings?.address}
-        instagramUrl={settings?.instagramUrl}
-        facebookUrl={settings?.facebookUrl}
-        youtubeUrl={settings?.youtubeUrl}
+        //address={settings?.address}
+        //instagramUrl={settings?.instagramUrl}
+        //facebookUrl={settings?.facebookUrl}
+        //youtubeUrl={settings?.youtubeUrl}
       />
     </main>
   )
