@@ -67,24 +67,7 @@ export async function toggleWeekOpen(id: string, isOpen: boolean) {
   }
 }
 
-export async function createCatechist(_prevState: unknown, formData: FormData) {
-  try {
-    await requirePermission('MANAGE_CATECHISM')
 
-    const name = (formData.get('name') as string)?.trim()
-    const stages = parseStages(formData.getAll('stages'))
-
-    if (!name) throw new Error('Digite o nome e selecione ao menos uma etapa.')
-
-    await prisma.catechist.create({ data: { name, stages } })
-
-    revalidatePath('/admin/catequese')
-    return { success: true }
-  } catch (error: unknown) {
-    const message = error instanceof Error ? error.message : 'Falha ao cadastrar catequista.'
-    return { success: false, error: message }
-  }
-}
 
 export async function toggleCatechistActive(id: string, active: boolean) {
   try {
@@ -242,3 +225,91 @@ export async function getAttendancesReport(filters: {
     return { success: false, error: error.message || 'Erro ao gerar relatório' }
   }
 }
+
+export async function createCatechist(_prevState: unknown, formData: FormData) {
+  try {
+    await requirePermission('MANAGE_CATECHISM')
+
+    const name = (formData.get('name') as string)?.trim()
+    const email = (formData.get('email') as string)?.trim().toLowerCase() // Novo campo
+    const stages = parseStages(formData.getAll('stages'))
+
+    if (!name) throw new Error('Nome é obrigatório.')
+
+    // Se um e-mail foi fornecido, tentamos vincular o User existente
+    let userId: string | null = null
+    if (email) {
+      const user = await prisma.user.findUnique({ where: { email } })
+      if (user) userId = user.id
+    }
+
+    await prisma.catechist.create({ 
+      data: { 
+        name, 
+        stages, 
+        userId // Agora vincula o perfil do catequista ao login do usuário
+      } 
+    })
+
+    revalidatePath('/admin/catequese')
+    return { success: true }
+  } catch (error: any) {
+    return { success: false, error: error.message }
+  }
+}
+
+
+// Adicionar em src/actions/catechism/admin-catechism.ts
+
+export async function updateCatechist(_prevState: unknown, formData: FormData) {
+  try {
+    // Validação de permissão (Super Admin ou Líder)
+    const id = formData.get('id') as string
+    const name = (formData.get('name') as string)?.trim()
+    const email = (formData.get('email') as string)?.trim().toLowerCase()
+    const stages = parseStages(formData.getAll('stages'))
+
+    if (!id || !name) throw new Error('Dados incompletos para atualização.')
+
+    let userId: string | null = null
+    if (email) {
+      const user = await prisma.user.findUnique({ where: { email } })
+      if (user) userId = user.id
+    }
+
+    await prisma.catechist.update({
+      where: { id },
+      data: {
+        name,
+        stages,
+        ...(userId ? { userId } : {})
+      }
+    })
+
+    revalidatePath('/admin/catequese')
+    return { success: true, error: null }
+  } catch (error: any) {
+    return { success: false, error: error.message }
+  }
+}
+
+export async function deleteCatechist(id: string) {
+  try {
+    if (!id) throw new Error('ID inválido.')
+
+    // Regra de Negócio: Verificar se existem presenças ou alunos atrelados antes de apagar fisicamente
+    const studentsCount = await prisma.catechismStudent.count({ where: { catechistId: id } })
+    
+    if (studentsCount > 0) {
+      throw new Error('Não é possível excluir este catequista pois existem alunos vinculados. Desative-o em vez disso.')
+    }
+
+    await prisma.catechist.delete({ where: { id } })
+
+    revalidatePath('/admin/catequese')
+    return { success: true }
+  } catch (error: any) {
+    return { success: false, error: error.message }
+  }
+}
+
