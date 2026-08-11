@@ -19,6 +19,7 @@ const MENU: MenuItem[] = [
   { label: 'Pastorais', href: '/admin/ministerios', permission: 'MANAGE_MINISTRIES' },
   { label: 'FAQ', href: '/admin/faq', permission: 'MANAGE_FAQ' },
   { label: 'Catequese', href: '/admin/catequese', permission: 'MANAGE_CATECHISM' },
+  { label: 'Dados Institucionais', href: '/admin/configuracoes', adminOnly: true }, // Adicionado aqui
   { label: 'Usuários', href: '/admin/usuarios', adminOnly: true }, // Apenas Super Admin
 ]
 

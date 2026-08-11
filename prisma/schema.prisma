@@ -372,3 +372,20 @@ enum CatechismStage {
   ADULT
   
 }
+
+
+// Tabela para configurações únicas (Nome da Paróquia, etc)
+model SiteSettings {
+  id        String   @id @default("global")
+  name      String   @default("Paróquia Nossa Senhora Aparecida")
+  updatedAt DateTime @updatedAt
+}
+
+model SiteContact {
+  id        String   @id @default(cuid())
+  category  String   // 'INSTAGRAM', 'FACEBOOK', 'WHATSAPP', 'PHONE', 'ADDRESS', 'OTHER'
+  label     String
+  value     String
+  mapUrl    String?
+  createdAt DateTime @default(now())
+}
