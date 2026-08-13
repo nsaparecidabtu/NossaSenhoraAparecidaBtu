@@ -57,7 +57,7 @@ export async function submitLivePrayer(formData: FormData) {
 
     await prisma.contactRequest.create({
       data: {
-        type: 'PRAYER',
+        type: 'LIVE_PRAYER',
         name,
         contact: name, // Garantia anti-quebra caso o banco exija o campo contact
         message,
@@ -81,7 +81,7 @@ export async function clearLiveWall() {
 
     await prisma.contactRequest.updateMany({
       where: {
-        type: 'PRAYER',
+        type: 'LIVE_PRAYER',
         approvedForWall: true,
       },
       data: {

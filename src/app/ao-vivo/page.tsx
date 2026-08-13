@@ -21,7 +21,7 @@ export default async function LivePage() {
     prisma.massSchedule.findMany({ orderBy: { order: 'asc' } }),
     prisma.contactRequest.findMany({
       where: {
-        type: 'PRAYER',
+        type: 'LIVE_PRAYER',
         approvedForWall: true,
         createdAt: { gte: twelveHoursAgo },
       },

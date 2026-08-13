@@ -6,7 +6,7 @@ import { updateContactRequestStatus, approveForWall } from '@/actions/contactReq
 
 type Request = {
   id: string
-  type: 'PRAYER' | 'MASS_INTENTION' | 'SACRAMENT' | 'GENERAL'
+  type: 'PRAYER_GENERAL' | 'MASS_INTENTION' | 'SACRAMENT' | 'GENERAL_CONTACT'
   name: string
   contact: string
   message: string
@@ -14,20 +14,20 @@ type Request = {
   sacramentType: string | null
   wantsPublicWall: boolean
   approvedForWall: boolean
-  status: 'PENDING' | 'CONTACTED' | 'RESOLVED'
+  status: 'PENDING' | 'APPROVED' | 'RESOLVED'
   createdAt: Date
 }
 
 const TYPE_LABELS: Record<Request['type'], string> = {
-  PRAYER: 'Pedido de Oração',
+  PRAYER_GENERAL: 'Pedido de Oração',
   MASS_INTENTION: 'Intenção de Missa',
   SACRAMENT: 'Agendar Sacramento',
-  GENERAL: 'Contato Geral',
+  GENERAL_CONTACT: 'Contato Geral',
 }
 
 const STATUS_LABELS: Record<Request['status'], string> = {
   PENDING: 'Pendente',
-  CONTACTED: 'Contatado',
+  APPROVED: 'Contatado',
   RESOLVED: 'Resolvido',
 }
 
@@ -50,7 +50,7 @@ export function AdminRequestsClient({ requests }: { requests: Request[] }) {
         </p>
 
         <div className="mt-4 flex flex-wrap gap-2">
-          {(['ALL', 'PRAYER', 'MASS_INTENTION', 'SACRAMENT', 'GENERAL'] as const).map((t) => (
+          {(['ALL', 'PRAYER_GENERAL', 'MASS_INTENTION', 'SACRAMENT', 'GENERAL_CONTACT'] as const).map((t) => (
             <button
               key={t}
               onClick={() => setFilter(t)}
@@ -104,7 +104,7 @@ export function AdminRequestsClient({ requests }: { requests: Request[] }) {
                   }
                   className="shrink-0 rounded border border-line bg-white px-2 py-1 font-body text-xs"
                 >
-                  {(['PENDING', 'CONTACTED', 'RESOLVED'] as const).map((s) => (
+                  {(['PENDING', 'APPROVED', 'RESOLVED'] as const).map((s) => (
                     <option key={s} value={s}>
                       {STATUS_LABELS[s]}
                     </option>

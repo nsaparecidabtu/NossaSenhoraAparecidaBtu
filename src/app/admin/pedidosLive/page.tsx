@@ -18,7 +18,7 @@ export default async function AdminPrayersLivePage() {
 
   const rawPrayers = await prisma.contactRequest.findMany({
     where: { 
-      type: 'PRAYER',
+      type: 'LIVE_PRAYER',
       createdAt: { gte: yesterday }
     },
     orderBy: { createdAt: 'desc' },

@@ -17,7 +17,7 @@ export async function GET(request: Request) {
     // Arquiva todas as orações do mural com mais de 24 horas
     const result = await prisma.contactRequest.updateMany({
       where: {
-        type: 'PRAYER',
+        type: 'LIVE_PRAYER',
         approvedForWall: true,
         createdAt: { lt: twentyFourHoursAgo },
       },

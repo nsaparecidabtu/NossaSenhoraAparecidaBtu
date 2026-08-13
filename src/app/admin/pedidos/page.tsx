@@ -20,7 +20,7 @@ export default async function AdminRequestsPage() {
   const rawRequests = await prisma.contactRequest.findMany({
     where: {
       type: {
-        in: ['PRAYER', 'MASS_INTENTION', 'SACRAMENT', 'GENERAL'],
+        in: ['PRAYER_GENERAL', 'MASS_INTENTION', 'SACRAMENT', 'GENERAL_CONTACT'],
       },
     },
     orderBy: { createdAt: 'desc' },
@@ -29,7 +29,7 @@ export default async function AdminRequestsPage() {
   // 4. Mapeamento DTO para bater EXATAMENTE com a tipagem do seu Client Component
   const requests = rawRequests.map((req) => ({
     id: req.id,
-    type: req.type as 'PRAYER' | 'MASS_INTENTION' | 'SACRAMENT' | 'GENERAL',
+    type: req.type as 'PRAYER_GENERAL' | 'MASS_INTENTION' | 'SACRAMENT' | 'GENERAL_CONTACT',
     name: req.name,
     contact: req.contact ?? 'Não informado', // Fallback seguro caso seja null no banco
     message: req.message,
@@ -37,7 +37,7 @@ export default async function AdminRequestsPage() {
     sacramentType: req.sacramentType,
     wantsPublicWall: req.wantsPublicWall ?? false,
     approvedForWall: req.approvedForWall,
-    status: req.status as 'PENDING' | 'CONTACTED' | 'RESOLVED',
+    status: req.status as 'PENDING' | 'APPROVED' | 'RESOLVED',
     createdAt: req.createdAt,
   }))
 
