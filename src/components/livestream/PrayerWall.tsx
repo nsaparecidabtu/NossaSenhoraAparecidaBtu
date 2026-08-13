@@ -4,11 +4,11 @@
 import { useState, useTransition } from 'react'
 import { submitLivePrayer } from '@/actions/prayers'
 
-type PrayerItem = {
+export type PrayerItem = {
   id: string
   name: string
   message: string
-  createdAt: Date
+  createdAt: string
 }
 
 export function PrayerWall({ initialRequests }: { initialRequests: PrayerItem[] }) {
@@ -18,46 +18,41 @@ export function PrayerWall({ initialRequests }: { initialRequests: PrayerItem[] 
   const [sent, setSent] = useState(false)
   const [error, setError] = useState<string | null>(null)
   
-  // Controle de transição assíncrona do React 18+
   const [isPending, startTransition] = useTransition()
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault()
     setError(null)
 
     if (!name.trim() || !message.trim()) return
 
-    startTransition(async () => {
-      const fd = new FormData()
-      fd.append('name', name)
-      fd.append('message', message)
+    const formData = new FormData(e.currentTarget)
 
-      const result = await submitLivePrayer(fd)
+    startTransition(async () => {
+      const result = await submitLivePrayer(formData)
 
       if (result.success) {
         setSent(true)
         setName('')
         setMessage('')
-        
-        // Remove a mensagem de sucesso após 5 segundos para permitir nova intenção
         setTimeout(() => setSent(false), 5000)
       } else {
-        setError(result.error)
+        setError(result.error || 'Erro ao enviar intenção.')
       }
     })
   }
 
   return (
-    <div className="flex flex-col h-full rounded-2xl border border-line bg-white p-6 shadow-sm">
+    <div className="flex flex-col h-full rounded-2xl border border-line bg-white p-6 shadow-sm font-body">
       <h2 className="font-display text-lg font-bold text-navy flex items-center justify-between">
         <span>Pedidos de Oração</span>
-        <span className="text-xs font-body font-normal text-navy/50">{requests.length} intenções</span>
+        <span className="text-xs font-normal text-navy/50">{requests.length} no mural</span>
       </h2>
 
-      {/* Formulário de Envio */}
       <form onSubmit={handleSubmit} className="mt-4 space-y-3 border-b border-line pb-4">
         <input
           type="text"
+          name="name"
           placeholder="Seu nome"
           value={name}
           onChange={(e) => setName(e.target.value)}
@@ -66,6 +61,7 @@ export function PrayerWall({ initialRequests }: { initialRequests: PrayerItem[] 
           className="w-full rounded-lg border border-line px-3 py-2 text-xs focus:border-gold focus:outline-none disabled:opacity-60"
         />
         <textarea
+          name="message"
           placeholder="Escreva sua intenção para esta missa..."
           value={message}
           onChange={(e) => setMessage(e.target.value)}
@@ -74,7 +70,7 @@ export function PrayerWall({ initialRequests }: { initialRequests: PrayerItem[] 
           disabled={isPending}
           className="w-full rounded-lg border border-line px-3 py-2 text-xs focus:border-gold focus:outline-none resize-none disabled:opacity-60"
         />
-        {/* Toggle / Checkbox de Privacidade (Ligado por padrão) */}
+
         <div className="flex items-center gap-2 pt-1">
           <input
             type="checkbox"
@@ -87,9 +83,6 @@ export function PrayerWall({ initialRequests }: { initialRequests: PrayerItem[] 
             Permitir exibir meu pedido publicamente no mural da transmissão
           </label>
         </div>
-
-
-        {/* Botão de Envio com estado de carregamento e feedback visual*/}
 
         <button
           type="submit"
@@ -107,13 +100,12 @@ export function PrayerWall({ initialRequests }: { initialRequests: PrayerItem[] 
 
         {sent && (
           <p className="text-[11px] font-medium text-green-700 bg-green-50 p-2 rounded border border-green-200 text-center animate-[fadein_0.3s_ease]">
-            Sua intenção foi enviada à equipe paroquial com sucesso!
+            Sua intenção foi enviada com sucesso!
           </p>
         )}
       </form>
 
-      {/* Lista de Intenções Aprovadas do Mural */}
-      <div className="mt-4 flex-1 space-y-3 max-h-[380px] overflow-y-auto pr-1">
+      <div className="mt-4 flex-1 space-y-3 max-h-[340px] overflow-y-auto pr-1">
         {requests.map((item) => (
           <div key={item.id} className="rounded-xl border border-line/60 bg-cream/30 p-3 text-xs">
             <p className="font-bold text-navy">{item.name}</p>
@@ -121,7 +113,7 @@ export function PrayerWall({ initialRequests }: { initialRequests: PrayerItem[] 
           </div>
         ))}
         {requests.length === 0 && (
-          <p className="py-6 text-center text-xs text-navy/40">Seja o primeiro a enviar uma intenção de oração hoje.</p>
+          <p className="py-6 text-center text-xs text-navy/40">Nenhuma intenção pública no mural no momento.</p>
         )}
       </div>
     </div>

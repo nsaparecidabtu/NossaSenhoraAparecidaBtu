@@ -30,6 +30,7 @@ const PERMISSION_LABELS: Record<StaffPermission, string> = {
   MANAGE_TESTIMONIALS: 'Moderação de testemunhos',
   VIEW_PRAYER_REQUESTS: 'Ver pedidos de oração',
   MANAGE_TITHE_RAFFLE: 'Sorteio do dízimo',
+  MANAGE_LIVE_STREAM: 'Transmissão ao vivo (moderação de pedidos)',
 }
 
 function roleLabel(role: StaffRole | string | null) {

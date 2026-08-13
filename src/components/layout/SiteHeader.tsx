@@ -1,7 +1,7 @@
 // src/components/layout/SiteHeader.tsx
 import Link from 'next/link'
 import { auth, signIn, signOut } from '@/auth'
-import { Radio } from 'lucide-react'
+import { MobileMenu } from './MobileMenu' // <--- Importando nosso novo Client Component
 
 const NAV_LINKS = [
   { label: 'Início', href: '/' },
@@ -18,11 +18,13 @@ export async function SiteHeader() {
   
   try {
     session = await auth()
-  } catch (e) {
-    console.error("Erro ao recuperar sessão no Header:", e)
-    // Se o token estiver corrompido, a sessão permanece null e o site renderiza como visitante
+  } catch (e: any) {
+    if (e.message && e.message.includes('Dynamic server usage')) {
+      throw e 
+    }
+    console.error("Erro silencioso de sessão no Header:", e.message)
   }
-  // Verifica se o usuário tem cargo de staff ou permissões ativas
+
   const isStaff = !!session?.user?.staffRole || (session?.user?.permissions?.length ?? 0) > 0
 
   return (
@@ -50,14 +52,13 @@ export async function SiteHeader() {
           ))}
         </nav>
 
-        {/* Ações à Direita (Mobile First & Responsivo) */}
-        <div className="flex shrink-0 items-center gap-2 sm:gap-3">
+        {/* Ações à Direita */}
+        <div className="flex shrink-0 items-center gap-1.5 sm:gap-3">
           
-          {/* Botão Painel visível em Mobile e Desktop se for Staff */}
           {isStaff && (
             <Link
               href="/admin"
-              className="rounded border border-navy/30 bg-navy/5 px-2.5 py-1.5 font-body text-[11px] font-bold uppercase tracking-wide text-navy transition-colors hover:bg-navy hover:text-cream sm:text-xs"
+              className="hidden sm:inline-flex rounded border border-navy/30 bg-navy/5 px-2.5 py-1.5 font-body text-[11px] font-bold uppercase tracking-wide text-navy transition-colors hover:bg-navy hover:text-cream sm:text-xs"
             >
               Painel
             </Link>
@@ -65,7 +66,7 @@ export async function SiteHeader() {
 
           <Link
             href="/#doacao"
-            className="rounded-full bg-gold px-3 py-1.5 font-body text-[11px] font-semibold uppercase tracking-wide text-navy transition-opacity hover:opacity-90 sm:px-4 sm:py-2 sm:text-xs"
+            className="rounded-full bg-gold px-3 py-1.5 font-body text-[10px] sm:text-[11px] font-semibold uppercase tracking-wide text-navy transition-opacity hover:opacity-90 sm:px-4 sm:py-2 sm:text-xs"
           >
             Doar
           </Link>
@@ -82,12 +83,12 @@ export async function SiteHeader() {
                 <img
                   src={session.user.image}
                   alt={session.user.name ?? 'Você'}
-                  className="h-6 w-6 rounded-full border border-line"
+                  className="hidden sm:block h-6 w-6 rounded-full border border-line"
                 />
               )}
               <button
                 type="submit"
-                className="font-body text-[11px] font-semibold uppercase tracking-wide text-navy/50 transition-colors hover:text-gold sm:text-xs"
+                className="font-body text-[10px] sm:text-[11px] font-semibold uppercase tracking-wide text-navy/50 transition-colors hover:text-gold sm:text-xs"
               >
                 Sair
               </button>
@@ -101,12 +102,15 @@ export async function SiteHeader() {
             >
               <button
                 type="submit"
-                className="border border-navy px-2.5 py-1.5 font-body text-[11px] font-semibold uppercase tracking-wide text-navy transition-colors hover:bg-navy hover:text-cream sm:text-xs"
+                className="border border-navy px-2 py-1.5 font-body text-[10px] sm:text-[11px] font-semibold uppercase tracking-wide text-navy transition-colors hover:bg-navy hover:text-cream sm:text-xs"
               >
                 Entrar
               </button>
             </form>
           )}
+
+          {/* Menu Mobile Interativo */}
+          <MobileMenu links={NAV_LINKS} />
         </div>
       </div>
     </header>

@@ -1,90 +1,122 @@
 // src/app/ao-vivo/page.tsx
 import { prisma } from '@/lib/prisma'
 import { getActiveLiveFromChannels, getRecentRecordedVideos } from '@/lib/youtube'
-import { LivePlayer } from '@/components/livestream/LivePlayer'
-import { PrayerWall } from '@/components/livestream/PrayerWall'
+import { LivePlayer, type MassScheduleItem } from '@/components/livestream/LivePlayer'
+import { PrayerWall, type PrayerItem } from '@/components/livestream/PrayerWall'
 import { PastLives } from '@/components/livestream/PastLives'
 
-export const revalidate = 300 // Revalidação ISR de 5 minutos
+export const revalidate = 300 
 
 export default async function LivePage() {
-  const [settings, massSchedules, prayerRequests] = await Promise.all([
+  const twelveHoursAgo = new Date(Date.now() - 12 * 60 * 60 * 1000)
+
+  const [
+    settingsResult,
+    schedulesResult,
+    prayersResult,
+    youtubeLiveResult,
+    recordedVideosResult,
+  ] = await Promise.allSettled([
     prisma.liveStreamSettings.findUnique({ where: { id: 'singleton' } }),
     prisma.massSchedule.findMany({ orderBy: { order: 'asc' } }),
     prisma.contactRequest.findMany({
-      where: { type: 'PRAYER', approvedForWall: true },
+      where: {
+        type: 'PRAYER',
+        approvedForWall: true,
+        createdAt: { gte: twelveHoursAgo },
+      },
       orderBy: { createdAt: 'desc' },
-      take: 10,
+      take: 50,
     }),
+    getActiveLiveFromChannels(),
+    getRecentRecordedVideos(6),
   ])
+
+  const settings = settingsResult.status === 'fulfilled' ? settingsResult.value : null
+  const massSchedules = schedulesResult.status === 'fulfilled' ? schedulesResult.value : []
+  const rawPrayers = prayersResult.status === 'fulfilled' ? prayersResult.value : []
+  const apiLive = youtubeLiveResult.status === 'fulfilled' ? youtubeLiveResult.value : { isLive: false, videoId: null, title: '' }
+  const recordedVideos = recordedVideosResult.status === 'fulfilled' ? recordedVideosResult.value : []
 
   let isLive = settings?.isLiveNow ?? false
   let videoId = settings?.youtubeVideoId ?? null
   let liveTitle = 'Transmissão ao Vivo'
 
-  // Se NÃO estiver em override manual forçado, consulta a API do YouTube
-  if (!isLive) {
-    const apiLive = await getActiveLiveFromChannels()
-    if (apiLive.isLive && apiLive.videoId) {
-      isLive = true
-      videoId = apiLive.videoId
-      liveTitle = apiLive.title || liveTitle
-    }
+  if (!isLive && apiLive.isLive && apiLive.videoId) {
+    isLive = true
+    videoId = apiLive.videoId
+    liveTitle = apiLive.title || liveTitle
   }
 
-  // Busca gravações anteriores dos canais ativos no banco de dados
-  const recordedVideos = await getRecentRecordedVideos(6)
+  // DTO para PrayerItem (createdAt como string ISO)
+  const formattedPrayers: PrayerItem[] = rawPrayers.map((p) => ({
+    id: p.id,
+    name: p.name,
+    message: p.message,
+    createdAt: p.createdAt.toISOString(),
+  }))
+
+  // DTO para MassScheduleItem
+  const formattedSchedules: MassScheduleItem[] = massSchedules.map((s) => ({
+    id: s.id,
+    label: s.label,
+    times: s.times,
+    order: s.order,
+  }))
 
   return (
-    <main className="min-h-screen bg-cream py-8 px-4 sm:px-6 lg:px-8 text-navy font-body">
-      <div className="mx-auto max-w-7xl">
+    <main className="min-h-screen bg-cream px-4 py-8 sm:px-6 lg:px-8 text-navy font-body selection:bg-gold/30">
+      <div className="mx-auto max-w-7xl space-y-8">
         
-        {/* Cabeçalho */}
-        <div className="mb-8 flex flex-col md:flex-row md:items-center md:justify-between gap-4 border-b border-line pb-6">
+        <header className="flex flex-col gap-4 border-b border-line pb-6 md:flex-row md:items-center md:justify-between">
           <div>
             <div className="flex items-center gap-3">
-              <h1 className="font-display text-3xl font-bold tracking-tight">Transmissão ao Vivo</h1>
+              <h1 className="font-display text-3xl font-bold tracking-tight text-navy">
+                Transmissão ao Vivo
+              </h1>
               {isLive ? (
-                <span className="flex items-center gap-1.5 rounded-full bg-red-600 px-3 py-1 font-mono text-xs font-bold uppercase text-white shadow-sm animate-pulse">
+                <span className="inline-flex items-center gap-1.5 rounded-full bg-red-600 px-3 py-1 font-mono text-xs font-bold uppercase text-white shadow-sm animate-pulse">
                   <span className="h-2 w-2 rounded-full bg-white"></span>
                   Ao Vivo Agora
                 </span>
               ) : (
-                <span className="rounded-full bg-navy/10 px-3 py-1 font-mono text-xs font-semibold uppercase text-navy/70">
+                <span className="inline-flex items-center rounded-full bg-navy/10 px-3 py-1 font-mono text-xs font-semibold uppercase text-navy/70">
                   Offline
                 </span>
               )}
             </div>
             <p className="mt-1 text-sm text-navy/70">
-              {isLive ? liveTitle : 'Acompanhe nossas missas e celebre conosco de onde estiver.'}
+              {isLive ? liveTitle : 'Acompanhe nossas celebrações e missas ao vivo de onde estiver.'}
             </p>
           </div>
-        </div>
+        </header>
 
-        {/* Grid Principal: Player HD (2/3) + Mural de Oração (1/3) */}
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 items-start">
-          <div className="lg:col-span-2 space-y-6">
-            <LivePlayer isLive={isLive} videoId={videoId} massSchedules={massSchedules} />
+        <div className="grid grid-cols-1 items-start gap-8 lg:grid-cols-3">
+          <section className="space-y-6 lg:col-span-2">
+            <LivePlayer 
+              isLive={isLive} 
+              videoId={videoId} 
+              massSchedules={formattedSchedules} 
+            />
             
             <div className="rounded-2xl border border-line bg-white p-6 shadow-sm">
-              <h2 className="font-display text-lg font-bold">Instruções para Participação</h2>
-              <p className="mt-2 text-sm text-navy/70 leading-relaxed">
-                Durante a transmissão, você pode enviar sua intenção de oração pelo formulário ao lado.
-                A transmissão é detectada automaticamente a cada 5 minutos.
+              <h2 className="font-display text-lg font-bold text-navy">Instruções e Participação</h2>
+              <p className="mt-2 text-sm leading-relaxed text-navy/70">
+                Durante a celebração, utilize o formulário ao lado para enviar suas intenções de oração.
+                Os pedidos aprovados pela equipe paroquial serão exibidos no mural público da transmissão.
               </p>
             </div>
-          </div>
+          </section>
 
-          <div className="lg:col-span-1">
-            <PrayerWall initialRequests={prayerRequests} />
-          </div>
+          <aside className="lg:col-span-1 h-full">
+            <PrayerWall initialRequests={formattedPrayers} />
+          </aside>
         </div>
 
-        {/* Carrossel de Transmissões Anteriores Gravadas */}
         {recordedVideos.length > 0 && (
-          <div className="mt-16 border-t border-line pt-10">
+          <section className="border-t border-line pt-10">
             <PastLives videos={recordedVideos} />
-          </div>
+          </section>
         )}
 
       </div>

@@ -7,9 +7,7 @@ import { auth } from '@/auth'
 import { requirePermission } from '@/lib/permissions'
 import type { ContactRequestType, SacramentType, ContactRequestStatus } from '@prisma/client'
 
-// Login é sugerido, nunca obrigatório — se a pessoa estiver logada, guarda
-// o userId; senão, fica anônimo mesmo. Revisão de todo pedido é sempre
-// feita por uma pessoa humana no /admin/pedidos.
+// 1. Criar pedido vindo da Home (Formulários completos)
 export async function createContactRequest(_prevState: unknown, formData: FormData) {
   try {
     const session = await auth()
@@ -38,6 +36,8 @@ export async function createContactRequest(_prevState: unknown, formData: FormDa
         preferredDate,
         sacramentType,
         wantsPublicWall,
+        approvedForWall: false,
+        status: 'PENDING',
       },
     })
 
@@ -48,6 +48,7 @@ export async function createContactRequest(_prevState: unknown, formData: FormDa
   }
 }
 
+// 2. Atualizar status na secretaria
 export async function updateContactRequestStatus(id: string, status: ContactRequestStatus) {
   try {
     await requirePermission('VIEW_PRAYER_REQUESTS')
@@ -59,6 +60,7 @@ export async function updateContactRequestStatus(id: string, status: ContactRequ
   }
 }
 
+// 3. Aprovar para mural público caso a secretaria queira exibir
 export async function approveForWall(id: string) {
   try {
     await requirePermission('VIEW_PRAYER_REQUESTS')

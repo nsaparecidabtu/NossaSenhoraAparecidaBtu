@@ -371,7 +371,7 @@ enum StaffPermission {
   MANAGE_LITURGICAL_THEME
   MANAGE_TESTIMONIALS
   MANAGE_CATECHISM
-  MANAGE_LIVE_STREAM
+
 }
 
 enum LiveStreamMode {
@@ -380,10 +380,11 @@ enum LiveStreamMode {
 }
 
 enum ContactRequestType {
-  PRAYER
+  PRAYER_GENERAL
   MASS_INTENTION
   SACRAMENT
-  GENERAL
+  GENERAL_CONTACT
+  LIVE_PRAYER
 }
 
 enum SacramentType {
@@ -395,8 +396,9 @@ enum SacramentType {
 
 enum ContactRequestStatus {
   PENDING
-  CONTACTED
+  APPROVED
   RESOLVED
+  REJECTED
 }
 
 enum LiturgicalThemeMode {

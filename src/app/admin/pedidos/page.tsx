@@ -1,22 +1,46 @@
 // src/app/admin/pedidos/page.tsx
-import { redirect } from 'next/navigation'
-import { auth } from '@/auth'
 import { prisma } from '@/lib/prisma'
-import { AdminRequestsClient } from "./AdminRequestsClient"
+import { auth } from '@/auth'
+import { redirect } from 'next/navigation'
+import { AdminRequestsClient } from './AdminRequestsClient'
 
 export default async function AdminRequestsPage() {
+  // 1. Verificação de Sessão
   const session = await auth()
+  if (!session?.user) redirect('/')
 
-  const canManage =
-    session?.user?.staffRole === 'SUPER_ADMIN' ||
-    (session?.user?.staffRole === 'MINISTRY_LEADER' &&
-      session.user.permissions.includes('VIEW_PRAYER_REQUESTS'))
+  // 2. Validação de Segurança (RBAC)
+  const hasAccess =
+    session.user.staffRole === 'SUPER_ADMIN' ||
+    session.user.permissions?.includes('VIEW_PRAYER_REQUESTS')
 
-  if (!canManage) redirect('/')
+  if (!hasAccess) redirect('/admin')
 
-  const requests = await prisma.contactRequest.findMany({
-    orderBy: [{ status: 'asc' }, { createdAt: 'desc' }],
+  // 3. Busca no banco de dados (exclusivo para formulários da Home)
+  const rawRequests = await prisma.contactRequest.findMany({
+    where: {
+      type: {
+        in: ['PRAYER', 'MASS_INTENTION', 'SACRAMENT', 'GENERAL'],
+      },
+    },
+    orderBy: { createdAt: 'desc' },
   })
 
+  // 4. Mapeamento DTO para bater EXATAMENTE com a tipagem do seu Client Component
+  const requests = rawRequests.map((req) => ({
+    id: req.id,
+    type: req.type as 'PRAYER' | 'MASS_INTENTION' | 'SACRAMENT' | 'GENERAL',
+    name: req.name,
+    contact: req.contact ?? 'Não informado', // Fallback seguro caso seja null no banco
+    message: req.message,
+    preferredDate: req.preferredDate,
+    sacramentType: req.sacramentType,
+    wantsPublicWall: req.wantsPublicWall ?? false,
+    approvedForWall: req.approvedForWall,
+    status: req.status as 'PENDING' | 'CONTACTED' | 'RESOLVED',
+    createdAt: req.createdAt,
+  }))
+
+  // 5. Renderiza o Client Component injetando os dados higienizados
   return <AdminRequestsClient requests={requests} />
 }
