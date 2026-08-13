@@ -21,34 +21,35 @@ const ALL_PERMISSIONS: StaffPermission[] = [
 
 export async function updateStaffAccess(_prevState: unknown, formData: FormData) {
   try {
+    // Exige estritamente o papel de SUPER_ADMIN
     const session = await requireSuperAdmin()
 
     const userId = formData.get('userId') as string
     if (!userId) throw new Error('Usuário não identificado.')
 
-    const staffRoleRaw = formData.get('staffRole') as string
-    const staffRole: StaffRole | null = staffRoleRaw === '' ? null : (staffRoleRaw as StaffRole)
+    const staffRoleRaw = (formData.get('staffRole') as string)?.trim()
+    const staffRole = (!staffRoleRaw || staffRoleRaw === '' ? null : staffRoleRaw) as StaffRole | null
 
-    // SUPER_ADMIN não impede a última administradora de se rebaixar sem querer
+    // Impede o Super Admin logado de remover o próprio papel de Super Admin por engano
     if (userId === session.user.id && staffRole !== 'SUPER_ADMIN') {
       throw new Error('Você não pode remover seu próprio acesso de Super Admin por aqui.')
     }
 
-    const ministryIdRaw = formData.get('ministryId') as string
-    const ministryId = staffRole === 'MINISTRY_LEADER' && ministryIdRaw ? ministryIdRaw : null
-
     const permissions =
-      staffRole === 'MINISTRY_LEADER'
+      staffRole === 'STAFF' || staffRole === 'MINISTRY_LEADER'
         ? ALL_PERMISSIONS.filter((p) => formData.getAll('permissions').includes(p))
         : []
 
     await prisma.user.update({
       where: { id: userId },
-      data: { staffRole, ministryId, permissions },
+      data: {
+        staffRole,
+        permissions,
+      },
     })
 
     revalidatePath('/admin/usuarios')
-    return { success: true }
+    return { success: true, error: undefined }
   } catch (error: any) {
     return { success: false, error: error.message || 'Falha ao atualizar acesso.' }
   }

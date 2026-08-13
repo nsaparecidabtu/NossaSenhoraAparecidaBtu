@@ -1,3 +1,4 @@
+// src/app/catequese/CatechismClient.tsx
 'use client'
 
 import { useEffect, useRef, useState, useTransition } from 'react'
@@ -11,7 +12,6 @@ type StudentResult = { id: string; name: string; stage: keyof typeof STAGE_LABEL
 
 type Phase = 'search' | 'confirmMass' | 'chooseMass' | 'quickRegister' | 'sending' | 'done'
 
-// Variantes de animação suaves e elásticas
 const fadeSlide: Variants = {
   initial: { opacity: 0, y: 20, scale: 0.98 },
   animate: { opacity: 1, y: 0, scale: 1, transition: { type: 'spring', stiffness: 300, damping: 25 } },
@@ -40,8 +40,9 @@ export function CatequeseClient({ token, catechists }: { token: string; catechis
 
     debounceRef.current = setTimeout(() => {
       startTransition(async () => {
-        const found = await searchStudents(token, query)
-        setResults(found)
+        // Correção 1: searchStudents recebe apenas a query no servidor
+        const found = await searchStudents(query)
+        setResults(found as StudentResult[])
         setSearched(true)
       })
     }, 350)
@@ -49,7 +50,7 @@ export function CatequeseClient({ token, catechists }: { token: string; catechis
     return () => {
       if (debounceRef.current) clearTimeout(debounceRef.current)
     }
-  }, [query, token])
+  }, [query])
 
   function pickStudent(s: StudentResult) {
     setSelected(s)
@@ -63,7 +64,18 @@ export function CatequeseClient({ token, catechists }: { token: string; catechis
     setPhase('sending')
     startTransition(async () => {
       try {
-        await submitAttendance(token, selected.id, massLabel)
+        // Correção 2: Montamos o FormData para enviar à Server Action
+        const fd = new FormData()
+        fd.append('weekId', token)
+        fd.append('studentId', selected.id)
+        fd.append('massLabel', massLabel)
+
+        const result = await submitAttendance(null, fd)
+        
+        if (!result.success) {
+          throw new Error(result.error || 'Erro ao registrar presença.')
+        }
+
         setPhase('done')
         setTimeout(() => {
           setPhase('search')
@@ -84,7 +96,6 @@ export function CatequeseClient({ token, catechists }: { token: string; catechis
       <div className="w-full max-w-sm">
         <AnimatePresence mode="wait">
           
-          {/* ---- Acolhida e Busca ---- */}
           {(phase === 'search' || phase === 'quickRegister') && (
             <motion.div key="search-view" variants={fadeSlide} initial="initial" animate="animate" exit="exit" className="w-full">
               <div className="mb-6 flex items-center gap-2 text-gold">
@@ -151,7 +162,6 @@ export function CatequeseClient({ token, catechists }: { token: string; catechis
             </motion.div>
           )}
 
-          {/* ---- Confirmação Carinhosa ---- */}
           {(phase === 'confirmMass' || phase === 'sending') && selected && (
             <motion.div key="confirm-view" variants={fadeSlide} initial="initial" animate="animate" exit="exit" className="flex flex-col items-center text-center">
               <div className="mb-4 inline-flex items-center justify-center rounded-full bg-gold/10 p-4 text-gold">
@@ -187,7 +197,6 @@ export function CatequeseClient({ token, catechists }: { token: string; catechis
             </motion.div>
           )}
 
-          {/* ---- Escolha de Horário ---- */}
           {phase === 'chooseMass' && selected && (
             <motion.div key="choose-view" variants={fadeSlide} initial="initial" animate="animate" exit="exit" className="w-full">
               <button onClick={() => setPhase('confirmMass')} className="mb-6 flex items-center gap-2 text-sm font-medium text-navy/50 hover:text-navy">
@@ -208,7 +217,6 @@ export function CatequeseClient({ token, catechists }: { token: string; catechis
             </motion.div>
           )}
 
-          {/* ---- Celebração Final ---- */}
           {phase === 'done' && (
             <motion.div key="done-view" variants={fadeSlide} initial="initial" animate="animate" exit="exit" className="flex flex-col items-center text-center">
               <motion.div 
@@ -250,8 +258,19 @@ function QuickRegisterForm({ token, name, catechists, onDone, onCancel }: any) {
     }
     setPending(true)
     try {
-      const student = await quickRegisterStudent(token, { name: studentName, stage, catechistId })
-      onDone(student)
+      // Correção 3: Montamos o FormData para cadastro rápido
+      const fd = new FormData()
+      fd.append('name', studentName)
+      fd.append('stage', stage)
+      fd.append('catechistId', catechistId)
+
+      const result = await quickRegisterStudent(null, fd)
+      
+      if (!result.success) {
+        throw new Error(result.error || 'Erro ao registrar aluno.')
+      }
+      
+      onDone(result.student)
     } catch (err: any) {
       setError(err.message ?? 'Não conseguimos salvar agora.')
       setPending(false)

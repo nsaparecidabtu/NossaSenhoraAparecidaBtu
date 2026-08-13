@@ -1,6 +1,7 @@
 // src/components/layout/SiteHeader.tsx
 import Link from 'next/link'
 import { auth, signIn, signOut } from '@/auth'
+import { Radio } from 'lucide-react'
 
 const NAV_LINKS = [
   { label: 'Início', href: '/' },
@@ -9,11 +10,18 @@ const NAV_LINKS = [
   { label: 'Eventos', href: '/#eventos' },
   { label: 'Galeria', href: '/#galeria' },
   { label: 'Contato', href: '/#contato' },
+  { label: 'AO VIVO', href: '/ao-vivo' },
 ]
 
 export async function SiteHeader() {
-  const session = await auth()
+  let session = null
   
+  try {
+    session = await auth()
+  } catch (e) {
+    console.error("Erro ao recuperar sessão no Header:", e)
+    // Se o token estiver corrompido, a sessão permanece null e o site renderiza como visitante
+  }
   // Verifica se o usuário tem cargo de staff ou permissões ativas
   const isStaff = !!session?.user?.staffRole || (session?.user?.permissions?.length ?? 0) > 0
 

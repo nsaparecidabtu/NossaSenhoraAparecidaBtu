@@ -21,6 +21,8 @@ const MENU: MenuItem[] = [
   { label: 'Catequese', href: '/admin/catequese', permission: 'MANAGE_CATECHISM' },
   { label: 'Dados Institucionais', href: '/admin/configuracoes', adminOnly: true }, // Adicionado aqui
   { label: 'Usuários', href: '/admin/usuarios', adminOnly: true }, // Apenas Super Admin
+  { label: 'AO VIVO ADMIN', href: '/admin/ao-vivo', permission: 'MANAGE_LIVE_STREAM' }, // Adicionado aqui
+  {label: 'Pedidos de Oração (Ao Vivo)', href: '/admin/pedidosLive', permission: 'VIEW_PRAYER_REQUESTS' } // Adicionado aqui
 ]
 
 export default async function AdminPage() {

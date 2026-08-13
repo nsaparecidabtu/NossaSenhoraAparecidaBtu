@@ -7,20 +7,19 @@ import type { StaffPermission, StaffRole } from '@prisma/client'
 
 type MinistryOption = { id: string; name: string }
 
-type UserItem = {
+export type UserItem = {
   id: string
   name: string | null
   email: string | null
   staffRole: StaffRole | null
   ministryId?: string | null
-  permissions?: StaffPermission[]
+  permissions?: StaffPermission[] | string[]
 }
 
 type ActionState = { success: boolean; error?: string }
 
 const ALL_PERMISSIONS: { id: StaffPermission; label: string }[] = [
-  { id: 'VIEW_PRAYER_REQUESTS', label: 'Ver Pedidos de Oração' },
-  { id: 'MANAGE_TITHE_RAFFLE', label: 'Gerenciar Sorteio do Dízimo' },
+  { id: 'MANAGE_CATECHISM', label: 'Catequese (Gestão de Alunos e Chamada)' },
   { id: 'MANAGE_EVENTS', label: 'Gerenciar Eventos' },
   { id: 'MANAGE_GALLERY', label: 'Gerenciar Galeria' },
   { id: 'MANAGE_MASS_SCHEDULE', label: 'Gerenciar Horários de Missa' },
@@ -28,7 +27,8 @@ const ALL_PERMISSIONS: { id: StaffPermission; label: string }[] = [
   { id: 'MANAGE_FAQ', label: 'Gerenciar FAQ' },
   { id: 'MANAGE_LITURGICAL_THEME', label: 'Gerenciar Tema Litúrgico' },
   { id: 'MANAGE_TESTIMONIALS', label: 'Gerenciar Testemunhos' },
-  { id: 'MANAGE_CATECHISM', label: 'Gerenciar Catequese' },
+  { id: 'VIEW_PRAYER_REQUESTS', label: 'Ver Pedidos de Oração' },
+  { id: 'MANAGE_TITHE_RAFFLE', label: 'Gerenciar Sorteio do Dízimo' },
 ]
 
 export function EditUserModal({
@@ -53,6 +53,7 @@ export function EditUserModal({
     { success: false }
   )
 
+  const showPermissions = selectedRole === 'STAFF' || selectedRole === 'MINISTRY_LEADER'
   const isLeader = selectedRole === 'MINISTRY_LEADER'
 
   return (
@@ -72,7 +73,7 @@ export function EditUserModal({
           </button>
         </div>
 
-        <form action={formAction} className="mt-4 space-y-4">
+        <form action={formAction} className="mt-4 space-y-4 font-body">
           <input type="hidden" name="userId" value={user.id} />
 
           <div>
@@ -83,27 +84,27 @@ export function EditUserModal({
               name="staffRole" 
               value={selectedRole} 
               onChange={(e) => setSelectedRole(e.target.value)}
-              className="mt-1 w-full rounded border border-line bg-white px-3 py-2 text-sm focus:border-gold focus:outline-none font-body"
+              className="mt-1 w-full rounded border border-line bg-white px-3 py-2 text-sm focus:border-gold focus:outline-none"
             >
-              <option value="">Fiel / Membro Comum (Sem painel)</option>
-              <option value="CATECHIST">Catequista</option>
+              <option value="">Sem acesso ao painel (Fiel / Membro)</option>
+              <option value="STAFF">Equipe Operacional (Staff / Catequista / Secretário)</option>
               <option value="MINISTRY_LEADER">Líder de Ministério / Pastoral</option>
               <option value="SUPER_ADMIN">Administrador Geral (Super Admin)</option>
             </select>
           </div>
 
-          {/* Exibe seleção de ministério e checkboxes apenas se for Líder */}
-          {isLeader && (
+          {/* Exibe seleção de ministério e checkboxes de permissão para STAFF ou LÍDER */}
+          {showPermissions && (
             <div className="space-y-4 rounded-xl border border-line bg-cream/30 p-4 animate-[fadein_0.2s_ease]">
-              {ministries.length > 0 && (
+              {isLeader && ministries.length > 0 && (
                 <div>
                   <label className="block text-xs font-bold uppercase tracking-wider text-navy/60">
-                    Ministério Vinculado
+                    Ministério Liderado
                   </label>
                   <select 
                     name="ministryId" 
                     defaultValue={user.ministryId ?? ''} 
-                    className="mt-1 w-full rounded border border-line bg-white px-3 py-2 text-sm focus:border-gold focus:outline-none font-body"
+                    className="mt-1 w-full rounded border border-line bg-white px-3 py-2 text-sm focus:border-gold focus:outline-none"
                   >
                     <option value="">Selecione o ministério...</option>
                     {ministries.map((m) => (
@@ -115,11 +116,11 @@ export function EditUserModal({
 
               <div>
                 <label className="mb-2 block text-xs font-bold uppercase tracking-wider text-navy/60">
-                  Permissões Permitidas
+                  Permissões Concedidas ao Usuário
                 </label>
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 max-h-48 overflow-y-auto pr-1">
                   {ALL_PERMISSIONS.map((p) => (
-                    <label key={p.id} className="flex items-center gap-2 rounded border border-line/60 bg-white p-2 text-xs hover:border-gold cursor-pointer font-body">
+                    <label key={p.id} className="flex items-center gap-2 rounded border border-line/60 bg-white p-2 text-xs hover:border-gold cursor-pointer">
                       <input 
                         type="checkbox" 
                         name="permissions" 
@@ -148,7 +149,7 @@ export function EditUserModal({
               disabled={pending} 
               className="rounded bg-navy px-4 py-2 font-body text-xs font-semibold uppercase tracking-wide text-cream hover:bg-gold hover:text-navy transition-colors disabled:opacity-50"
             >
-              {pending ? 'Salvando...' : 'Atualizar Acesso'}
+              {pending ? 'Salvando...' : 'Salvar Alterações'}
             </button>
           </div>
 

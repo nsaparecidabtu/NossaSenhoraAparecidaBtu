@@ -1,4 +1,3 @@
-// src/app/admin/usuarios/page.tsx
 import { prisma } from '@/lib/prisma'
 import { auth } from '@/auth'
 import { redirect } from 'next/navigation'
@@ -29,7 +28,6 @@ export default async function AdminUsersPage({ searchParams }: PageProps) {
       }
     : {}
 
-  // Buscamos em paralelo usuários, total para paginação e os ministérios
   const [users, totalCount, ministries] = await Promise.all([
     prisma.user.findMany({
       where: whereClause,
@@ -42,8 +40,8 @@ export default async function AdminUsersPage({ searchParams }: PageProps) {
         email: true,
         image: true,
         staffRole: true,
-        ministryId: true,
         permissions: true,
+        createdAt: true,
       },
     }),
     prisma.user.count({ where: whereClause }),
@@ -53,47 +51,44 @@ export default async function AdminUsersPage({ searchParams }: PageProps) {
   const totalPages = Math.ceil(totalCount / pageSize)
 
   return (
-    <main className="min-h-screen bg-cream px-6 py-12 text-navy">
+    <main className="min-h-screen bg-cream px-6 py-12 text-navy font-body">
       <div className="mx-auto max-w-3xl">
         <h1 className="font-display text-3xl font-bold">Usuários e Permissões</h1>
-        <p className="mt-1 font-body text-sm text-navy/60">
-          Gerenciamento escalável de acessos à plataforma ({totalCount} usuários cadastrados).
+        <p className="mt-1 text-sm text-navy/60">
+          Gerenciamento de acessos à plataforma ({totalCount} usuários cadastrados).
         </p>
 
-        {/* Barra de Pesquisa */}
         <form method="GET" className="mt-6 flex gap-2">
           <input
             name="q"
             defaultValue={q}
             placeholder="Buscar por nome ou e-mail..."
-            className="flex-1 rounded-lg border border-line bg-white px-4 py-2 font-body text-sm focus:border-gold focus:outline-none"
+            className="flex-1 rounded-lg border border-line bg-white px-4 py-2 text-sm focus:border-gold focus:outline-none"
           />
           <button
             type="submit"
-            className="rounded-lg bg-navy px-4 py-2 font-body text-xs font-semibold uppercase tracking-wide text-cream transition-colors hover:bg-gold hover:text-navy"
+            className="rounded-lg bg-navy px-4 py-2 text-xs font-semibold uppercase tracking-wide text-cream hover:bg-gold hover:text-navy transition-colors"
           >
             Buscar
           </button>
         </form>
 
-        {/* Renderização interativa limpa sem URLs com 404 */}
         <AdminUsersClient
           users={users}
           ministries={ministries}
           currentUserId={session.user.id}
         />
 
-        {/* Paginação */}
         {totalPages > 1 && (
           <div className="mt-6 flex items-center justify-between border-t border-line pt-4">
-            <span className="font-body text-xs text-navy/60">
+            <span className="text-xs text-navy/60">
               Página {currentPage} de {totalPages}
             </span>
             <div className="flex gap-2">
               {currentPage > 1 && (
                 <Link
                   href={`/admin/usuarios?q=${q}&page=${currentPage - 1}`}
-                  className="rounded border border-line px-3 py-1 font-body text-xs font-semibold text-navy hover:bg-navy/5"
+                  className="rounded border border-line px-3 py-1 text-xs font-semibold text-navy hover:bg-navy/5"
                 >
                   Anterior
                 </Link>
@@ -101,7 +96,7 @@ export default async function AdminUsersPage({ searchParams }: PageProps) {
               {currentPage < totalPages && (
                 <Link
                   href={`/admin/usuarios?q=${q}&page=${currentPage + 1}`}
-                  className="rounded border border-line px-3 py-1 font-body text-xs font-semibold text-navy hover:bg-navy/5"
+                  className="rounded border border-line px-3 py-1 text-xs font-semibold text-navy hover:bg-navy/5"
                 >
                   Próxima
                 </Link>

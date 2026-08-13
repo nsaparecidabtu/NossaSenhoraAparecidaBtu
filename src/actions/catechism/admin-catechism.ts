@@ -136,15 +136,12 @@ export async function markAttendanceManual(_prevState: unknown, formData: FormDa
 
     await prisma.catechismAttendance.create({
       data: {
-        studentId: student.id,
-        studentName: student.name,
         weekId,
+        studentId,
+        catechistId: student.catechistId,
         massLabel,
-        stage: student.stage,
-        catechistId: student.catechist.id,
-        catechistName: student.catechist.name,
         attendedAt: new Date(),
-        source: 'MANUAL',
+        source: 'ADMIN',
         markedByUserId: session.user.id,
         note,
       },

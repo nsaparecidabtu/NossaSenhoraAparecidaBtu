@@ -1,9 +1,14 @@
+// ==========================================
+// CONFIGURAÇÃO DO GERADOR E FONTE DE DADOS
+// ==========================================
+
 generator client {
   provider = "prisma-client-js"
 }
 
 datasource db {
   provider = "postgresql"
+  //url      = env("DATABASE_URL")
 }
 
 // ==========================================
@@ -11,32 +16,36 @@ datasource db {
 // ==========================================
 
 model User {
-  id              String            @id @default(cuid())
-  name            String?
-  email           String?           @unique
-  emailVerified   DateTime?
-  image           String?
-  staffRole       StaffRole?        // Papel global (ex: SUPER_ADMIN)
-  permissions     StaffPermission[] @default([]) // Permissões globais legadas
-  createdAt       DateTime          @default(now())
+  id            String            @id @default(cuid())
+  name          String?
+  email         String?           @unique
+  emailVerified DateTime?
+  image         String?
+  staffRole     StaffRole?        // Papel global do sistema (ex: SUPER_ADMIN, STAFF, MINISTRY_LEADER)
+  permissions   StaffPermission[] @default([]) // Permissões granulares atribuídas ao STAFF
+  createdAt     DateTime          @default(now())
+  updatedAt DateTime @default(now()) @updatedAt
+  
 
-  // Relação cruzada: Um usuário pode participar de múltiplos ministérios com papéis diferentes
-  memberships     UserMinistryMembership[]
+  // Relações do Auth.js (NextAuth v5)
+  accounts      Account[]
+  sessions      Session[]
 
-  // Relação opcional caso este usuário seja também um Catequista operando o sistema
+  // Relação N-para-N flexível com Ministérios/Pastorais
+  memberships   UserMinistryMembership[]
+
+  // Relação opcional de perfil operacional de Catequista
   catechistProfile Catechist?
 
-  // Relações padrão do Auth.js e do sistema
-  accounts        Account[]
-  sessions        Session[]
+  // Relações com módulos do sistema
   contactRequests ContactRequest[]
   testimonials    Testimonial[]
-  catechismMarks  CatechismAttendance[]
-  ministry        Ministry?         @relation(fields: [ministryId], references: [id]) // Mantido para retrocompatibilidade
-  ministryId      String?
+  catechismMarks  CatechismAttendance[] @relation("MarkedByRelation")
+
+  @@index([email])
 }
 
-// Tabela intermediária para resolver o cruzamento de pastorais (Ex: Líder no Dízimo, Membro na Pascom)
+// Tabela intermediária flexível para vínculo com múltiplos ministérios/pastorais
 model UserMinistryMembership {
   id         String       @id @default(cuid())
   userId     String
@@ -44,10 +53,12 @@ model UserMinistryMembership {
   role       MinistryRole @default(MEMBER)
   createdAt  DateTime     @default(now())
 
-  user       User         @relation(fields: [userId], references: [id], onDelete: Cascade)
-  ministry   Ministry     @relation(fields: [ministryId], references: [id], onDelete: Cascade)
+  user     User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  ministry Ministry @relation(fields: [ministryId], references: [id], onDelete: Cascade)
 
   @@unique([userId, ministryId])
+  @@index([userId])
+  @@index([ministryId])
 }
 
 model Account {
@@ -56,16 +67,18 @@ model Account {
   type              String
   provider          String
   providerAccountId String
-  refresh_token     String?
-  access_token      String?
+  refresh_token     String? @db.Text
+  access_token      String? @db.Text
   expires_at        Int?
   token_type        String?
   scope             String?
-  id_token          String?
+  id_token          String? @db.Text
   session_state     String?
-  user              User    @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@unique([provider, providerAccountId])
+  @@index([userId])
 }
 
 model Session {
@@ -73,7 +86,10 @@ model Session {
   sessionToken String   @unique
   userId       String
   expires      DateTime
-  user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
 }
 
 model VerificationToken {
@@ -85,7 +101,7 @@ model VerificationToken {
 }
 
 // ==========================================
-// CONFIGURAÇÕES E CONTEÚDO PAROQUIAL
+// CONFIGURAÇÕES E DADOS INSTITUCIONAIS
 // ==========================================
 
 model ParishSettings {
@@ -108,8 +124,19 @@ model ParishSettings {
   requireLoginForMassIntention Boolean             @default(false)
   requireLoginForSacrament     Boolean             @default(true)
   requireLoginForGeneral       Boolean             @default(false)
-  updatedAt                    DateTime            @updatedAt
   liturgicalThemeMode          LiturgicalThemeMode @default(DISCRETO)
+  updatedAt                    DateTime            @updatedAt
+}
+
+model SiteContact {
+  id        String   @id @default(cuid())
+  category  String   // 'INSTAGRAM', 'FACEBOOK', 'WHATSAPP', 'PHONE', 'ADDRESS', 'OTHER'
+  label     String
+  value     String
+  mapUrl    String?
+  createdAt DateTime @default(now())
+
+  @@index([category])
 }
 
 model MassSchedule {
@@ -124,12 +151,14 @@ model MassSchedule {
 model Event {
   id          String   @id @default(cuid())
   title       String
-  description String?
+  description String?  @db.Text
   eventDate   DateTime
   location    String?
   imageUrl    String?
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
+
+  @@index([eventDate])
 }
 
 model GalleryImage {
@@ -141,24 +170,23 @@ model GalleryImage {
 }
 
 model Ministry {
-  id              String                   @id @default(cuid())
+  id              String   @id @default(cuid())
   name            String
-  slug            String                   @unique
-  description     String?
+  slug            String   @unique
+  description     String?  @db.Text
   contactInfo     String?
   meetingSchedule String?
-  order           Int                      @default(0)
-  createdAt       DateTime                 @default(now())
-  updatedAt       DateTime                 @updatedAt
-  
-  members         User[]                   // Relacionamento legado
-  userMemberships UserMinistryMembership[] // Novo relacionamento flexível N-para-N
+  order           Int      @default(0)
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  userMemberships UserMinistryMembership[]
 }
 
 model FaqItem {
   id        String   @id @default(cuid())
   question  String
-  answer    String
+  answer    String   @db.Text
   category  String?
   order     Int      @default(0)
   createdAt DateTime @default(now())
@@ -169,11 +197,13 @@ model DailyWord {
   id               String   @id @default(cuid())
   date             DateTime @unique
   verseReference   String
-  text             String
-  reflection       String?
-  createdAt        DateTime @default(now())
+  text             String   @db.Text
+  reflection       String?  @db.Text
   instagramReelUrl String?
   showTextWithReel Boolean  @default(true)
+  createdAt        DateTime @default(now())
+
+  @@index([date])
 }
 
 model LiveStreamSettings {
@@ -191,7 +221,7 @@ model TitheRaffleWinner {
   year        Int
   winnerName  String
   photoUrl    String?
-  message     String?
+  message     String?  @db.Text
   publishedAt DateTime @default(now())
 
   @@unique([month, year])
@@ -201,8 +231,8 @@ model ContactRequest {
   id              String               @id @default(cuid())
   type            ContactRequestType
   name            String
-  contact         String
-  message         String
+  contact         String?
+  message         String               @db.Text
   userId          String?
   preferredDate   DateTime?
   sacramentType   SacramentType?
@@ -211,9 +241,11 @@ model ContactRequest {
   status          ContactRequestStatus @default(PENDING)
   createdAt       DateTime             @default(now())
   updatedAt       DateTime             @updatedAt
-  user            User?                @relation(fields: [userId], references: [id])
+
+  user User? @relation(fields: [userId], references: [id], onDelete: SetNull)
 
   @@index([type, status])
+  @@index([userId])
 }
 
 model LiturgicalOverride {
@@ -230,12 +262,14 @@ model LiturgicalOverride {
 model Testimonial {
   id        String   @id @default(cuid())
   userId    String
-  message   String
+  message   String   @db.Text
   approved  Boolean  @default(false)
   createdAt DateTime @default(now())
-  user      User     @relation(fields: [userId], references: [id])
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@index([approved])
+  @@index([userId])
 }
 
 // ==========================================
@@ -243,67 +277,71 @@ model Testimonial {
 // ==========================================
 
 model CatechismStudent {
-  id          String                @id @default(cuid())
+  id          String   @id @default(cuid())
   name        String
-  active      Boolean               @default(true)
-  createdAt   DateTime              @default(now())
-  catechistId String
+  active      Boolean  @default(true)
   stage       CatechismStage
+  catechistId String
+  createdAt   DateTime @default(now())
+  updatedAt DateTime @default(now()) @updatedAt
+
+  catechist   Catechist             @relation(fields: [catechistId], references: [id], onDelete: Restrict)
   attendances CatechismAttendance[]
-  catechist   Catechist             @relation(fields: [catechistId], references: [id])
 
   @@index([name])
-}
-
-model CatechismAttendance {
-  id             String           @id @default(cuid())
-  studentId      String
-  massLabel      String
-  attendedAt     DateTime
-  source         String           @default("SELF")
-  markedByUserId String?
-  note           String?
-  createdAt      DateTime         @default(now())
-  catechistId    String
-  catechistName  String
-  stage          CatechismStage
-  studentName    String
-  weekId         String
-  catechist      Catechist        @relation(fields: [catechistId], references: [id])
-  markedByUser   User?            @relation(fields: [markedByUserId], references: [id])
-  student        CatechismStudent @relation(fields: [studentId], references: [id])
-  week           CatechismWeek    @relation(fields: [weekId], references: [id], onDelete: Cascade)
-
-  @@index([weekId, catechistId])
-  @@index([studentId, attendedAt])
+  @@index([catechistId])
+  @@index([stage])
 }
 
 model Catechist {
-  id          String                @id @default(cuid())
-  name        String
-  stages      CatechismStage[]
-  active      Boolean               @default(true)
-  createdAt   DateTime              @default(now())
-  
-  // Vínculo inteligente opcional com a tabela de Usuários do sistema
-  userId      String?               @unique
-  user        User?                 @relation(fields: [userId], references: [id], onDelete: SetNull)
+  id        String           @id @default(cuid())
+  name      String
+  stages    CatechismStage[]
+  active    Boolean          @default(true)
+  userId    String?          @unique
+  createdAt DateTime         @default(now())
+  updatedAt DateTime @default(now()) @updatedAt
 
-  attendances CatechismAttendance[]
+  user        User?                 @relation(fields: [userId], references: [id], onDelete: SetNull)
   students    CatechismStudent[]
+  attendances CatechismAttendance[]
 }
 
 model CatechismWeek {
-  id              String                @id @default(cuid())
+  id              String   @id @default(cuid())
   title           String
-  token           String                @unique
-  isOpen          Boolean               @default(true)
-  startsAt        DateTime              @default(now())
+  token           String   @unique
+  isOpen          Boolean  @default(true)
+  startsAt        DateTime @default(now())
   endsAt          DateTime?
   weeklyPassword  String?
-  requirePassword Boolean               @default(false)
-  createdAt       DateTime              @default(now())
-  attendances     CatechismAttendance[]
+  requirePassword Boolean  @default(false)
+  createdAt       DateTime @default(now())
+
+  attendances CatechismAttendance[]
+
+  @@index([token])
+}
+
+model CatechismAttendance {
+  id             String   @id @default(cuid())
+  weekId         String
+  studentId      String
+  catechistId    String
+  massLabel      String
+  attendedAt     DateTime
+  source         String   @default("SELF") // "SELF", "CATECHIST", "ADMIN"
+  markedByUserId String?
+  note           String?
+  createdAt      DateTime @default(now())
+
+  week         CatechismWeek    @relation(fields: [weekId], references: [id], onDelete: Cascade)
+  student      CatechismStudent @relation(fields: [studentId], references: [id], onDelete: Cascade)
+  catechist    Catechist        @relation(fields: [catechistId], references: [id], onDelete: Cascade)
+  markedByUser User?            @relation("MarkedByRelation", fields: [markedByUserId], references: [id], onDelete: SetNull)
+
+  @@index([weekId, catechistId])
+  @@index([studentId, attendedAt])
 }
 
 // ==========================================
@@ -311,8 +349,10 @@ model CatechismWeek {
 // ==========================================
 
 enum StaffRole {
-  SUPER_ADMIN
-  MINISTRY_LEADER
+  SUPER_ADMIN      // Acesso total a todas as configurações e módulos
+  STAFF            // Membro da equipe com permissões específicas
+  MINISTRY_LEADER  // Coordenador/Líder de pastoral ou ministério específico
+  USER             // Usuário comum / Fiel
 }
 
 enum MinistryRole {
@@ -331,6 +371,7 @@ enum StaffPermission {
   MANAGE_LITURGICAL_THEME
   MANAGE_TESTIMONIALS
   MANAGE_CATECHISM
+  MANAGE_LIVE_STREAM
 }
 
 enum LiveStreamMode {
@@ -370,22 +411,24 @@ enum CatechismStage {
   ETAPA_2
   PERSEVERANCE
   ADULT
-  
 }
 
 
-// Tabela para configurações únicas (Nome da Paróquia, etc)
-model SiteSettings {
-  id        String   @id @default("global")
-  name      String   @default("Paróquia Nossa Senhora Aparecida")
-  updatedAt DateTime @updatedAt
-}
+// ==========================================
+// MÓDULO DE TRANSMISSÕES E CANAIS DO YOUTUBE
+// ==========================================
 
-model SiteContact {
-  id        String   @id @default(cuid())
-  category  String   // 'INSTAGRAM', 'FACEBOOK', 'WHATSAPP', 'PHONE', 'ADDRESS', 'OTHER'
-  label     String
-  value     String
-  mapUrl    String?
-  createdAt DateTime @default(now())
+model YoutubeChannel {
+  id            String   @id @default(cuid())
+  name          String   // Nome do Canal (Ex: Paróquia N. Sra. Aparecida)
+  handle        String?  // Ex: @paroquiaaparecidabotucatu
+  channelId     String   @unique // ID técnico da API (UC...)
+  avatarUrl     String?  // Foto de perfil vinda da API do YouTube
+  subscriberCount String? // Métricas do canal em tempo real
+  isPrimary     Boolean  @default(false) // Canal principal de transmissão
+  isActive      Boolean  @default(true)  // Chaveador de Ativo / Suspenso temporariamente
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  @@index([isActive, isPrimary])
 }

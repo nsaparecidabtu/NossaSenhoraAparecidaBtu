@@ -2,103 +2,118 @@
 'use server'
 
 import { prisma } from '@/lib/prisma'
-import { parseStage } from './helpers' // Funções utilitárias compartilhadas se necessário
+import { revalidatePath } from 'next/cache'
 import type { CatechismStage } from '@prisma/client'
 
-const VALID_STAGES: CatechismStage[] = ['PRE', 'ETAPA_1', 'ETAPA_2', 'PERSEVERANCE', 'ADULT']
+/**
+ * 1. Busca alunos em tempo real no formulário público
+ */
+export async function searchStudents(query: string) {
+  if (!query || query.trim().length < 2) return []
 
-function validateStage(value: FormDataEntryValue | null | string): CatechismStage {
-  const s = String(value ?? '').trim()
-  if (!VALID_STAGES.includes(s as CatechismStage)) {
-    throw new Error('Etapa inválida.')
-  }
-  return s as CatechismStage
-}
-
-async function requireOpenWeek(token: string) {
-  const week = await prisma.catechismWeek.findUnique({ where: { token } })
-  if (!week || !week.isOpen) {
-    throw new Error('Este link não está mais disponível.')
-  }
-  return week
-}
-
-export async function searchStudents(token: string, query: string) {
-  await requireOpenWeek(token)
-
-  const q = query.trim()
-  if (q.length < 2) return []
+  const terms = query.trim().split(/\s+/)
+  const conditions = terms.map((term) => ({
+    name: { contains: term, mode: 'insensitive' as const },
+  }))
 
   const students = await prisma.catechismStudent.findMany({
-    where: { active: true, name: { contains: q, mode: 'insensitive' } },
-    include: { catechist: { select: { name: true } } },
-    take: 8,
+    where: {
+      active: true,
+      AND: conditions,
+    },
+    include: {
+      catechist: { select: { name: true } },
+    },
+    take: 10,
     orderBy: { name: 'asc' },
   })
 
+  // Mapeamos para o formato que o Client espera
   return students.map((s) => ({
     id: s.id,
     name: s.name,
     stage: s.stage,
-    catechistName: s.catechist.name,
+    catechistId: s.catechistId,
+    catechistName: s.catechist?.name ?? 'Sem catequista',
   }))
 }
 
-export async function quickRegisterStudent(
-  token: string,
-  data: { name: string; stage: string; catechistId: string }
-) {
-  await requireOpenWeek(token)
+/**
+ * 2. Cadastro rápido de aluno na porta da igreja
+ */
+export async function quickRegisterStudent(prevState: any, formData: FormData) {
+  try {
+    const name = formData.get('name') as string
+    const catechistId = formData.get('catechistId') as string
+    const stage = formData.get('stage') as CatechismStage
 
-  const name = data.name.trim()
-  const stage = validateStage(data.stage)
-  const catechistId = data.catechistId
+    if (!name || !catechistId || !stage) {
+      return { success: false, error: 'Preencha todos os campos obrigatórios.' }
+    }
 
-  if (!name || !catechistId) {
-    throw new Error('Preencha nome, etapa e catequista.')
-  }
+    const newStudent = await prisma.catechismStudent.create({
+      data: {
+        name: name.trim(),
+        catechistId,
+        stage,
+        active: true,
+      },
+    })
 
-  const catechist = await prisma.catechist.findUnique({ where: { id: catechistId } })
-  if (!catechist || !catechist.stages.includes(stage)) {
-    throw new Error('Catequista inválido pra essa etapa.')
-  }
-
-  const student = await prisma.catechismStudent.create({
-    data: { name, stage, catechistId },
-  })
-
-  return {
-    id: student.id,
-    name: student.name,
-    stage: student.stage,
-    catechistName: catechist.name,
+    return { success: true, student: newStudent }
+  } catch (error: any) {
+    return { success: false, error: error.message || 'Erro ao registrar aluno.' }
   }
 }
 
-export async function submitAttendance(token: string, studentId: string, massLabel: string) {
-  const week = await requireOpenWeek(token)
+/**
+ * 3. Registro de Presença (Otimizado sem campos legados)
+ */
+export async function submitAttendance(prevState: any, formData: FormData) {
+  try {
+    const weekId = formData.get('weekId') as string
+    const studentId = formData.get('studentId') as string
+    const massLabel = formData.get('massLabel') as string
+    const note = (formData.get('note') as string) || null
 
-  const student = await prisma.catechismStudent.findUnique({
-    where: { id: studentId },
-    include: { catechist: { select: { id: true, name: true } } },
-  })
-  if (!student || !student.active) {
-    throw new Error('Catequizando não encontrado.')
+    if (!weekId || !studentId || !massLabel) {
+      return { success: false, error: 'Preencha todos os campos obrigatórios.' }
+    }
+
+    const student = await prisma.catechismStudent.findUnique({
+      where: { id: studentId },
+      select: { id: true, catechistId: true, active: true },
+    })
+
+    if (!student || !student.active) {
+      return { success: false, error: 'Aluno não encontrado ou inativo.' }
+    }
+
+    // Validação de segurança extra contra presenças duplicadas
+    const existing = await prisma.catechismAttendance.findFirst({
+      where: { weekId, studentId },
+    })
+
+    if (existing) {
+      return { success: false, error: 'Presença já confirmada para esta semana.' }
+    }
+
+    // Inserção normalizada (Note que 'stage' e 'studentName' não estão aqui)
+    await prisma.catechismAttendance.create({
+      data: {
+        weekId,
+        studentId: student.id,
+        catechistId: student.catechistId,
+        massLabel,
+        attendedAt: new Date(),
+        source: 'SELF',
+        note,
+      },
+    })
+
+    revalidatePath('/catequese')
+    return { success: true, error: null }
+  } catch (error: any) {
+    return { success: false, error: error.message || 'Falha ao registrar presença.' }
   }
-
-  await prisma.catechismAttendance.create({
-    data: {
-      studentId: student.id,
-      studentName: student.name,
-      weekId: week.id,
-      massLabel,
-      stage: student.stage,
-      catechistId: student.catechist.id,
-      catechistName: student.catechist.name,
-      attendedAt: new Date(),
-      source: 'SELF',
-    },
-  })
-
-  return { success: true }
 }

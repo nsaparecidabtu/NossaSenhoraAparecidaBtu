@@ -3,7 +3,7 @@
 
 import { useActionState, useState } from 'react'
 import { updateStaffAccess } from '@/actions/staffAccess'
-import type { StaffRole } from '@prisma/client'
+import type { StaffPermission, StaffRole } from '@prisma/client'
 
 type User = {
   id: string
@@ -11,37 +11,36 @@ type User = {
   email: string | null
   image: string | null
   staffRole: StaffRole | null
-  ministryId: string | null
-  permissions: string[]
+  permissions: StaffPermission[] | string[]
+  createdAt?: Date
 }
 
 type Ministry = { id: string; name: string }
 
 type ActionState = { success: boolean; error?: string }
 
-const PERMISSION_LABELS: Record<string, string> = {
-  VIEW_PRAYER_REQUESTS: 'Ver pedidos de oração',
-  MANAGE_TITHE_RAFFLE: 'Sorteio do dízimo',
-  MANAGE_EVENTS: 'Eventos',
-  MANAGE_GALLERY: 'Galeria',
+const PERMISSION_LABELS: Record<StaffPermission, string> = {
+  MANAGE_CATECHISM: 'Catequese (Gestão de alunos e chamadas)',
+  MANAGE_EVENTS: 'Eventos paroquiais',
+  MANAGE_GALLERY: 'Galeria de fotos',
   MANAGE_MASS_SCHEDULE: 'Horários de missa',
   MANAGE_MINISTRIES: 'Pastorais e ministérios',
-  MANAGE_FAQ: 'FAQ',
-  MANAGE_LITURGICAL_THEME: 'Cores litúrgicas especiais (coordenador litúrgico)',
-  MANAGE_TESTIMONIALS: 'Moderar depoimentos',
-  MANAGE_CATECHISM: 'Catequese (alunos e presença)',
+  MANAGE_FAQ: 'Perguntas frequentes (FAQ)',
+  MANAGE_LITURGICAL_THEME: 'Cores e tema litúrgico',
+  MANAGE_TESTIMONIALS: 'Moderação de testemunhos',
+  VIEW_PRAYER_REQUESTS: 'Ver pedidos de oração',
+  MANAGE_TITHE_RAFFLE: 'Sorteio do dízimo',
 }
 
-function roleLabel(role: StaffRole | null) {
+function roleLabel(role: StaffRole | string | null) {
   if (role === 'SUPER_ADMIN') return 'Super Admin'
+  if (role === 'STAFF') return 'Equipe Operacional / Staff'
   if (role === 'MINISTRY_LEADER') return 'Líder de Ministério'
-  if (role === 'CATECHIST') return 'Catequista'
   return 'Sem acesso ao painel'
 }
 
 function UserEditForm({
   user,
-  ministries,
   isSelf,
   onDone,
 }: {
@@ -50,10 +49,13 @@ function UserEditForm({
   isSelf: boolean
   onDone: () => void
 }) {
-  const [state, formAction, pending] = useActionState<ActionState, FormData>(updateStaffAccess, {
-    success: false,
-  })
+  const [state, formAction, pending] = useActionState<ActionState, FormData>(
+    updateStaffAccess,
+    { success: false }
+  )
   const [role, setRole] = useState<string>(user.staffRole ?? '')
+
+  const showPermissions = role === 'STAFF' || role === 'MINISTRY_LEADER'
 
   return (
     <form
@@ -73,9 +75,9 @@ function UserEditForm({
           disabled={isSelf}
           className="mt-1 w-full rounded border border-line bg-white px-3 py-2 font-body text-sm focus:border-gold focus:outline-none disabled:opacity-60"
         >
-          <option value="">Sem acesso ao painel</option>
-          <option value="CATECHIST">Catequista</option>
-          <option value="MINISTRY_LEADER">Líder de Ministério</option>
+          <option value="">Sem acesso ao painel (Fiel / Membro)</option>
+          <option value="STAFF">Equipe Operacional (Staff / Catequista / Secretário)</option>
+          <option value="MINISTRY_LEADER">Líder de Ministério / Pastoral</option>
           <option value="SUPER_ADMIN">Super Admin</option>
         </select>
         {isSelf && (
@@ -85,46 +87,29 @@ function UserEditForm({
         )}
       </div>
 
-      {role === 'MINISTRY_LEADER' && (
-        <>
-          <div>
-            <label className="block text-xs font-bold uppercase tracking-wide text-navy/60">
-              Ministério que lidera
-            </label>
-            <select
-              name="ministryId"
-              defaultValue={user.ministryId ?? ''}
-              className="mt-1 w-full rounded border border-line bg-white px-3 py-2 font-body text-sm focus:border-gold focus:outline-none"
-            >
-              <option value="">Nenhum</option>
-              {ministries.map((m) => (
-                <option key={m.id} value={m.id}>
-                  {m.name}
-                </option>
-              ))}
-            </select>
+      {showPermissions && (
+        <div>
+          <label className="block text-xs font-bold uppercase tracking-wide text-navy/60">
+            Permissões Concedidas
+          </label>
+          <div className="mt-2 grid grid-cols-1 sm:grid-cols-2 gap-2">
+            {(Object.entries(PERMISSION_LABELS) as [StaffPermission, string][]).map(([value, label]) => (
+              <label
+                key={value}
+                className="flex items-center gap-2 rounded border border-line/60 bg-white p-2 font-body text-xs hover:border-gold cursor-pointer"
+              >
+                <input
+                  type="checkbox"
+                  name="permissions"
+                  value={value}
+                  defaultChecked={(user.permissions as string[])?.includes(value)}
+                  className="h-3.5 w-3.5 rounded border-line text-navy focus:ring-gold"
+                />
+                <span className="text-navy">{label}</span>
+              </label>
+            ))}
           </div>
-
-          <div>
-            <label className="block text-xs font-bold uppercase tracking-wide text-navy/60">
-              Permissões do Líder
-            </label>
-            <div className="mt-1 space-y-1">
-              {Object.entries(PERMISSION_LABELS).map(([value, label]) => (
-                <label key={value} className="flex items-center gap-2 font-body text-sm cursor-pointer">
-                  <input
-                    type="checkbox"
-                    name="permissions"
-                    value={value}
-                    defaultChecked={user.permissions?.includes(value)}
-                    className="h-4 w-4 rounded border-line text-navy focus:ring-gold"
-                  />
-                  <span>{label}</span>
-                </label>
-              ))}
-            </div>
-          </div>
-        </>
+        </div>
       )}
 
       <div className="flex gap-2 pt-2">
@@ -183,7 +168,6 @@ export function AdminUsersClient({
                 </p>
               </div>
             </div>
-            {/* IMPORTANTE: Usamos botão sem Link para não gerar 404 */}
             <button
               onClick={() => setEditingId(editingId === u.id ? null : u.id)}
               className="shrink-0 rounded border border-line px-3 py-1.5 font-body text-xs font-semibold text-navy transition-colors hover:border-gold hover:bg-navy/5"
