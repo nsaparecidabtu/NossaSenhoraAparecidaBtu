@@ -361,18 +361,27 @@ enum MinistryRole {
 }
 
 enum StaffPermission {
-  VIEW_PRAYER_REQUESTS
-  MANAGE_TITHE_RAFFLE
-  MANAGE_EVENTS
-  MANAGE_GALLERY
-  MANAGE_MASS_SCHEDULE
-  MANAGE_MINISTRIES
-  MANAGE_FAQ
-  MANAGE_LITURGICAL_THEME
-  MANAGE_TESTIMONIALS
-  MANAGE_CATECHISM
-  MANAGE_LIVE_STREAM
+  // --- GESTÃO INSTITUCIONAL E SECRETARIA ---
+  MANAGE_SETTINGS          // Configurações gerais da paróquia (Endereço, Telefones, Redes Sociais)
+  MANAGE_USERS             // Gerenciamento de acessos, cargos e permissões do painel admin
+  MANAGE_SECRETARY_REQUESTS // Atendimento da secretaria (Agendamento de Sacramentos e Contatos Gerais)
 
+  // --- LITURGIA E CELEBRAÇÕES ---
+  MANAGE_MASS_SCHEDULE     // Horários de Missas, batizados e confissões
+  MANAGE_LITURGICAL_THEME  // Cores litúrgicas do dia, Tempo Litúrgico e Palavra do Dia
+  MANAGE_MASS_INTENTIONS   // Intenções de Missa e pedidos de oração institucionais (Assíncrono)
+  MANAGE_LIVE_STREAM       // Operação e moderação do Mural da Live em tempo real (Síncrono)
+
+  // --- PASTORAIS, MOVIMENTOS E LITURGIA (MÚSICA/CORAL) ---
+  MANAGE_MINISTRIES        // Cadastro de Pastorais, Movimentos, Conselhos e Escalas de Música/Coral
+  MANAGE_EVENTS            // Agenda paroquial, festas padroeiro, retiros e encontros
+  MANAGE_CATECHISM         // Inscrições e gestão da Catequese (Eucaristia e Crisma)
+
+  // --- COMUNICAÇÃO E ENGAJAMENTO ---
+  MANAGE_GALLERY           // Fotos de eventos, pastorais e vida paroquial
+  MANAGE_FAQ               // Dúvidas frequentes sobre a secretaria e sacramentos
+  MANAGE_TESTIMONIALS      // Moderação de Testemunhos e Graças Alcançadas
+  MANAGE_TITHE_RAFFLE      // Gestão do Dízimo, Campanhas de Arrecadação e Sorteios paroquiais
 }
 
 enum LiveStreamMode {

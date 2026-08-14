@@ -2,7 +2,7 @@
   "name": "paroquia-nsa-botucatu",
   "version": "0.1.0",
   "private": true,
-"scripts": {
+  "scripts": {
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
@@ -15,6 +15,7 @@
     "@google/generative-ai": "^0.24.1",
     "@prisma/adapter-pg": "^7.9.0",
     "@prisma/client": "^7.9.0",
+    "@vercel/analytics": "^2.0.1",
     "@vercel/blob": "^2.6.1",
     "clsx": "^2.1.1",
     "crypto": "^1.0.1",

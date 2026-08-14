@@ -1,0 +1,4886 @@
+This file is a merged representation of a subset of the codebase, containing specifically included files and files not matching ignore patterns, combined into a single document by Repomix.
+
+================================================================
+File Summary
+================================================================
+
+Purpose:
+--------
+This file contains a packed representation of a subset of the repository's contents that is considered the most important context.
+It is designed to be easily consumable by AI systems for analysis, code review,
+or other automated processes.
+
+File Format:
+------------
+The content is organized as follows:
+1. This summary section
+2. Repository information
+3. Directory structure
+4. Repository files (if enabled)
+5. Multiple file entries, each consisting of:
+  a. A separator line (================)
+  b. The file path (File: path/to/file)
+  c. Another separator line
+  d. The full contents of the file
+  e. A blank line
+
+Usage Guidelines:
+-----------------
+- This file should be treated as read-only. Any changes should be made to the
+  original repository files, not this packed version.
+- When processing this file, use the file path to distinguish
+  between different files in the repository.
+- Be aware that this file may contain sensitive information. Handle it with
+  the same level of security as you would the original repository.
+
+Notes:
+------
+- Some files may have been excluded based on .gitignore rules and Repomix's configuration
+- Binary files are not included in this packed representation. Please refer to the Repository Structure section for a complete list of file paths, including binary files
+- Only files matching these patterns are included: src/app/admin/**
+- Files matching these patterns are excluded: .agents/**, .claude/**, .next/**, .node_modules/**, node_modules/**, .env, .env.*, AGENTS.md, CLAUDE.md, README.md, repomix.txt, repomix-output.*
+- Files matching patterns in .gitignore are excluded
+- Files matching default ignore patterns are excluded
+- Files are sorted by Git change count (files with more changes are at the bottom)
+
+
+================================================================
+Directory Structure
+================================================================
+src/
+  app/
+    admin/
+      ao-vivo/
+        components/
+          LiveManagerHelpTab.tsx
+          TabsNavAoVivo.tsx
+        ChannelsManager.tsx
+        LiveStreamAdminForm.tsx
+        page.tsx
+      catequese/
+        components/
+          forms/
+            CreateCatechistForm.tsx
+            CreateStudentForm.tsx
+            CreateWeekForm.tsx
+            ManualAttendanceForm.tsx
+          tabs/
+            CatechistsTab.tsx
+            HelpTab.tsx
+            ReportTab.tsx
+            StudentsTab.tsx
+            WeekTab.tsx
+          CatechistsList.tsx
+          ExportButtons.tsx
+          ExportQrPdfButton.tsx
+          ReportActions.tsx
+          ReportFilters.tsx
+          TabsNav.tsx
+        page.tsx
+      configuracoes/
+        components/
+          tabs/
+            HelpSettingsTab.tsx
+          ContactCategoryCard.tsx
+        AdminSettingsClient.tsx
+        page.tsx
+      depoimentos/
+        AdminTestimonialsClient.tsx
+        page.tsx
+      eventos/
+        AdminEventsClient.tsx
+        page.tsx
+      faq/
+        AdminFaqClient.tsx
+        page.tsx
+      galeria/
+        AdminGalleryClient.tsx
+        page.tsx
+      horarios/
+        AdminMassScheduleClient.tsx
+        page.tsx
+      liturgico/
+        AdminLiturgicoClient.tsx
+        page.tsx
+      ministerios/
+        AdminMinistriesClient.tsx
+        page.tsx
+      palavra-do-dia/
+        AdminDailyWordClient.tsx
+        GenerateDailyWordButton.tsx
+        ManualDailyWordForm.tsx
+        page.tsx
+        TodayWordCard.tsx
+      pedidos/
+        AdminRequestsClient.tsx
+        page.tsx
+      pedidosLive/
+        components/
+          LiveMonitorHelpTab.tsx
+        LivePrayersDashboard.tsx
+        page.tsx
+      usuarios/
+        components/
+          EditUserModal.tsx
+          UsersList.tsx
+        AdminUsersClient.tsx
+        page.tsx
+      page.tsx
+
+================================================================
+Files
+================================================================
+
+================
+File: src/app/admin/ao-vivo/components/LiveManagerHelpTab.tsx
+================
+//src/app/admin/ao-vivo/components/LiveManagerHelpTab.tsx
+
+import { Radio, AlertTriangle } from 'lucide-react'
+import { HelpRoot, HelpHeader, HelpSection } from '@/components/admin/HelpManual'
+import { FaYoutube } from 'react-icons/fa'
+
+export function LiveManagerHelpTab() {
+  return (
+    <HelpRoot>
+      <HelpHeader 
+        title="Manual Operacional de Transmissões"
+        description="Central de documentação para controle de canais do YouTube e acionamento do modo de emergência da paróquia."
+      />
+
+      <HelpSection icon={FaYoutube} title="1. Canais do YouTube Conectados">
+        <p>
+          O sistema permite vincular múltiplos canais do YouTube, definindo qual deles é o <strong>Principal</strong> para exibição automática das transmissões.
+        </p>
+        <ul className="list-disc pl-5 space-y-1.5">
+          <li><strong>Adicionar Canal:</strong> Cole a URL completa do canal ou o handle (ex: <code>@paroquiaaparecidabotucatu</code>). O sistema identificará automaticamente os metadados.</li>
+          <li><strong>Canal Principal:</strong> Apenas um canal pode ser o principal por vez. Ele é a referência para varreduras automáticas de lives ativas.</li>
+          <li><strong>Suspender / Excluir:</strong> Use "Suspender" para ocultar temporariamente o canal das varreduras sem perder o histórico, ou "Excluir" para removê-lo definitivamente.</li>
+        </ul>
+      </HelpSection>
+
+      <HelpSection icon={Radio} title="2. Controle de Emergência / Modo Manual">
+        <p>
+          Caso a API do YouTube demore a atualizar o status da transmissão automática ou ocorra algum imprevisto técnico, você pode assumir o controle manual da exibição no site.
+        </p>
+        <ul className="list-disc pl-5 space-y-1.5">
+          <li><strong>Status da Transmissão:</strong> Ative a chave seletora para forçar a exibição imediata do player de vídeo na página pública (<code>/ao-vivo</code>).</li>
+          <li><strong>Link da Live:</strong> Cole a URL exata do vídeo gerada no YouTube Studio (ex: <code>https://www.youtube.com/watch?v=ExemploID</code>).</li>
+        </ul>
+      </HelpSection>
+
+      <HelpSection icon={AlertTriangle} title="3. Encerramento da Missa">
+        <p>
+          Se você utilizou o <strong>Controle de Emergência</strong>, é obrigatório desativar a chave seletora ao término da missa. Caso contrário, o site continuará exibindo o player fixo para os visitantes.
+        </p>
+      </HelpSection>
+    </HelpRoot>
+  )
+}
+
+================
+File: src/app/admin/ao-vivo/components/TabsNavAoVivo.tsx
+================
+// src/app/admin/ao-vivo/components/TabsNavAoVivo.tsx
+'use client'
+
+import { useRouter } from 'next/navigation'
+
+const TABS = [
+  { id: 'canais', label: 'Canais & Controle' },
+  { id: 'ajuda', label: 'Manual & Ajuda' },
+]
+
+export function TabsNavAoVivo({ currentTab }: { currentTab: string }) {
+  const router = useRouter()
+
+  return (
+    <div className="mt-6 flex flex-wrap gap-2 border-b border-line pb-3">
+      {TABS.map(({ id, label }) => (
+        <button
+          key={id}
+          onClick={() => router.push(`?tab=${id}`)}
+          className={`rounded-full border px-4 py-1.5 font-body text-xs font-semibold uppercase tracking-wide transition-colors ${
+            currentTab === id 
+              ? 'border-navy bg-navy text-cream' 
+              : 'border-line text-navy/60 hover:bg-navy/5'
+          }`}
+        >
+          {label}
+        </button>
+      ))}
+    </div>
+  )
+}
+
+================
+File: src/app/admin/pedidosLive/components/LiveMonitorHelpTab.tsx
+================
+import { MonitorPlay, MessageSquare, Trash2 } from 'lucide-react'
+import { HelpRoot, HelpHeader, HelpSection } from '@/components/admin/HelpManual'
+
+export function LiveMonitorHelpTab() {
+  return (
+    <HelpRoot>
+      <HelpHeader 
+        title="Manual do Monitor de Intenções"
+        description="Orientações de moderação em tempo real para controle de exibição de pedidos de oração durante as Santas Missas."
+      />
+
+      <HelpSection icon={MessageSquare} title="1. Recepção e Moderação em Tempo Real">
+        <p>
+          As intenções enviadas pelos fiéis através do site aparecem automaticamente nesta tela, sem necessidade de atualizar a página.
+        </p>
+        <ul className="list-disc pl-5 space-y-1.5">
+          <li><strong>Aprovar para o Mural:</strong> Ao clicar no botão de aprovação, a intenção é projetada instantaneamente na tela da transmissão ao vivo para que o sacerdote possa acompanhá-la.</li>
+          <li><strong>Ocultar do Mural:</strong> Se uma intenção já aprovada precisar ser retirada da tela antes do fim da missa, basta desmarcá-la.</li>
+        </ul>
+      </HelpSection>
+
+      <HelpSection icon={MonitorPlay} title="2. Navegação e Filtros">
+        <p>
+          Utilize as abas de filtro no topo da lista para manter a organização durante os momentos de pico da transmissão.
+        </p>
+        <ul className="list-disc pl-5 space-y-1.5">
+          <li><strong>Todas:</strong> Exibe o fluxo completo de mensagens que estão chegando.</li>
+          <li><strong>No Mural:</strong> Exibe estritamente as intenções que estão visíveis na tela do público no momento atual.</li>
+        </ul>
+      </HelpSection>
+
+      <HelpSection icon={Trash2} title="3. Encerramento e Limpeza da Missa">
+        <p>
+          Ao término da celebração, é fundamental preparar o sistema para a próxima transmissão.
+        </p>
+        <ul className="list-disc pl-5 space-y-1.5">
+          <li><strong>Arquivar Individualmente:</strong> Marque como "Resolvida" uma intenção que já foi lida, retirando-a da sua fila de moderação.</li>
+          <li><strong>Limpar Mural (Ação Global):</strong> Utilize o botão vermelho de limpeza ao final da missa para retirar todas as intenções do ar simultaneamente, arquivando-as no banco de dados.</li>
+        </ul>
+      </HelpSection>
+    </HelpRoot>
+  )
+}
+
+================
+File: src/app/admin/ao-vivo/ChannelsManager.tsx
+================
+// src/app/admin/ao-vivo/ChannelsManager.tsx
+'use client'
+
+import { useActionState, useState } from 'react'
+import {
+  createYoutubeChannel,
+  toggleChannelStatus,
+  setPrimaryChannel,
+  deleteYoutubeChannel,
+  type ChannelActionState,
+} from '@/actions/youtubeChannels'
+import type { YoutubeChannel } from '@prisma/client'
+
+export function ChannelsManager({ channels }: { channels: YoutubeChannel[] }) {
+  const [state, formAction, pending] = useActionState<ChannelActionState, FormData>(
+    createYoutubeChannel,
+    { success: false }
+  )
+  const [loadingId, setLoadingId] = useState<string | null>(null)
+
+  const handleToggle = async (id: string, status: boolean) => {
+    setLoadingId(id)
+    await toggleChannelStatus(id, status)
+    setLoadingId(null)
+  }
+
+  const handlePrimary = async (id: string) => {
+    setLoadingId(id)
+    await setPrimaryChannel(id)
+    setLoadingId(null)
+  }
+
+  const handleDelete = async (id: string) => {
+    if (confirm('Tem certeza que deseja remover este canal?')) {
+      setLoadingId(id)
+      await deleteYoutubeChannel(id)
+      setLoadingId(null)
+    }
+  }
+
+  return (
+    <div className="mt-4 space-y-6">
+      
+      {/* Formulário de Adicionar Canal */}
+      <form action={formAction} className="rounded-xl border border-line bg-cream/40 p-4">
+        <label className="block text-xs font-bold uppercase tracking-wider text-navy/60">
+          Adicionar Novo Canal do YouTube
+        </label>
+        <p className="text-xs text-navy/50 mt-0.5 mb-2">
+          Cole a URL do canal (ex: <code className="bg-white px-1 py-0.5 rounded border border-line">https://www.youtube.com/@paroquiaaparecidabotucatu</code>) ou o handle @.
+        </p>
+        <div className="flex flex-col sm:flex-row gap-2">
+          <input
+            name="channelUrl"
+            type="text"
+            required
+            placeholder="https://www.youtube.com/@seu-canal"
+            className="flex-1 rounded-lg border border-line px-3 py-2 text-sm focus:border-gold focus:outline-none bg-white"
+          />
+          <button
+            type="submit"
+            disabled={pending}
+            className="rounded-lg bg-navy px-5 py-2 text-xs font-bold uppercase tracking-wider text-cream hover:bg-gold hover:text-navy transition-colors disabled:opacity-50"
+          >
+            {pending ? 'Buscando...' : 'Adicionar Canal'}
+          </button>
+        </div>
+        {state.error && (
+          <p className="mt-2 rounded bg-red-50 p-2 text-xs text-red-600 border border-red-200">
+            {state.error}
+          </p>
+        )}
+      </form>
+
+      {/* Lista de Canais Cadastrados */}
+      <div className="space-y-3">
+        {channels.map((ch) => (
+          <div
+            key={ch.id}
+            className={`flex flex-col sm:flex-row sm:items-center justify-between gap-4 rounded-xl border p-4 transition-all ${
+              ch.isPrimary
+                ? 'border-gold/60 bg-gold/5 shadow-sm'
+                : ch.isActive
+                ? 'border-line bg-white'
+                : 'border-line/40 bg-gray-50 opacity-60'
+            }`}
+          >
+            <div className="flex items-center gap-3">
+              {ch.avatarUrl ? (
+                <img
+                  src={ch.avatarUrl}
+                  alt={ch.name}
+                  className="h-12 w-12 rounded-full border border-line object-cover"
+                />
+              ) : (
+                <div className="flex h-12 w-12 items-center justify-center rounded-full bg-navy text-cream font-bold">
+                  YT
+                </div>
+              )}
+              <div>
+                <div className="flex items-center gap-2">
+                  <h3 className="font-display font-bold text-navy">{ch.name}</h3>
+                  {ch.isPrimary && (
+                    <span className="rounded bg-gold px-2 py-0.5 text-[10px] font-bold uppercase text-navy">
+                      Principal
+                    </span>
+                  )}
+                  {!ch.isActive && (
+                    <span className="rounded bg-gray-200 px-2 py-0.5 text-[10px] font-bold uppercase text-navy/60">
+                      Suspenso
+                    </span>
+                  )}
+                </div>
+                <p className="text-xs text-navy/60">{ch.handle || ch.channelId}</p>
+                {ch.subscriberCount && (
+                  <p className="text-[11px] text-navy/40 mt-0.5">
+                    {Number(ch.subscriberCount).toLocaleString('pt-BR')} inscritos no YouTube
+                  </p>
+                )}
+              </div>
+            </div>
+
+            {/* Ações Granulares */}
+            <div className="flex items-center gap-2 pt-2 sm:pt-0 border-t sm:border-t-0 border-line/60 justify-end">
+              {!ch.isPrimary && (
+                <button
+                  type="button"
+                  disabled={loadingId === ch.id}
+                  onClick={() => handlePrimary(ch.id)}
+                  className="rounded border border-line px-2.5 py-1 text-[11px] font-semibold text-navy hover:bg-gold hover:text-navy transition-colors"
+                >
+                  Tornar Principal
+                </button>
+              )}
+
+              <button
+                type="button"
+                disabled={loadingId === ch.id}
+                onClick={() => handleToggle(ch.id, ch.isActive)}
+                className={`rounded border px-2.5 py-1 text-[11px] font-semibold transition-colors ${
+                  ch.isActive
+                    ? 'border-amber-300 bg-amber-50 text-amber-800 hover:bg-amber-100'
+                    : 'border-green-300 bg-green-50 text-green-800 hover:bg-green-100'
+                }`}
+              >
+                {ch.isActive ? 'Suspender' : 'Ativar'}
+              </button>
+
+              <button
+                type="button"
+                disabled={loadingId === ch.id}
+                onClick={() => handleDelete(ch.id)}
+                className="rounded border border-red-200 bg-red-50 px-2.5 py-1 text-[11px] font-semibold text-red-700 hover:bg-red-100 transition-colors"
+              >
+                Excluir
+              </button>
+            </div>
+          </div>
+        ))}
+
+        {channels.length === 0 && (
+          <p className="py-6 text-center text-xs text-navy/40">
+            Nenhum canal do YouTube cadastrado ainda. Use o campo acima para adicionar o canal da paróquia.
+          </p>
+        )}
+      </div>
+
+    </div>
+  )
+}
+
+================
+File: src/app/admin/ao-vivo/LiveStreamAdminForm.tsx
+================
+// src/app/admin/ao-vivo/LiveStreamAdminForm.tsx
+'use client'
+
+import { useActionState, useState } from 'react'
+import { updateLiveStreamSettings, type LiveStreamActionState } from '@/actions/livestream'
+import type { LiveStreamSettings } from '@prisma/client'
+
+export function LiveStreamAdminForm({ settings }: { settings: LiveStreamSettings | null }) {
+  const [isLiveNow, setIsLiveNow] = useState<boolean>(settings?.isLiveNow ?? false)
+  const [state, formAction, pending] = useActionState<LiveStreamActionState, FormData>(
+    updateLiveStreamSettings,
+    { success: false }
+  )
+
+  return (
+    <form action={formAction} className="space-y-6 font-body">
+      <input type="hidden" name="isLiveNow" value={isLiveNow ? 'true' : 'false'} />
+
+      {/* Switch Toggle do Status Ao Vivo */}
+      <div className="flex items-center justify-between rounded-xl border border-line bg-cream/30 p-4">
+        <div>
+          <p className="font-bold text-sm text-navy">Status da Transmissão</p>
+          <p className="text-xs text-navy/60">Ative para exibir o player em destaque no site.</p>
+        </div>
+        <button
+          type="button"
+          onClick={() => setIsLiveNow(!isLiveNow)}
+          className={`relative inline-flex h-7 w-12 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none ${
+            isLiveNow ? 'bg-red-600' : 'bg-gray-300'
+          }`}
+        >
+          <span
+            className={`pointer-events-none inline-block h-6 w-6 transform rounded-full bg-white shadow ring-0 transition duration-200 ease-in-out ${
+              isLiveNow ? 'translate-x-5' : 'translate-x-0'
+            }`}
+          />
+        </button>
+      </div>
+
+      {/* URL ou Video ID do YouTube */}
+      <div>
+        <label className="block text-xs font-bold uppercase tracking-wider text-navy/60">
+          Link da Live do YouTube
+        </label>
+        <input
+          name="youtubeUrl"
+          type="text"
+          placeholder="https://www.youtube.com/watch?v=ExemploID"
+          defaultValue={settings?.youtubeVideoId ? `https://www.youtube.com/watch?v=${settings.youtubeVideoId}` : ''}
+          className="mt-1 w-full rounded-lg border border-line px-3 py-2 text-sm focus:border-gold focus:outline-none"
+        />
+        <p className="mt-1 text-xs text-navy/50">
+          Cole a URL completa do vídeo ou live gerada no YouTube Studio.
+        </p>
+      </div>
+
+      {/* ID do Canal para carrossel gravado */}
+      <div>
+        <label className="block text-xs font-bold uppercase tracking-wider text-navy/60">
+          ID do Canal no YouTube (Opcional)
+        </label>
+        <input
+          name="youtubeChannelId"
+          type="text"
+          placeholder="UC..."
+          defaultValue={settings?.youtubeChannelId ?? ''}
+          className="mt-1 w-full rounded-lg border border-line px-3 py-2 text-sm focus:border-gold focus:outline-none"
+        />
+      </div>
+
+      <button
+        type="submit"
+        disabled={pending}
+        className="w-full rounded-lg bg-navy py-3 font-body text-xs font-bold uppercase tracking-wider text-cream hover:bg-gold hover:text-navy transition-colors disabled:opacity-50"
+      >
+        {pending ? 'Atualizando...' : 'Salvar Alterações'}
+      </button>
+
+      {state.error && (
+        <p className="rounded bg-red-50 p-2.5 text-xs font-medium text-red-600 border border-red-200">
+          {state.error}
+        </p>
+      )}
+
+      {state.success && (
+        <p className="rounded bg-green-50 p-2.5 text-xs font-medium text-green-700 border border-green-200">
+          Configurações da live salvas com sucesso!
+        </p>
+      )}
+    </form>
+  )
+}
+
+================
+File: src/app/admin/ao-vivo/page.tsx
+================
+// src/app/admin/ao-vivo/page.tsx
+import { prisma } from '@/lib/prisma'
+import { auth } from '@/auth'
+import { redirect } from 'next/navigation'
+import { TabsNavAoVivo } from './components/TabsNavAoVivo'
+import { LiveManagerHelpTab } from './components/LiveManagerHelpTab'
+import { ChannelsManager } from './ChannelsManager' // Verifique o caminho correto de importação
+import { LiveStreamAdminForm } from './LiveStreamAdminForm' // Verifique o caminho correto de importação
+
+export const dynamic = 'force-dynamic'
+
+type PageProps = {
+  searchParams: Promise<{ tab?: string }>
+}
+
+export default async function AdminLivePage({ searchParams }: PageProps) {
+  // 1. Validação de Sessão e Segurança (RBAC)
+  const session = await auth()
+  if (!session?.user) redirect('/')
+
+  const hasAccess = 
+    session.user.staffRole === 'SUPER_ADMIN' || 
+    session.user.permissions?.includes('MANAGE_LIVE_STREAM')
+    
+  if (!hasAccess) redirect('/admin')
+
+  // 2. Resolução da Aba Atual via URL
+  const resolvedParams = await searchParams
+  const activeTab = resolvedParams.tab || 'canais'
+
+  // 3. Otimização Sênior: Busca de dados condicionada à aba ativa
+  let settings = null
+  let channels: any[] = []
+
+  if (activeTab === 'canais') {
+    const [fetchedSettings, fetchedChannels] = await Promise.all([
+      prisma.liveStreamSettings.findUnique({ where: { id: 'singleton' } }),
+      prisma.youtubeChannel.findMany({
+        orderBy: [{ isPrimary: 'desc' }, { createdAt: 'desc' }],
+      }),
+    ])
+    settings = fetchedSettings
+    channels = fetchedChannels
+  }
+
+  return (
+    <main className="min-h-screen bg-cream px-4 py-12 sm:px-6 text-navy font-body">
+      <div className="mx-auto max-w-4xl space-y-6">
+        
+        {/* Cabeçalho da Página */}
+        <div>
+          <h1 className="font-display text-3xl font-bold">Gerenciamento de Transmissões & Canais</h1>
+          <p className="mt-1 text-sm text-navy/60">
+            Cadastre canais do YouTube, altere a prioridade de exibição e controle transmissões ao vivo.
+          </p>
+        </div>
+
+        {/* Navegador de Abas */}
+        <TabsNavAoVivo currentTab={activeTab} />
+
+        {/* Renderização Condicional (Server-Side) */}
+        <div className="mt-6">
+          {activeTab === 'canais' && (
+            <div className="space-y-8 animate-[fadein_0.3s_ease]">
+              
+              <section className="rounded-2xl border border-line bg-white p-6 shadow-sm">
+                <h2 className="mb-4 border-b border-line pb-3 font-display text-xl font-bold text-navy">
+                  Canais do YouTube Conectados
+                </h2>
+                {/* O TypeScript deduz corretamente que 'channels' está populado aqui */}
+                <ChannelsManager channels={channels} />
+              </section>
+
+              <section className="rounded-2xl border border-line bg-white p-6 shadow-sm">
+                <h2 className="mb-4 border-b border-line pb-3 font-display text-xl font-bold text-navy">
+                  Controle de Emergência / Modo Manual
+                </h2>
+                {/* O TypeScript deduz corretamente que 'settings' está populado aqui */}
+                <LiveStreamAdminForm settings={settings} />
+              </section>
+              
+            </div>
+          )}
+
+          {activeTab === 'ajuda' && (
+            <LiveManagerHelpTab />
+          )}
+        </div>
+
+      </div>
+    </main>
+  )
+}
+
+================
+File: src/app/admin/catequese/components/tabs/HelpTab.tsx
+================
+// src/app/admin/catequese/components/tabs/HelpTab.tsx
+import { QrCode, Users, GraduationCap, FileText } from 'lucide-react'
+import { HelpRoot, HelpHeader, HelpSection } from '@/components/admin/HelpManual'
+
+export function HelpTab() {
+  return (
+    <HelpRoot>
+      <HelpHeader 
+        title="Manual Operacional do Sistema"
+        description="Central de documentação interna. Utilize este guia para tirar dúvidas sobre os fluxos de chamada, cadastros e geração de relatórios oficiais da paróquia."
+      />
+
+      <HelpSection icon={QrCode} title="1. Gestão da Semana e Cartaz QR Code">
+        <p>
+          O sistema opera baseado em <strong>Semanas Abertas</strong>. Enquanto uma semana estiver ativa, o link público aceita o registro de presença dos catequizandos[cite: 1].
+        </p>
+        <ul className="list-disc pl-5 space-y-1.5">
+          <li><strong>Como abrir:</strong> Na aba <em>Semana / QR</em>, insira um título descritivo (ex: "1ª Semana - Setembro") e clique em abrir[cite: 1]. A semana anterior será encerrada automaticamente[cite: 1].</li>
+          <li><strong>Cartaz para Impressão:</strong> Clique em <em>"Imprimir Cartaz A4"</em> para baixar um PDF oficial contendo o logotipo da paróquia e o QR Code centralizado pronto para o mural da igreja[cite: 1].</li>
+          <li><strong>Encerramento:</strong> Após os horários de missa de domingo, clique em <em>"Encerrar esta semana"</em> para bloquear novas submissões retroativas[cite: 1].</li>
+        </ul>
+      </HelpSection>
+
+      <HelpSection icon={Users} title="2. Cadastro e Controle de Catequistas">
+        <p>
+          Gerencie a equipe pastoral vinculada às etapas de formação[cite: 1]. Ao cadastrar um catequista, selecione todas as etapas em que ele atua[cite: 1]. Caso haja desligamento ou afastamento, utilize o botão de alternância de status para desativá-lo sem apagar o histórico de chamadas[cite: 1].
+        </p>
+      </HelpSection>
+
+      <HelpSection icon={GraduationCap} title="3. Gestão de Catequizandos (Alunos)">
+        <p>
+          A listagem oficial dos matriculados[cite: 1]. O sistema possui validação cruzada: ao selecionar a etapa do aluno, o campo de catequista é filtrado dinamicamente para exibir apenas os responsáveis autorizados para aquela turma específica[cite: 1].
+        </p>
+      </HelpSection>
+
+      <HelpSection icon={FileText} title="4. Relatórios, Auditoria e Exportação">
+        <p>
+          Na aba de relatórios, utilize os filtros Server-Side por semana, catequista ou etapa para refinar os dados instantaneamente[cite: 1].
+        </p>
+        <ul className="list-disc pl-5 space-y-1.5">
+          <li><strong>Lançamento Manual:</strong> Caso algum aluno compareça mas não consiga registrar via celular, utilize o formulário de exceções no topo da aba de relatórios[cite: 1].</li>
+          <li><strong>Exportação em Lote:</strong> Utilize os botões de <em>CSV</em> (para planilhas do Excel/Google Sheets) ou <em>PDF</em> (para relatórios tabulares oficiais formatados) gerados diretamente no navegador do usuário com custo zero de processamento no servidor[cite: 1].</li>
+        </ul>
+      </HelpSection>
+    </HelpRoot>
+  )
+}
+
+================
+File: src/app/admin/catequese/components/CatechistsList.tsx
+================
+// src/app/admin/catequese/components/CatechistsList.tsx
+'use client'
+
+import { useState, useActionState } from 'react'
+import { toggleCatechistActive, updateCatechist, deleteCatechist } from '@/actions/catechism/admin-catechism'
+import { STAGE_LABELS } from '@/lib/catechism'
+import type { CatechismStage } from '@prisma/client'
+
+type CatechistItem = {
+  id: string
+  name: string
+  stages: string[]
+  active: boolean
+  user?: { email: string | null } | null
+}
+
+type ActionState = {
+  success: boolean
+  error?: string | null
+}
+
+function getStageLabel(stage: string): string {
+  return STAGE_LABELS[stage as CatechismStage] || stage
+}
+
+export function CatechistsList({ catechists }: { catechists: CatechistItem[] }) {
+  const [editingId, setEditingId] = useState<string | null>(null)
+
+  return (
+    <div className="space-y-3">
+      {catechists.map((c) => (
+        <div key={c.id} className="rounded-xl border border-line bg-white p-4 shadow-sm transition-all">
+          {editingId !== c.id ? (
+            // MODO DE VISUALIZAÇÃO
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+              <div>
+                <div className="flex items-center gap-2">
+                  <p className="font-body text-sm font-bold text-navy">{c.name}</p>
+                  <span className={`inline-block rounded px-2 py-0.5 text-[10px] font-bold uppercase ${c.active ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'}`}>
+                    {c.active ? 'Ativo' : 'Inativo'}
+                  </span>
+                </div>
+                <p className="mt-1 font-body text-xs text-navy/60">
+                  Etapas: {c.stages.map((s) => getStageLabel(s)).join(', ')}
+                </p>
+                {c.user?.email && (
+                  <p className="font-body text-xs text-navy/40">Login: {c.user.email}</p>
+                )}
+              </div>
+
+              <div className="flex flex-wrap items-center gap-2 pt-2 sm:pt-0 border-t sm:border-t-0 border-line">
+                <button
+                  onClick={() => setEditingId(c.id)}
+                  className="rounded border border-line px-3 py-1 text-xs font-semibold uppercase text-navy hover:bg-navy/5 transition-colors"
+                >
+                  Editar
+                </button>
+
+                {/* Form de Ativar/Desativar */}
+                <form action={async () => { await toggleCatechistActive(c.id, !c.active) }}>
+                  <button type="submit" className={`rounded px-3 py-1 text-xs font-semibold uppercase transition-colors ${c.active ? 'text-red-600 hover:bg-red-50' : 'text-green-700 hover:bg-green-50'}`}>
+                    {c.active ? 'Desativar' : 'Reativar'}
+                  </button>
+                </form>
+
+                {/* Form de Exclusão Segura */}
+                <form action={async () => {
+                  if (window.confirm(`Tem certeza que deseja excluir o catequista ${c.name}?`)) {
+                    const res = await deleteCatechist(c.id)
+                    if (res?.error) alert(res.error)
+                  }
+                }}>
+                  <button type="submit" className="rounded px-2 py-1 text-xs font-semibold text-red-500 hover:bg-red-50 transition-colors">
+                    Excluir
+                  </button>
+                </form>
+              </div>
+            </div>
+          ) : (
+            // MODO DE EDIÇÃO INLINE
+            <EditCatechistFormInline catechist={c} onCancel={() => setEditingId(null)} />
+          )}
+        </div>
+      ))}
+
+      {catechists.length === 0 && (
+        <p className="py-6 text-center font-body text-sm text-navy/40">Nenhum catequista cadastrado.</p>
+      )}
+    </div>
+  )
+}
+
+function EditCatechistFormInline({ catechist, onCancel }: { catechist: CatechistItem; onCancel: () => void }) {
+  const [state, formAction, pending] = useActionState<ActionState, FormData>(
+    updateCatechist, 
+    { success: false, error: null }
+  )
+
+  if (state.success) {
+    onCancel()
+  }
+
+  return (
+    <form action={formAction} className="space-y-3 pt-2">
+      <input type="hidden" name="id" value={catechist.id} />
+      <div className="grid gap-2 sm:grid-cols-2">
+        <input 
+          name="name" 
+          defaultValue={catechist.name} 
+          required 
+          className="rounded border border-line px-3 py-1.5 text-sm focus:border-gold focus:outline-none" 
+        />
+        <input 
+          name="email" 
+          type="email" 
+          defaultValue={catechist.user?.email ?? ''} 
+          placeholder="E-mail vinculado" 
+          className="rounded border border-line px-3 py-1.5 text-sm focus:border-gold focus:outline-none" 
+        />
+      </div>
+
+      <div>
+        <p className="mb-1 text-[11px] font-bold uppercase tracking-wider text-navy/60">Editar Etapas</p>
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+          {(Object.keys(STAGE_LABELS) as CatechismStage[]).map((stage) => (
+            <label key={stage} className="flex items-center gap-2 text-xs">
+              <input 
+                type="checkbox" 
+                name="stages" 
+                value={stage} 
+                defaultChecked={catechist.stages.includes(stage)} 
+                className="h-3.5 w-3.5 rounded border-line text-navy focus:ring-gold"
+              />
+              {STAGE_LABELS[stage]}
+            </label>
+          ))}
+        </div>
+      </div>
+
+      <div className="flex gap-2 justify-end pt-2">
+        <button type="button" onClick={onCancel} className="rounded border border-line px-3 py-1 text-xs font-semibold uppercase text-navy/70 hover:bg-black/5 transition-colors">
+          Cancelar
+        </button>
+        <button disabled={pending} className="rounded bg-navy px-4 py-1 text-xs font-semibold uppercase text-cream hover:bg-gold hover:text-navy transition-colors">
+          {pending ? 'Salvando...' : 'Salvar alterações'}
+        </button>
+      </div>
+
+      {state.error && <p className="text-xs text-red-600">{state.error}</p>}
+    </form>
+  )
+}
+
+================
+File: src/app/admin/catequese/components/ExportQrPdfButton.tsx
+================
+// src/app/admin/catequese/components/ExportQrPdfButton.tsx
+'use client'
+
+import { useState } from 'react'
+import jsPDF from 'jspdf'
+import QRCode from 'qrcode'
+
+type Props = {
+  title: string
+  link: string
+}
+
+export function ExportQrPdfButton({ title, link }: Props) {
+  const [isGenerating, setIsGenerating] = useState(false)
+
+  // Função Sênior: Converte imagem local da pasta /public para Base64 sem erro de CORS
+  const getLocalImageBase64 = async (imagePath: string): Promise<string> => {
+    return new Promise((resolve, reject) => {
+      const img = new window.Image()
+      img.src = imagePath
+      img.onload = () => {
+        const canvas = document.createElement('canvas')
+        canvas.width = img.width
+        canvas.height = img.height
+        const ctx = canvas.getContext('2d')
+        if (!ctx) return reject('Falha ao criar contexto do canvas')
+        ctx.drawImage(img, 0, 0)
+        resolve(canvas.toDataURL('image/png'))
+      }
+      img.onerror = (error) => reject(error)
+    })
+  }
+
+  async function generatePdf() {
+    setIsGenerating(true)
+    try {
+      // 1. Gera o QR Code em Base64
+      const qrDataUrl = await QRCode.toDataURL(link, {
+        width: 500,
+        margin: 2,
+        color: {
+          dark: '#0f172a', // Cor navy
+          light: '#ffffff',
+        },
+      })
+
+      // 2. Tenta carregar a logo (deve estar em /public/logo.png)
+      let logoDataUrl: string | null = null
+      try {
+        logoDataUrl = await getLocalImageBase64('/logo.png')
+      } catch (e) {
+        console.warn('Logo não encontrada em /public/logo.png. Gerando cartaz sem logo.')
+      }
+
+      // 3. Inicializa o Documento A4
+      const doc = new jsPDF({
+        orientation: 'portrait',
+        unit: 'mm',
+        format: 'a4',
+      })
+      const pageWidth = doc.internal.pageSize.getWidth()
+      let startY = 40 // Eixo Y inicial para o texto
+
+      // 4. Injeta a Logo (se existir)
+      if (logoDataUrl) {
+        const logoSize = 35 // Tamanho em mm (largura e altura)
+        const logoX = (pageWidth - logoSize) / 2
+        doc.addImage(logoDataUrl, 'PNG', logoX, 15, logoSize, logoSize)
+        startY = 65 // Empurra o restante do conteúdo para baixo
+      }
+
+      // Título Principal
+      doc.setFont('helvetica', 'bold')
+      doc.setFontSize(28)
+      doc.setTextColor(15, 23, 42) // #0f172a (navy)
+      const titleText = 'Presença da Catequese'
+      const titleWidth = doc.getTextWidth(titleText)
+      doc.text(titleText, (pageWidth - titleWidth) / 2, startY)
+
+      // Subtítulo (Nome da semana)
+      doc.setFont('helvetica', 'normal')
+      doc.setFontSize(20)
+      doc.setTextColor(50, 50, 50)
+      const subWidth = doc.getTextWidth(title)
+      doc.text(title, (pageWidth - subWidth) / 2, startY + 15)
+
+      // QR Code centralizado
+      const qrSize = 110
+      const xPos = (pageWidth - qrSize) / 2
+      doc.addImage(qrDataUrl, 'PNG', xPos, startY + 40, qrSize, qrSize)
+
+      // Instruções
+      doc.setFont('helvetica', 'bold')
+      doc.setFontSize(16)
+      doc.setTextColor(15, 23, 42)
+      const instruction = 'Aponte a câmera do celular para registrar sua presença.'
+      const instWidth = doc.getTextWidth(instruction)
+      doc.text(instruction, (pageWidth - instWidth) / 2, startY + 170)
+
+      // URL de fallback no rodapé
+      doc.setFont('helvetica', 'normal')
+      doc.setFontSize(11)
+      doc.setTextColor(100, 100, 100)
+      const linkWidth = doc.getTextWidth(link)
+      doc.text(link, (pageWidth - linkWidth) / 2, startY + 185)
+
+      // Salva o arquivo
+      const fileName = `Cartaz_${title.replace(/\s+/g, '_')}.pdf`
+      doc.save(fileName)
+    } catch (error) {
+      console.error('Erro ao gerar PDF do QR Code', error)
+      alert('Não foi possível gerar o cartaz em PDF.')
+    } finally {
+      setIsGenerating(false)
+    }
+  }
+
+  return (
+    <button
+      onClick={generatePdf}
+      disabled={isGenerating}
+      className="mt-4 rounded border border-navy px-4 py-2 font-body text-xs font-semibold uppercase tracking-wide text-navy transition-colors hover:bg-navy/5 disabled:opacity-60"
+    >
+      {isGenerating ? 'Gerando Cartaz...' : 'Imprimir Cartaz A4'}
+    </button>
+  )
+}
+
+================
+File: src/app/admin/catequese/components/ReportFilters.tsx
+================
+// src/app/admin/catequese/components/ReportFilters.tsx
+'use client'
+
+import { useRouter } from 'next/navigation'
+import { STAGE_LABELS } from '@/lib/catechism'
+
+export function ReportFilters({ weeks, catechists, currentFilters }: any) {
+  const router = useRouter()
+
+  function updateFilter(key: string, value: string) {
+    const params = new URLSearchParams(window.location.search)
+    params.set(key, value)
+    router.push(`?${params.toString()}`)
+  }
+
+  return (
+    <div className="rounded-lg border border-line bg-white p-4 space-y-4 shadow-sm">
+      <h3 className="font-display text-sm font-bold text-navy">Filtros do Relatório</h3>
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+        
+        <select 
+          value={currentFilters.weekId} 
+          onChange={(e) => updateFilter('weekId', e.target.value)}
+          className="w-full rounded border border-line bg-cream px-3 py-2 font-body text-sm"
+        >
+          <option value="all">Todas as Semanas</option>
+          {weeks.map((w: any) => (
+            <option key={w.id} value={w.id}>{w.title}</option>
+          ))}
+        </select>
+
+        <select 
+          value={currentFilters.catechistName} 
+          onChange={(e) => updateFilter('catechistName', e.target.value)}
+          className="w-full rounded border border-line bg-cream px-3 py-2 font-body text-sm"
+        >
+          <option value="all">Todos os Catequistas</option>
+          {catechists.map((c: any) => (
+            <option key={c.id} value={c.name}>{c.name}</option>
+          ))}
+        </select>
+
+        <select 
+          value={currentFilters.stage} 
+          onChange={(e) => updateFilter('stage', e.target.value)}
+          className="w-full rounded border border-line bg-cream px-3 py-2 font-body text-sm"
+        >
+          <option value="all">Todas as Turmas</option>
+          {Object.entries(STAGE_LABELS).map(([key, label]) => (
+            <option key={key} value={key}>{label}</option>
+          ))}
+        </select>
+
+      </div>
+    </div>
+  )
+}
+
+================
+File: src/app/admin/configuracoes/components/tabs/HelpSettingsTab.tsx
+================
+// src/app/admin/configuracoes/components/tabs/HelpSettingsTab.tsx
+import { Settings, Link as LinkIcon, ShieldCheck } from 'lucide-react'
+import { HelpRoot, HelpHeader, HelpSection } from '@/components/admin/HelpManual'
+
+export function HelpSettingsTab() {
+  return (
+    <HelpRoot>
+      <HelpHeader 
+        title="Manual de Instruções — Configurações"
+        description="Guia rápido para orientar a administração sobre o preenchimento correto dos dados institucionais e links do rodapé."
+      />
+
+      <HelpSection icon={Settings} title="1. Geral & Tema (Identidade Visual)">
+        <ul className="list-disc pl-5 space-y-1.5">
+          <li><strong>Nome da Paróquia:</strong> Nome oficial exibido no cabeçalho, rodapé e SEO da página.</li>
+          <li><strong>Frase de Destaque (Hero):</strong> O slogan principal que aparece em destaque na página inicial.</li>
+          <li><strong>Atmosfera Litúrgica:</strong> Altera o tom visual do site de acordo com o tempo litúrgico. O modo <em>Full Color</em> aplica tintas temáticas nos botões.</li>
+        </ul>
+      </HelpSection>
+
+      <HelpSection icon={LinkIcon} title="2. Rodapé & Dinâmicos (Cards de Contato)">
+        <ul className="list-disc pl-5 space-y-1.5">
+          <li><strong>Redes Sociais:</strong> Insira sempre o link completo (ex: <code>https://instagram.com/suaparoquia</code>). O sistema exibe o ícone de forma automática.</li>
+          <li><strong>Endereços e Mapas:</strong> Utilize o campo opcional <em>Link do Google Maps</em> colando o link curto de compartilhamento para gerar o botão interativo.</li>
+        </ul>
+      </HelpSection>
+
+      <HelpSection icon={ShieldCheck} title="3. Boas Práticas de Manutenção">
+        <p>
+          Todas as alterações feitas nestas abas entram em vigor instantaneamente no site público graças ao sistema de revalidação de cache. Não é necessário realizar novo deploy na Vercel para atualizar telefones, endereços ou redes sociais.
+        </p>
+      </HelpSection>
+    </HelpRoot>
+  )
+}
+
+================
+File: src/app/admin/configuracoes/components/ContactCategoryCard.tsx
+================
+// src/app/admin/configuracoes/components/ContactCategoryCard.tsx
+'use client'
+
+import { useActionState, useRef } from 'react'
+import { addContact, removeContact } from '@/actions/siteContacts'
+
+type Contact = { id: string; label: string; value: string; mapUrl: string | null }
+type ActionState = { success: boolean; error?: string | null }
+
+export function ContactCategoryCard({
+  category, title, placeholder, contacts,
+}: {
+  category: string
+  title: string
+  placeholder: string
+  contacts: Contact[]
+}) {
+  const formRef = useRef<HTMLFormElement>(null)
+  const [state, formAction, pending] = useActionState<ActionState, FormData>(
+    async (prevState, formData) => {
+      const res = await addContact(prevState, formData)
+      if (res.success) formRef.current?.reset()
+      return res
+    },
+    { success: false, error: null }
+  )
+
+  const isAddress = category === 'ADDRESS'
+
+  return (
+    <div className="flex flex-col rounded-xl border border-line bg-white p-5 shadow-sm">
+      <h3 className="font-display text-base font-bold text-navy">{title}</h3>
+      
+      <form ref={formRef} action={formAction} className="mt-3 space-y-2 border-b border-line pb-4">
+        <input type="hidden" name="category" value={category} />
+        <input 
+          name="label" required placeholder='Ex: "Matriz" ou "Oficial"' 
+          className="w-full rounded border border-line px-3 py-1.5 text-xs focus:border-gold focus:outline-none"
+        />
+        <input 
+          name="value" required placeholder={placeholder} 
+          className="w-full rounded border border-line px-3 py-1.5 text-xs focus:border-gold focus:outline-none"
+        />
+        {isAddress && (
+          <input 
+            name="mapUrl" placeholder="Link do Google Maps (Opcional)" 
+            className="w-full rounded border border-line px-3 py-1.5 text-xs focus:border-gold focus:outline-none"
+          />
+        )}
+        <button disabled={pending} className="w-full rounded bg-navy/5 py-2 text-xs font-bold uppercase tracking-wide text-navy hover:bg-navy hover:text-cream transition-colors disabled:opacity-50">
+          {pending ? 'Salvando...' : 'Adicionar'}
+        </button>
+        {state.error && <p className="text-[10px] text-red-600">{state.error}</p>}
+      </form>
+
+      <div className="mt-3 flex-1 space-y-2 overflow-y-auto max-h-48">
+        {contacts.map((c) => (
+          <div key={c.id} className="flex items-start justify-between gap-2 rounded bg-cream/30 p-2 text-xs">
+            <div className="truncate">
+              <span className="font-bold text-navy">{c.label}: </span>
+              <span className="text-navy/70 truncate block">{c.value}</span>
+            </div>
+            <form action={async () => {
+              if (window.confirm(`Remover ${c.label}?`)) await removeContact(c.id)
+            }}>
+              <button type="submit" className="text-red-500 opacity-60 hover:opacity-100 font-bold px-1">✕</button>
+            </form>
+          </div>
+        ))}
+        {contacts.length === 0 && <p className="text-xs text-navy/40 italic">Nenhum item.</p>}
+      </div>
+    </div>
+  )
+}
+
+================
+File: src/app/admin/depoimentos/AdminTestimonialsClient.tsx
+================
+// src/app/admin/depoimentos/AdminTestimonialsClient.tsx
+'use client'
+
+import { approveTestimonial, deleteTestimonial } from '@/actions/testimonial'
+
+type Testimonial = {
+  id: string
+  message: string
+  approved: boolean
+  createdAt: Date
+  user: { name: string | null; image: string | null }
+}
+
+function fmtDate(date: Date) {
+  return new Date(date).toLocaleDateString('pt-BR')
+}
+
+export function AdminTestimonialsClient({ testimonials }: { testimonials: Testimonial[] }) {
+  const pending = testimonials.filter((t) => !t.approved)
+  const approved = testimonials.filter((t) => t.approved)
+
+  return (
+    <main className="min-h-screen bg-cream px-6 py-12 text-navy">
+      <div className="mx-auto max-w-2xl">
+        <h1 className="font-display text-3xl font-bold">Depoimentos</h1>
+        <p className="mt-1 font-body text-sm text-navy/60">
+          Só entram no ar depois de aprovados aqui.
+        </p>
+
+        <h2 className="mt-8 font-body text-xs font-bold uppercase tracking-wide text-navy/50">
+          Aguardando aprovação ({pending.length})
+        </h2>
+        <div className="mt-3 space-y-3">
+          {pending.length === 0 && (
+            <p className="font-body text-sm text-navy/40">Nada pendente. 🎉</p>
+          )}
+          {pending.map((t) => (
+            <div key={t.id} className="rounded-lg border border-line bg-white p-4">
+              <div className="flex items-start gap-3">
+                {t.user.image && (
+                  // eslint-disable-next-line @next/next/no-img-element
+                  <img src={t.user.image} alt="" className="h-8 w-8 shrink-0 rounded-full" />
+                )}
+                <div className="flex-1">
+                  <p className="font-body text-xs font-semibold text-navy/60">
+                    {t.user.name ?? 'Anônimo'} · {fmtDate(t.createdAt)}
+                  </p>
+                  <p className="mt-1 font-body text-sm text-navy/80">{t.message}</p>
+                  <div className="mt-3 flex gap-3">
+                    <form
+                      action={async () => {
+                        await approveTestimonial(t.id)
+                      }}
+                    >
+                      <button
+                        type="submit"
+                        className="rounded bg-navy px-3 py-1.5 font-body text-xs font-semibold uppercase tracking-wide text-cream"
+                      >
+                        Aprovar e publicar
+                      </button>
+                    </form>
+                    <form
+                      action={async () => {
+                        await deleteTestimonial(t.id)
+                      }}
+                    >
+                      <button
+                        type="submit"
+                        className="font-body text-xs font-semibold text-red-600 hover:underline"
+                      >
+                        Descartar
+                      </button>
+                    </form>
+                  </div>
+                </div>
+              </div>
+            </div>
+          ))}
+        </div>
+
+        <h2 className="mt-10 font-body text-xs font-bold uppercase tracking-wide text-navy/50">
+          Publicados ({approved.length})
+        </h2>
+        <div className="mt-3 space-y-3">
+          {approved.map((t) => (
+            <div key={t.id} className="rounded-lg border border-line bg-white p-4">
+              <div className="flex items-start justify-between gap-3">
+                <div>
+                  <p className="font-body text-xs font-semibold text-navy/60">
+                    {t.user.name ?? 'Anônimo'} · {fmtDate(t.createdAt)}
+                  </p>
+                  <p className="mt-1 font-body text-sm text-navy/80">{t.message}</p>
+                </div>
+                <form
+                  action={async () => {
+                    await deleteTestimonial(t.id)
+                  }}
+                >
+                  <button
+                    type="submit"
+                    className="shrink-0 font-body text-xs font-semibold text-red-600 hover:underline"
+                  >
+                    Remover
+                  </button>
+                </form>
+              </div>
+            </div>
+          ))}
+        </div>
+      </div>
+    </main>
+  )
+}
+
+================
+File: src/app/admin/depoimentos/page.tsx
+================
+// src/app/admin/depoimentos/page.tsx
+
+import { redirect } from 'next/navigation'
+import { auth } from '@/auth'
+import { prisma } from '@/lib/prisma'
+import { AdminTestimonialsClient } from './AdminTestimonialsClient'
+
+export default async function AdminTestimonialsPage() {
+  const session = await auth()
+
+  const canManage =
+    session?.user?.staffRole === 'SUPER_ADMIN' ||
+    (session?.user?.staffRole === 'MINISTRY_LEADER' &&
+      session.user.permissions.includes('MANAGE_TESTIMONIALS'))
+
+  if (!canManage) redirect('/')
+
+  const testimonials = await prisma.testimonial.findMany({
+    orderBy: [{ approved: 'asc' }, { createdAt: 'desc' }],
+    include: { user: { select: { name: true, image: true } } },
+  })
+
+  return <AdminTestimonialsClient testimonials={testimonials} />
+}
+
+================
+File: src/app/admin/eventos/AdminEventsClient.tsx
+================
+// src/app/admin/eventos/AdminEventsClient.tsx
+'use client'
+
+import { useActionState, useState } from 'react'
+import { createEvent, updateEvent, deleteEvent } from '@/actions/event'
+import { ImageUpload } from '@/components/admin/ImageUpload'
+
+type Event = {
+  id: string
+  title: string
+  description: string | null
+  eventDate: Date
+  location: string | null
+  imageUrl: string | null
+}
+
+type ActionState = { success: boolean; error?: string }
+
+// datetime-local espera "YYYY-MM-DDTHH:mm" em horário local
+function toLocalInputValue(date: Date) {
+  const d = new Date(date)
+  d.setMinutes(d.getMinutes() - d.getTimezoneOffset())
+  return d.toISOString().slice(0, 16)
+}
+
+function TextField({
+  name,
+  label,
+  defaultValue,
+  textarea,
+  type,
+  required,
+}: {
+  name: string
+  label: string
+  defaultValue?: string | null
+  textarea?: boolean
+  type?: string
+  required?: boolean
+}) {
+  return (
+    <div>
+      <label className="block text-xs font-bold uppercase tracking-wide text-navy/60">
+        {label}
+      </label>
+      {textarea ? (
+        <textarea
+          name={name}
+          defaultValue={defaultValue ?? ''}
+          rows={3}
+          className="mt-1 w-full rounded border border-line px-3 py-2 font-body text-sm focus:border-gold focus:outline-none"
+        />
+      ) : (
+        <input
+          name={name}
+          type={type ?? 'text'}
+          defaultValue={defaultValue ?? ''}
+          required={required}
+          className="mt-1 w-full rounded border border-line px-3 py-2 font-body text-sm focus:border-gold focus:outline-none"
+        />
+      )}
+    </div>
+  )
+}
+
+function CreateEventForm() {
+  const [state, formAction, pending] = useActionState<ActionState, FormData>(createEvent, {
+    success: false,
+  })
+
+  return (
+    <form action={formAction} className="space-y-4 rounded-lg border border-line bg-white p-6">
+      <TextField name="title" label="Título" required />
+      <TextField name="eventDate" label="Data e hora" type="datetime-local" required />
+      <TextField name="location" label="Local" />
+      <TextField name="description" label="Descrição" textarea />
+      <ImageUpload name="imageUrl" label="Imagem do evento" />
+
+      <button
+        type="submit"
+        disabled={pending}
+        className="w-full rounded bg-navy py-3 font-body text-sm font-semibold uppercase tracking-wide text-cream transition-opacity disabled:opacity-60"
+      >
+        {pending ? 'Salvando...' : 'Adicionar Evento'}
+      </button>
+
+      {state?.error && <p className="font-body text-sm text-red-600">{state.error}</p>}
+      {state?.success && <p className="font-body text-sm text-green-700">Salvo!</p>}
+    </form>
+  )
+}
+
+function EditEventForm({ event, onDone }: { event: Event; onDone: () => void }) {
+  const [state, formAction, pending] = useActionState<ActionState, FormData>(updateEvent, {
+    success: false,
+  })
+
+  return (
+    <form
+      action={formAction}
+      className="mt-3 space-y-3 rounded border border-dashed border-line bg-cream/40 p-4"
+    >
+      <input type="hidden" name="id" value={event.id} />
+      <TextField name="title" label="Título" defaultValue={event.title} required />
+      <TextField
+        name="eventDate"
+        label="Data e hora"
+        type="datetime-local"
+        defaultValue={toLocalInputValue(event.eventDate)}
+        required
+      />
+      <TextField name="location" label="Local" defaultValue={event.location} />
+      <TextField name="description" label="Descrição" defaultValue={event.description} textarea />
+      <ImageUpload name="imageUrl" label="Imagem do evento" defaultValue={event.imageUrl} />
+
+      <div className="flex gap-2">
+        <button
+          type="submit"
+          disabled={pending}
+          className="flex-1 rounded bg-navy py-2 font-body text-xs font-semibold uppercase tracking-wide text-cream disabled:opacity-60"
+        >
+          {pending ? 'Salvando...' : 'Salvar'}
+        </button>
+        <button
+          type="button"
+          onClick={onDone}
+          className="flex-1 rounded border border-line py-2 font-body text-xs font-semibold uppercase tracking-wide text-navy/60"
+        >
+          Cancelar
+        </button>
+      </div>
+
+      {state?.error && <p className="font-body text-xs text-red-600">{state.error}</p>}
+      {state?.success && <p className="font-body text-xs text-green-700">Salvo!</p>}
+    </form>
+  )
+}
+
+export function AdminEventsClient({ events }: { events: Event[] }) {
+  const [editingId, setEditingId] = useState<string | null>(null)
+
+  return (
+    <main className="min-h-screen bg-cream px-6 py-12 text-navy">
+      <div className="mx-auto max-w-2xl">
+        <h1 className="font-display text-3xl font-bold">Próximos Eventos</h1>
+        <p className="mt-1 font-body text-sm text-navy/60">
+          A home mostra os 3 próximos eventos, ordenados por data.
+        </p>
+
+        <div className="mt-8">
+          <CreateEventForm />
+        </div>
+
+        <div className="mt-8 space-y-3">
+          {events.map((e) =>
+            editingId === e.id ? (
+              <div key={e.id} className="rounded-lg border border-line bg-white p-4">
+                <EditEventForm event={e} onDone={() => setEditingId(null)} />
+              </div>
+            ) : (
+              <div key={e.id} className="rounded-lg border border-line bg-white p-4">
+                <div className="flex items-start justify-between gap-3">
+                  <div>
+                    <p className="font-mono text-xs text-navy/50">
+                      {new Date(e.eventDate).toLocaleString('pt-BR', {
+                        day: '2-digit',
+                        month: 'short',
+                        hour: '2-digit',
+                        minute: '2-digit',
+                      })}
+                    </p>
+                    <p className="mt-1 font-display font-semibold">{e.title}</p>
+                    {e.location && (
+                      <p className="mt-1 font-body text-xs text-navy/60">{e.location}</p>
+                    )}
+                  </div>
+                  <div className="flex shrink-0 gap-3">
+                    <button
+                      onClick={() => setEditingId(e.id)}
+                      className="font-body text-xs font-semibold text-navy/60 hover:underline"
+                    >
+                      Editar
+                    </button>
+                    <form
+                      action={async () => {
+                        await deleteEvent(e.id)
+                      }}
+                    >
+                      <button
+                        type="submit"
+                        className="font-body text-xs font-semibold text-red-600 hover:underline"
+                      >
+                        Excluir
+                      </button>
+                    </form>
+                  </div>
+                </div>
+              </div>
+            )
+          )}
+        </div>
+      </div>
+    </main>
+  )
+}
+
+================
+File: src/app/admin/eventos/page.tsx
+================
+// src/app/admin/eventos/page.tsx
+
+import { redirect } from 'next/navigation'
+import { auth } from '@/auth'
+import { prisma } from '@/lib/prisma'
+import { AdminEventsClient } from './AdminEventsClient'
+
+export default async function AdminEventsPage() {
+  const session = await auth()
+
+  const canManage =
+    session?.user?.staffRole === 'SUPER_ADMIN' ||
+    (session?.user?.staffRole === 'MINISTRY_LEADER' &&
+      session.user.permissions.includes('MANAGE_EVENTS'))
+
+  if (!canManage) redirect('/')
+
+  const events = await prisma.event.findMany({ orderBy: { eventDate: 'asc' } })
+
+  return <AdminEventsClient events={events} />
+}
+
+================
+File: src/app/admin/faq/AdminFaqClient.tsx
+================
+// src/app/admin/faq/AdminFaqClient.tsx
+'use client'
+
+import { useActionState } from 'react'
+import { createFaqItem, deleteFaqItem } from '@/actions/faq'
+
+type Faq = { id: string; question: string; answer: string; category: string | null; order: number }
+
+type ActionState = { success: boolean; error?: string }
+
+export function AdminFaqClient({ faqs }: { faqs: Faq[] }) {
+  const [state, formAction, pending] = useActionState<ActionState, FormData>(createFaqItem, {
+    success: false,
+  })
+
+  return (
+    <main className="min-h-screen bg-cream px-6 py-12 text-navy">
+      <div className="mx-auto max-w-2xl">
+        <h1 className="font-display text-3xl font-bold">Perguntas Frequentes</h1>
+        <p className="mt-1 font-body text-sm text-navy/60">
+          Aparecem na home na ordem definida abaixo.
+        </p>
+
+        <form
+          action={formAction}
+          className="mt-8 space-y-4 rounded-lg border border-line bg-white p-6"
+        >
+          <div>
+            <label className="block text-xs font-bold uppercase tracking-wide text-navy/60">
+              Pergunta
+            </label>
+            <input
+              name="question"
+              required
+              className="mt-1 w-full rounded border border-line px-3 py-2 font-body text-sm focus:border-gold focus:outline-none"
+            />
+          </div>
+
+          <div>
+            <label className="block text-xs font-bold uppercase tracking-wide text-navy/60">
+              Resposta
+            </label>
+            <textarea
+              name="answer"
+              required
+              rows={4}
+              className="mt-1 w-full rounded border border-line px-3 py-2 font-body text-sm focus:border-gold focus:outline-none"
+            />
+          </div>
+
+          <div>
+            <label className="block text-xs font-bold uppercase tracking-wide text-navy/60">
+              Categoria (opcional)
+            </label>
+            <input
+              name="category"
+              className="mt-1 w-full rounded border border-line px-3 py-2 font-body text-sm focus:border-gold focus:outline-none"
+            />
+          </div>
+
+          <div>
+            <label className="block text-xs font-bold uppercase tracking-wide text-navy/60">
+              Ordem de exibição
+            </label>
+            <input
+              name="order"
+              type="number"
+              defaultValue={faqs.length}
+              className="mt-1 w-full rounded border border-line px-3 py-2 font-body text-sm focus:border-gold focus:outline-none"
+            />
+          </div>
+
+          <button
+            type="submit"
+            disabled={pending}
+            className="w-full rounded bg-navy py-3 font-body text-sm font-semibold uppercase tracking-wide text-cream transition-opacity disabled:opacity-60"
+          >
+            {pending ? 'Salvando...' : 'Adicionar Pergunta'}
+          </button>
+
+          {state?.error && <p className="font-body text-sm text-red-600">{state.error}</p>}
+          {state?.success && <p className="font-body text-sm text-green-700">Salvo!</p>}
+        </form>
+
+        <div className="mt-8 space-y-3">
+          {faqs.map((f) => (
+            <div key={f.id} className="rounded-lg border border-line bg-white p-4">
+              <div className="flex items-start justify-between gap-3">
+                <div>
+                  <p className="font-display font-semibold">{f.question}</p>
+                  {f.category && <p className="font-mono text-xs text-navy/50">{f.category}</p>}
+                  <p className="mt-1 font-body text-sm text-navy/70">{f.answer}</p>
+                </div>
+                <form
+                  action={async () => {
+                    await deleteFaqItem(f.id)
+                  }}
+                >
+                  <button
+                    type="submit"
+                    className="shrink-0 font-body text-xs font-semibold text-red-600 hover:underline"
+                  >
+                    Excluir
+                  </button>
+                </form>
+              </div>
+            </div>
+          ))}
+        </div>
+      </div>
+    </main>
+  )
+}
+
+================
+File: src/app/admin/faq/page.tsx
+================
+// src/app/admin/faq/page.tsx
+
+import { redirect } from 'next/navigation'
+import { auth } from '@/auth'
+import { prisma } from '@/lib/prisma'
+import { AdminFaqClient } from './AdminFaqClient'
+
+export default async function AdminFaqPage() {
+  const session = await auth()
+
+  const canManage =
+    session?.user?.staffRole === 'SUPER_ADMIN' ||
+    (session?.user?.staffRole === 'MINISTRY_LEADER' &&
+      session.user.permissions.includes('MANAGE_FAQ'))
+
+  if (!canManage) redirect('/')
+
+  const faqs = await prisma.faqItem.findMany({ orderBy: { order: 'asc' } })
+
+  return <AdminFaqClient faqs={faqs} />
+}
+
+================
+File: src/app/admin/galeria/AdminGalleryClient.tsx
+================
+// src/app/admin/galeria/AdminGalleryClient.tsx
+'use client'
+
+import { useActionState } from 'react'
+import { createGalleryImage, deleteGalleryImage } from '@/actions/gallery'
+import { ImageUpload } from '@/components/admin/ImageUpload'
+
+type GalleryImage = { id: string; imageUrl: string; caption: string | null; order: number }
+
+type ActionState = { success: boolean; error?: string }
+
+export function AdminGalleryClient({ images }: { images: GalleryImage[] }) {
+  const [state, formAction, pending] = useActionState<ActionState, FormData>(
+    createGalleryImage,
+    { success: false }
+  )
+
+  return (
+    <main className="min-h-screen bg-cream px-6 py-12 text-navy">
+      <div className="mx-auto max-w-2xl">
+        <h1 className="font-display text-3xl font-bold">Galeria</h1>
+        <p className="mt-1 font-body text-sm text-navy/60">
+          A home mostra as 6 primeiras fotos, ordenadas pelo campo "Ordem".
+        </p>
+
+        <form
+          action={formAction}
+          className="mt-8 space-y-4 rounded-lg border border-line bg-white p-6"
+        >
+          <ImageUpload name="imageUrl" label="Foto" />
+
+          <div>
+            <label className="block text-xs font-bold uppercase tracking-wide text-navy/60">
+              Legenda (opcional)
+            </label>
+            <input
+              name="caption"
+              className="mt-1 w-full rounded border border-line px-3 py-2 font-body text-sm focus:border-gold focus:outline-none"
+            />
+          </div>
+
+          <div>
+            <label className="block text-xs font-bold uppercase tracking-wide text-navy/60">
+              Ordem de exibição
+            </label>
+            <input
+              name="order"
+              type="number"
+              defaultValue={images.length}
+              className="mt-1 w-full rounded border border-line px-3 py-2 font-body text-sm focus:border-gold focus:outline-none"
+            />
+          </div>
+
+          <button
+            type="submit"
+            disabled={pending}
+            className="w-full rounded bg-navy py-3 font-body text-sm font-semibold uppercase tracking-wide text-cream transition-opacity disabled:opacity-60"
+          >
+            {pending ? 'Salvando...' : 'Adicionar Foto'}
+          </button>
+
+          {state?.error && <p className="font-body text-sm text-red-600">{state.error}</p>}
+          {state?.success && <p className="font-body text-sm text-green-700">Salvo!</p>}
+        </form>
+
+        <div className="mt-8 grid grid-cols-2 gap-3 sm:grid-cols-3">
+          {images.map((img) => (
+            <div key={img.id} className="overflow-hidden rounded-lg border border-line bg-white">
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img src={img.imageUrl} alt={img.caption ?? ''} className="aspect-square w-full object-cover" />
+              <div className="p-2">
+                {img.caption && (
+                  <p className="truncate font-body text-xs text-navy/60">{img.caption}</p>
+                )}
+                <form
+                  action={async () => {
+                    await deleteGalleryImage(img.id)
+                  }}
+                >
+                  <button
+                    type="submit"
+                    className="mt-1 font-body text-xs font-semibold text-red-600 hover:underline"
+                  >
+                    Excluir
+                  </button>
+                </form>
+              </div>
+            </div>
+          ))}
+        </div>
+      </div>
+    </main>
+  )
+}
+
+================
+File: src/app/admin/galeria/page.tsx
+================
+// src/app/admin/galeria/page.tsx
+
+import { redirect } from 'next/navigation'
+import { auth } from '@/auth'
+import { prisma } from '@/lib/prisma'
+import { AdminGalleryClient } from './AdminGalleryClient'
+
+export default async function AdminGalleryPage() {
+  const session = await auth()
+
+  const canManage =
+    session?.user?.staffRole === 'SUPER_ADMIN' ||
+    (session?.user?.staffRole === 'MINISTRY_LEADER' &&
+      session.user.permissions.includes('MANAGE_GALLERY'))
+
+  if (!canManage) redirect('/')
+
+  const images = await prisma.galleryImage.findMany({ orderBy: { order: 'asc' } })
+
+  return <AdminGalleryClient images={images} />
+}
+
+================
+File: src/app/admin/horarios/AdminMassScheduleClient.tsx
+================
+// src/app/admin/horarios/AdminMassScheduleClient.tsx
+'use client'
+
+import { useActionState } from 'react'
+import { createMassSchedule, deleteMassSchedule } from '@/actions/massSchedule'
+
+type Schedule = { id: string; label: string; times: string[]; order: number }
+
+type ActionState = { success: boolean; error?: string }
+
+export function AdminMassScheduleClient({ schedules }: { schedules: Schedule[] }) {
+  const [state, formAction, pending] = useActionState<ActionState, FormData>(
+    createMassSchedule,
+    { success: false }
+  )
+
+  return (
+    <main className="min-h-screen bg-cream px-6 py-12 text-navy">
+      <div className="mx-auto max-w-2xl">
+        <h1 className="font-display text-3xl font-bold">Horários de Missa</h1>
+        <p className="mt-1 font-body text-sm text-navy/60">
+          Aparecem na home na ordem definida abaixo.
+        </p>
+
+        <form
+          action={formAction}
+          className="mt-8 space-y-4 rounded-lg border border-line bg-white p-6"
+        >
+          <div>
+            <label className="block text-xs font-bold uppercase tracking-wide text-navy/60">
+              Rótulo (ex: Domingo)
+            </label>
+            <input
+              name="label"
+              required
+              className="mt-1 w-full rounded border border-line px-3 py-2 font-body text-sm focus:border-gold focus:outline-none"
+            />
+          </div>
+
+          <div>
+            <label className="block text-xs font-bold uppercase tracking-wide text-navy/60">
+              Horários (separados por vírgula — ex: 08h00, 10h00, 18h00)
+            </label>
+            <input
+              name="times"
+              required
+              className="mt-1 w-full rounded border border-line px-3 py-2 font-body text-sm focus:border-gold focus:outline-none"
+            />
+          </div>
+
+          <div>
+            <label className="block text-xs font-bold uppercase tracking-wide text-navy/60">
+              Ordem de exibição
+            </label>
+            <input
+              name="order"
+              type="number"
+              defaultValue={schedules.length}
+              className="mt-1 w-full rounded border border-line px-3 py-2 font-body text-sm focus:border-gold focus:outline-none"
+            />
+          </div>
+
+          <button
+            type="submit"
+            disabled={pending}
+            className="w-full rounded bg-navy py-3 font-body text-sm font-semibold uppercase tracking-wide text-cream transition-opacity disabled:opacity-60"
+          >
+            {pending ? 'Salvando...' : 'Adicionar Horário'}
+          </button>
+
+          {state?.error && <p className="font-body text-sm text-red-600">{state.error}</p>}
+          {state?.success && <p className="font-body text-sm text-green-700">Salvo!</p>}
+        </form>
+
+        <div className="mt-8 space-y-3">
+          {schedules.map((s) => (
+            <div
+              key={s.id}
+              className="flex items-center justify-between rounded-lg border border-line bg-white p-4"
+            >
+              <div>
+                <p className="font-display font-semibold">{s.label}</p>
+                <p className="font-mono text-xs text-navy/50">{s.times.join(' · ')}</p>
+              </div>
+              <form
+                action={async () => {
+                  await deleteMassSchedule(s.id)
+                }}
+              >
+                <button
+                  type="submit"
+                  className="font-body text-xs font-semibold text-red-600 hover:underline"
+                >
+                  Excluir
+                </button>
+              </form>
+            </div>
+          ))}
+        </div>
+      </div>
+    </main>
+  )
+}
+
+================
+File: src/app/admin/horarios/page.tsx
+================
+// src/app/admin/horarios/page.tsx
+
+import { redirect } from 'next/navigation'
+import { auth } from '@/auth'
+import { prisma } from '@/lib/prisma'
+import { AdminMassScheduleClient } from './AdminMassScheduleClient'
+
+export default async function AdminMassSchedulePage() {
+  const session = await auth()
+
+  const canManage =
+    session?.user?.staffRole === 'SUPER_ADMIN' ||
+    (session?.user?.staffRole === 'MINISTRY_LEADER' &&
+      session.user.permissions.includes('MANAGE_MASS_SCHEDULE'))
+
+  if (!canManage) redirect('/')
+
+  const schedules = await prisma.massSchedule.findMany({ orderBy: { order: 'asc' } })
+
+  return <AdminMassScheduleClient schedules={schedules} />
+}
+
+================
+File: src/app/admin/liturgico/AdminLiturgicoClient.tsx
+================
+// src/app/admin/liturgico/AdminLiturgicoClient.tsx
+'use client'
+
+import { useActionState } from 'react'
+import { createLiturgicalOverride, deleteLiturgicalOverride } from '@/actions/liturgicalOverride'
+
+type Override = {
+  id: string
+  label: string
+  startDate: Date
+  endDate: Date
+  colorHex: string
+}
+
+type ActionState = { success: boolean; error?: string }
+
+const PRESETS = [
+  { label: 'Roxo (Advento/Quaresma)', value: '#5b2a86' },
+  { label: 'Dourado (Natal/Páscoa)', value: '#d4a017' },
+  { label: 'Verde (Tempo Comum)', value: '#2f6b3a' },
+  { label: 'Vermelho (Tríduo/Mártires)', value: '#a11d1d' },
+  { label: 'Rosa (Gaudete/Laetare)', value: '#c9838f' },
+  { label: 'Azul (Mariano)', value: '#1e5f9c' },
+  { label: 'Preto (Luto)', value: '#2b2b2b' },
+]
+
+function fmtDate(date: Date) {
+  return new Date(date).toLocaleDateString('pt-BR')
+}
+
+export function AdminLiturgicoClient({ overrides }: { overrides: Override[] }) {
+  const [state, formAction, pending] = useActionState<ActionState, FormData>(
+    createLiturgicalOverride,
+    { success: false }
+  )
+
+  return (
+    <main className="min-h-screen bg-cream px-6 py-12 text-navy">
+      <div className="mx-auto max-w-2xl">
+        <h1 className="font-display text-3xl font-bold">Cores Litúrgicas Especiais</h1>
+        <p className="mt-1 font-body text-sm text-navy/60">
+          Cadastre uma cor manual pra um período (ex: novena, tríduo, festa específica). Enquanto
+          a data de hoje estiver dentro do período, essa cor tem prioridade sobre o cálculo
+          automático (Advento, Quaresma, Festa da Padroeira, etc.).
+        </p>
+
+        <form
+          action={formAction}
+          className="mt-8 space-y-4 rounded-lg border border-line bg-white p-6"
+        >
+          <div>
+            <label className="block text-xs font-bold uppercase tracking-wide text-navy/60">
+              Nome/ocasião
+            </label>
+            <input
+              name="label"
+              required
+              placeholder="Ex: Novena da Padroeira"
+              className="mt-1 w-full rounded border border-line px-3 py-2 font-body text-sm focus:border-gold focus:outline-none"
+            />
+          </div>
+
+          <div className="grid grid-cols-2 gap-3">
+            <div>
+              <label className="block text-xs font-bold uppercase tracking-wide text-navy/60">
+                Início
+              </label>
+              <input
+                name="startDate"
+                type="date"
+                required
+                className="mt-1 w-full rounded border border-line px-3 py-2 font-body text-sm focus:border-gold focus:outline-none"
+              />
+            </div>
+            <div>
+              <label className="block text-xs font-bold uppercase tracking-wide text-navy/60">
+                Fim
+              </label>
+              <input
+                name="endDate"
+                type="date"
+                required
+                className="mt-1 w-full rounded border border-line px-3 py-2 font-body text-sm focus:border-gold focus:outline-none"
+              />
+            </div>
+          </div>
+
+          <div>
+            <label className="block text-xs font-bold uppercase tracking-wide text-navy/60">
+              Cor
+            </label>
+            <input
+              name="colorHex"
+              type="color"
+              defaultValue="#1e5f9c"
+              className="mt-1 h-10 w-20 rounded border border-line"
+            />
+            <div className="mt-2 flex flex-wrap gap-2">
+              {PRESETS.map((p) => (
+                <span
+                  key={p.value}
+                  title={p.label}
+                  className="h-6 w-6 rounded-full border border-line"
+                  style={{ backgroundColor: p.value }}
+                />
+              ))}
+            </div>
+            <p className="mt-1 font-body text-xs text-navy/40">
+              Use o seletor de cor acima — as bolinhas são só referência das cores litúrgicas
+              tradicionais.
+            </p>
+          </div>
+
+          <button
+            type="submit"
+            disabled={pending}
+            className="w-full rounded bg-navy py-3 font-body text-sm font-semibold uppercase tracking-wide text-cream transition-opacity disabled:opacity-60"
+          >
+            {pending ? 'Salvando...' : 'Adicionar Cor Especial'}
+          </button>
+
+          {state?.error && <p className="font-body text-sm text-red-600">{state.error}</p>}
+          {state?.success && <p className="font-body text-sm text-green-700">Salvo!</p>}
+        </form>
+
+        <div className="mt-8 space-y-3">
+          {overrides.map((o) => (
+            <div key={o.id} className="rounded-lg border border-line bg-white p-4">
+              <div className="flex items-start justify-between gap-3">
+                <div className="flex items-center gap-3">
+                  <span
+                    className="h-8 w-8 shrink-0 rounded-full border border-line"
+                    style={{ backgroundColor: o.colorHex }}
+                  />
+                  <div>
+                    <p className="font-display font-semibold">{o.label}</p>
+                    <p className="font-body text-xs text-navy/50">
+                      {fmtDate(o.startDate)} até {fmtDate(o.endDate)}
+                    </p>
+                  </div>
+                </div>
+                <form
+                  action={async () => {
+                    await deleteLiturgicalOverride(o.id)
+                  }}
+                >
+                  <button
+                    type="submit"
+                    className="shrink-0 font-body text-xs font-semibold text-red-600 hover:underline"
+                  >
+                    Excluir
+                  </button>
+                </form>
+              </div>
+            </div>
+          ))}
+        </div>
+      </div>
+    </main>
+  )
+}
+
+================
+File: src/app/admin/liturgico/page.tsx
+================
+// src/app/admin/liturgico/page.tsx
+
+import { redirect } from 'next/navigation'
+import { auth } from '@/auth'
+import { prisma } from '@/lib/prisma'
+import { AdminLiturgicoClient } from './AdminLiturgicoClient'
+
+export default async function AdminLiturgicoPage() {
+  const session = await auth()
+
+  const canManage =
+    session?.user?.staffRole === 'SUPER_ADMIN' ||
+    (session?.user?.staffRole === 'MINISTRY_LEADER' &&
+      session.user.permissions.includes('MANAGE_LITURGICAL_THEME'))
+
+  if (!canManage) redirect('/')
+
+  const overrides = await prisma.liturgicalOverride.findMany({ orderBy: { startDate: 'desc' } })
+
+  return <AdminLiturgicoClient overrides={overrides} />
+}
+
+================
+File: src/app/admin/ministerios/AdminMinistriesClient.tsx
+================
+// src/app/admin/ministerios/AdminMinistriesClient.tsx
+'use client'
+
+import { useActionState, useState } from 'react'
+import { createMinistry, updateMinistry, deleteMinistry } from '@/actions/ministry'
+
+type Ministry = {
+  id: string
+  name: string
+  slug: string
+  description: string | null
+  contactInfo: string | null
+  meetingSchedule: string | null
+  order: number
+}
+
+type ActionState = { success: boolean; error?: string }
+
+function TextField({
+  name,
+  label,
+  defaultValue,
+  textarea,
+  required,
+}: {
+  name: string
+  label: string
+  defaultValue?: string | null
+  textarea?: boolean
+  required?: boolean
+}) {
+  return (
+    <div>
+      <label className="block text-xs font-bold uppercase tracking-wide text-navy/60">
+        {label}
+      </label>
+      {textarea ? (
+        <textarea
+          name={name}
+          defaultValue={defaultValue ?? ''}
+          rows={3}
+          className="mt-1 w-full rounded border border-line px-3 py-2 font-body text-sm focus:border-gold focus:outline-none"
+        />
+      ) : (
+        <input
+          name={name}
+          defaultValue={defaultValue ?? ''}
+          required={required}
+          className="mt-1 w-full rounded border border-line px-3 py-2 font-body text-sm focus:border-gold focus:outline-none"
+        />
+      )}
+    </div>
+  )
+}
+
+function CreateMinistryForm({ nextOrder }: { nextOrder: number }) {
+  const [state, formAction, pending] = useActionState<ActionState, FormData>(createMinistry, {
+    success: false,
+  })
+
+  return (
+    <form action={formAction} className="space-y-4 rounded-lg border border-line bg-white p-6">
+      <TextField name="name" label="Nome" required />
+      <TextField name="slug" label="Slug (ex: acolhida)" required />
+      <TextField name="description" label="Descrição" textarea />
+      <TextField name="contactInfo" label="Contato" />
+      <TextField name="meetingSchedule" label="Horário de reunião" />
+      <div>
+        <label className="block text-xs font-bold uppercase tracking-wide text-navy/60">
+          Ordem de exibição
+        </label>
+        <input
+          name="order"
+          type="number"
+          defaultValue={nextOrder}
+          className="mt-1 w-full rounded border border-line px-3 py-2 font-body text-sm focus:border-gold focus:outline-none"
+        />
+      </div>
+
+      <button
+        type="submit"
+        disabled={pending}
+        className="w-full rounded bg-navy py-3 font-body text-sm font-semibold uppercase tracking-wide text-cream transition-opacity disabled:opacity-60"
+      >
+        {pending ? 'Salvando...' : 'Adicionar Ministério'}
+      </button>
+
+      {state?.error && <p className="font-body text-sm text-red-600">{state.error}</p>}
+      {state?.success && <p className="font-body text-sm text-green-700">Salvo!</p>}
+    </form>
+  )
+}
+
+function EditMinistryForm({ ministry, onDone }: { ministry: Ministry; onDone: () => void }) {
+  const [state, formAction, pending] = useActionState<ActionState, FormData>(updateMinistry, {
+    success: false,
+  })
+
+  return (
+    <form
+      action={formAction}
+      className="mt-3 space-y-3 rounded border border-dashed border-line bg-cream/40 p-4"
+    >
+      <input type="hidden" name="id" value={ministry.id} />
+      <TextField name="name" label="Nome" defaultValue={ministry.name} required />
+      <TextField name="slug" label="Slug" defaultValue={ministry.slug} required />
+      <TextField
+        name="description"
+        label="Descrição"
+        defaultValue={ministry.description}
+        textarea
+      />
+      <TextField name="contactInfo" label="Contato" defaultValue={ministry.contactInfo} />
+      <TextField
+        name="meetingSchedule"
+        label="Horário de reunião"
+        defaultValue={ministry.meetingSchedule}
+      />
+      <div>
+        <label className="block text-xs font-bold uppercase tracking-wide text-navy/60">
+          Ordem de exibição
+        </label>
+        <input
+          name="order"
+          type="number"
+          defaultValue={ministry.order}
+          className="mt-1 w-full rounded border border-line px-3 py-2 font-body text-sm focus:border-gold focus:outline-none"
+        />
+      </div>
+
+      <div className="flex gap-2">
+        <button
+          type="submit"
+          disabled={pending}
+          className="flex-1 rounded bg-navy py-2 font-body text-xs font-semibold uppercase tracking-wide text-cream disabled:opacity-60"
+        >
+          {pending ? 'Salvando...' : 'Salvar'}
+        </button>
+        <button
+          type="button"
+          onClick={onDone}
+          className="flex-1 rounded border border-line py-2 font-body text-xs font-semibold uppercase tracking-wide text-navy/60"
+        >
+          Cancelar
+        </button>
+      </div>
+
+      {state?.error && <p className="font-body text-xs text-red-600">{state.error}</p>}
+      {state?.success && <p className="font-body text-xs text-green-700">Salvo!</p>}
+    </form>
+  )
+}
+
+export function AdminMinistriesClient({ ministries }: { ministries: Ministry[] }) {
+  const [editingId, setEditingId] = useState<string | null>(null)
+
+  return (
+    <main className="min-h-screen bg-cream px-6 py-12 text-navy">
+      <div className="mx-auto max-w-2xl">
+        <h1 className="font-display text-3xl font-bold">Pastorais e Ministérios</h1>
+        <p className="mt-1 font-body text-sm text-navy/60">
+          Aparecem na home na ordem definida abaixo.
+        </p>
+
+        <div className="mt-8">
+          <CreateMinistryForm nextOrder={ministries.length} />
+        </div>
+
+        <div className="mt-8 space-y-3">
+          {ministries.map((m) =>
+            editingId === m.id ? (
+              <div key={m.id} className="rounded-lg border border-line bg-white p-4">
+                <EditMinistryForm ministry={m} onDone={() => setEditingId(null)} />
+              </div>
+            ) : (
+              <div key={m.id} className="rounded-lg border border-line bg-white p-4">
+                <div className="flex items-start justify-between gap-3">
+                  <div>
+                    <p className="font-display font-semibold">{m.name}</p>
+                    <p className="font-mono text-xs text-navy/50">/{m.slug}</p>
+                    {m.meetingSchedule && (
+                      <p className="mt-1 font-body text-xs text-navy/60">{m.meetingSchedule}</p>
+                    )}
+                  </div>
+                  <div className="flex shrink-0 gap-3">
+                    <button
+                      onClick={() => setEditingId(m.id)}
+                      className="font-body text-xs font-semibold text-navy/60 hover:underline"
+                    >
+                      Editar
+                    </button>
+                    <form
+                      action={async () => {
+                        await deleteMinistry(m.id)
+                      }}
+                    >
+                      <button
+                        type="submit"
+                        className="font-body text-xs font-semibold text-red-600 hover:underline"
+                      >
+                        Excluir
+                      </button>
+                    </form>
+                  </div>
+                </div>
+              </div>
+            )
+          )}
+        </div>
+      </div>
+    </main>
+  )
+}
+
+================
+File: src/app/admin/ministerios/page.tsx
+================
+// src/app/admin/ministerios/page.tsx
+
+import { redirect } from 'next/navigation'
+import { auth } from '@/auth'
+import { prisma } from '@/lib/prisma'
+import { AdminMinistriesClient } from './AdminMinistriesClient'
+
+export default async function AdminMinistriesPage() {
+  const session = await auth()
+
+  const canManage =
+    session?.user?.staffRole === 'SUPER_ADMIN' ||
+    (session?.user?.staffRole === 'MINISTRY_LEADER' &&
+      session.user.permissions.includes('MANAGE_MINISTRIES'))
+
+  if (!canManage) redirect('/')
+
+  const ministries = await prisma.ministry.findMany({ orderBy: { order: 'asc' } })
+
+  return <AdminMinistriesClient ministries={ministries} />
+}
+
+================
+File: src/app/admin/palavra-do-dia/GenerateDailyWordButton.tsx
+================
+// src/app/admin/palavra-do-dia/GenerateDailyWordButton.tsx
+'use client'
+
+import { useState, useTransition } from 'react'
+import { generateAndSaveDailyWord } from '@/actions/dailyWord'
+
+export function GenerateDailyWordButton() {
+  const [isPending, startTransition] = useTransition()
+  const [message, setMessage] = useState<string | null>(null)
+
+  function handleGenerate() {
+    setMessage(null)
+    startTransition(async () => {
+      const result = await generateAndSaveDailyWord()
+      const isError = 'error' in result
+
+      setMessage(
+        isError
+          ? (result.error ?? 'Erro')
+          : (result.message ?? 'Gerada com sucesso!')
+      )
+
+      if (!isError) {
+        window.location.reload()
+      }
+    })
+  }
+
+  return (
+    <div className="mt-6">
+      <button
+        type="button"
+        onClick={handleGenerate}
+        disabled={isPending}
+        className="rounded bg-navy px-5 py-2.5 font-body text-sm font-semibold uppercase tracking-wide text-cream transition-opacity disabled:opacity-60"
+      >
+        {isPending ? 'Gerando...' : 'Gerar novamente com IA'}
+      </button>
+      {message && <p className="mt-2 font-body text-xs text-navy/60">{message}</p>}
+    </div>
+  )
+}
+
+================
+File: src/app/admin/palavra-do-dia/ManualDailyWordForm.tsx
+================
+// src/app/admin/palavra-do-dia/ManualDailyWordForm.tsx
+'use client'
+
+import { useActionState } from 'react'
+import { saveManualDailyWord } from '@/actions/dailyWord'
+
+type DailyWord = {
+  text: string
+  verseReference: string
+  reflection: string | null
+  instagramReelUrl: string | null
+  showTextWithReel?: boolean
+} | null
+
+type ActionState = { success: boolean; error?: string }
+
+export function ManualDailyWordForm({ todayWord }: { todayWord: DailyWord }) {
+  const [state, formAction, pending] = useActionState<ActionState, FormData>(
+    saveManualDailyWord,
+    { success: false }
+  )
+
+  return (
+    <form
+      action={formAction}
+      className="mt-4 space-y-4 rounded-lg border border-line bg-white p-6"
+    >
+      <p className="font-body text-xs font-bold uppercase tracking-wide text-navy/60">
+        Escrever a sua / anexar um Reels
+      </p>
+
+      <div>
+        <label className="block text-xs font-bold uppercase tracking-wide text-navy/60">
+          Texto
+        </label>
+        <textarea
+          name="text"
+          required
+          rows={3}
+          defaultValue={todayWord?.text ?? ''}
+          placeholder="A mensagem do dia..."
+          className="mt-1 w-full rounded border border-line px-3 py-2 font-body text-sm focus:border-gold focus:outline-none"
+        />
+      </div>
+
+      <div>
+        <label className="block text-xs font-bold uppercase tracking-wide text-navy/60">
+          Referência (versículo, santo, papa...)
+        </label>
+        <input
+          name="verseReference"
+          defaultValue={todayWord?.verseReference ?? ''}
+          placeholder="Ex: Jo 14,27"
+          className="mt-1 w-full rounded border border-line px-3 py-2 font-body text-sm focus:border-gold focus:outline-none"
+        />
+      </div>
+
+      <div>
+        <label className="block text-xs font-bold uppercase tracking-wide text-navy/60">
+          Reflexão (opcional)
+        </label>
+        <textarea
+          name="reflection"
+          rows={2}
+          defaultValue={todayWord?.reflection ?? ''}
+          className="mt-1 w-full rounded border border-line px-3 py-2 font-body text-sm focus:border-gold focus:outline-none"
+        />
+      </div>
+
+      <div>
+        <label className="block text-xs font-bold uppercase tracking-wide text-navy/60">
+          Link do Reels do Instagram (opcional)
+        </label>
+        <input
+          name="instagramReelUrl"
+          type="url"
+          defaultValue={todayWord?.instagramReelUrl ?? ''}
+          placeholder="https://www.instagram.com/reel/..."
+          className="mt-1 w-full rounded border border-line px-3 py-2 font-body text-sm focus:border-gold focus:outline-none"
+        />
+        <p className="mt-1 font-body text-xs text-navy/40">
+          Copia direto do Instagram: três pontinhos no reel → Copiar link.
+        </p>
+      </div>
+
+      {/* Chavinha — bem visível */}
+      <label className="flex cursor-pointer items-center gap-3 rounded-lg border border-line bg-cream/50 px-3 py-3">
+        <input
+          type="checkbox"
+          name="showTextWithReel"
+          defaultChecked={todayWord?.showTextWithReel !== false}
+          className="h-4 w-4 shrink-0 accent-navy"
+        />
+        <span className="text-left">
+          <span className="block font-body text-sm font-semibold text-navy">
+            Mostrar texto junto com o Reels
+          </span>
+          <span className="block font-body text-xs text-navy/50">
+            Desligue se quiser só o vídeo na página inicial.
+          </span>
+        </span>
+      </label>
+
+      <button
+        type="submit"
+        disabled={pending}
+        className="w-full rounded bg-navy py-3 font-body text-sm font-semibold uppercase tracking-wide text-cream transition-opacity disabled:opacity-60"
+      >
+        {pending ? 'Salvando...' : 'Publicar esta versão'}
+      </button>
+
+      {state?.error && <p className="font-body text-sm text-red-600">{state.error}</p>}
+      {state?.success && <p className="font-body text-sm text-green-700">Publicado!</p>}
+    </form>
+  )
+}
+
+================
+File: src/app/admin/palavra-do-dia/page.tsx
+================
+// src/app/admin/palavra-do-dia/page.tsx
+
+import { redirect } from 'next/navigation'
+import { auth } from '@/auth'
+import { prisma } from '@/lib/prisma'
+import { AdminDailyWordClient } from './AdminDailyWordClient'
+
+export default async function AdminDailyWordPage() {
+  const session = await auth()
+
+  if (session?.user?.staffRole !== 'SUPER_ADMIN') {
+    redirect('/')
+  }
+
+  const today = new Date()
+  today.setHours(0, 0, 0, 0)
+
+  const todayWord = await prisma.dailyWord.findFirst({
+    where: { date: { gte: today } },
+  })
+
+  return <AdminDailyWordClient todayWord={todayWord} />
+}
+
+================
+File: src/app/admin/palavra-do-dia/TodayWordCard.tsx
+================
+// src/app/admin/palavra-do-dia/TodayWordCard.tsx
+
+type DailyWord = {
+  text: string
+  verseReference: string
+  reflection: string | null
+  instagramReelUrl: string | null
+  showTextWithReel?: boolean
+}
+
+export function TodayWordCard({ word }: { word: DailyWord }) {
+  return (
+    <div className="mt-6 rounded-lg border border-line bg-white p-4">
+      <p className="font-body text-xs font-semibold uppercase tracking-wide text-navy/40">
+        Publicada hoje
+      </p>
+      <p className="mt-2 font-mono text-xs uppercase text-navy/50">{word.verseReference}</p>
+      <p className="mt-1 font-display text-lg italic">&ldquo;{word.text}&rdquo;</p>
+      {word.instagramReelUrl && (
+        <p className="mt-2 font-body text-xs text-navy/50">
+          📎 Com Reels do Instagram anexado
+          {word.showTextWithReel === false && ' · só o vídeo na home'}
+        </p>
+      )}
+    </div>
+  )
+}
+
+================
+File: src/app/admin/catequese/components/forms/CreateStudentForm.tsx
+================
+'use client'
+
+import { useActionState, useState } from 'react'
+import { createStudentAdmin } from '@/actions/catechism/admin-catechism'
+import { STAGE_LABELS } from '@/lib/catechism'
+
+type ActionState = { success: boolean; error?: string }
+type Catechist = { id: string; name: string; stages: string[] }
+
+export function CreateStudentForm({ catechists }: { catechists: Catechist[] }) {
+  const [state, formAction, pending] = useActionState<ActionState, FormData>(
+    createStudentAdmin,
+    { success: false }
+  )
+  const [stage, setStage] = useState('')
+
+  return (
+    <form action={formAction} className="space-y-3 rounded-lg border border-line bg-white p-4 shadow-sm">
+      <p className="font-body text-xs font-bold uppercase tracking-wide text-navy/60">
+        Novo catequizando
+      </p>
+      <input
+        name="name"
+        required
+        placeholder="Nome completo"
+        className="w-full rounded border border-line px-3 py-2 font-body text-sm focus:border-gold focus:outline-none"
+      />
+      
+      <div className="grid grid-cols-2 gap-2">
+        <select
+          name="stage"
+          required
+          value={stage}
+          onChange={(e) => setStage(e.target.value)}
+          className="w-full rounded border border-line bg-cream px-3 py-2 font-body text-sm outline-none focus:border-gold"
+        >
+          <option value="">Etapa</option>
+          {Object.entries(STAGE_LABELS).map(([value, label]) => (
+            <option key={value} value={value}>{label}</option>
+          ))}
+        </select>
+        
+        <select
+          name="catechistId"
+          required
+          disabled={!stage}
+          className="w-full rounded border border-line bg-cream px-3 py-2 font-body text-sm outline-none focus:border-gold disabled:opacity-50"
+        >
+          <option value="">Catequista</option>
+          {catechists
+            .filter((c) => c.stages.includes(stage))
+            .map((c) => (
+              <option key={c.id} value={c.id}>{c.name}</option>
+            ))}
+        </select>
+      </div>
+
+      <button
+        type="submit"
+        disabled={pending}
+        className="rounded bg-navy px-4 py-2 font-body text-xs font-semibold uppercase tracking-wide text-cream disabled:opacity-60"
+      >
+        {pending ? 'Salvando...' : 'Cadastrar'}
+      </button>
+      {state.error && <p className="font-body text-xs text-red-600">{state.error}</p>}
+    </form>
+  )
+}
+
+================
+File: src/app/admin/catequese/components/forms/CreateWeekForm.tsx
+================
+'use client'
+
+import { useActionState } from 'react'
+import { createWeek } from '@/actions/catechism/admin-catechism'
+
+type ActionState = { success: boolean; error?: string }
+
+export function CreateWeekForm() {
+  const [state, formAction, pending] = useActionState<ActionState, FormData>(createWeek, {
+    success: false,
+  })
+
+  return (
+    <form action={formAction} className="flex gap-2">
+      <input
+        name="title"
+        required
+        placeholder='Ex: "4ª Semana - Junho"'
+        className="flex-1 rounded border border-line px-3 py-2 font-body text-sm focus:border-gold focus:outline-none"
+      />
+      <button
+        type="submit"
+        disabled={pending}
+        className="shrink-0 rounded bg-navy px-4 py-2 font-body text-xs font-semibold uppercase tracking-wide text-cream disabled:opacity-60"
+      >
+        {pending ? '...' : 'Abrir semana'}
+      </button>
+      {state.error && <p className="font-body text-xs text-red-600">{state.error}</p>}
+    </form>
+  )
+}
+
+================
+File: src/app/admin/catequese/components/forms/ManualAttendanceForm.tsx
+================
+// src/app/admin/catequese/components/forms/ManualAttendanceForm.tsx
+'use client'
+
+import { useActionState } from 'react'
+import { markAttendanceManual } from '@/actions/catechism/admin-catechism'
+import { STAGE_LABELS, MASS_OPTIONS } from '@/lib/catechism'
+import type { CatechismStage } from '@prisma/client'
+
+type Student = { id: string; name: string; stage: string }
+type ActionState = { success: boolean; error?: string }
+
+// Função auxiliar segura para evitar indexação implícita de 'string' em 'Record<CatechismStage, string>'
+function getStageLabel(stage: string): string {
+  return STAGE_LABELS[stage as CatechismStage] || stage
+}
+
+export function ManualAttendanceForm({ weekId, students }: { weekId: string; students: Student[] }) {
+  const [state, formAction, pending] = useActionState<ActionState, FormData>(
+    markAttendanceManual,
+    { success: false }
+  )
+  
+  return (
+    <form action={formAction} className="space-y-2 rounded-lg border border-line bg-white p-4">
+      <p className="font-body text-xs font-bold uppercase tracking-wide text-navy/60">
+        Marcar manualmente
+      </p>
+      <input type="hidden" name="weekId" value={weekId} />
+      
+      <select name="studentId" required className="w-full rounded border border-line bg-white px-3 py-2 font-body text-sm">
+        <option value="">Catequizando</option>
+        {students.map((s) => (
+          <option key={s.id} value={s.id}>
+            {s.name} — {getStageLabel(s.stage)}
+          </option>
+        ))}
+      </select>
+
+      <select name="massLabel" required className="w-full rounded border border-line bg-white px-3 py-2 font-body text-sm">
+        <option value="">Missa</option>
+        {MASS_OPTIONS.map((m) => (
+          <option key={m.label} value={m.label}>{m.label}</option>
+        ))}
+      </select>
+
+      <input name="note" placeholder="Observação (opcional)" className="w-full rounded border border-line px-3 py-2 font-body text-sm focus:border-gold focus:outline-none" />
+      
+      <button type="submit" disabled={pending} className="rounded bg-navy px-4 py-2 font-body text-xs font-semibold uppercase tracking-wide text-cream disabled:opacity-60">
+        {pending ? 'Salvando...' : 'Marcar presença'}
+      </button>
+      
+      {state.error && <p className="font-body text-xs text-red-600">{state.error}</p>}
+    </form>
+  )
+}
+
+================
+File: src/app/admin/catequese/components/tabs/StudentsTab.tsx
+================
+// src/app/admin/catequese/components/tabs/StudentsTab.tsx
+import { prisma } from '@/lib/prisma'
+import { STAGE_LABELS } from '@/lib/catechism'
+import { toggleStudentActive } from '@/actions/catechism/admin-catechism'
+import { CreateStudentForm } from '../forms/CreateStudentForm'
+import type { CatechismStage } from '@prisma/client'
+
+type StudentsTabProps = {
+  isGlobalAdmin: boolean
+  linkedCatechistId: string | null
+}
+
+function getStageLabel(stage: string): string {
+  return STAGE_LABELS[stage as CatechismStage] || stage
+}
+
+export async function StudentsTab({ isGlobalAdmin, linkedCatechistId }: StudentsTabProps) {
+  // 1. Construímos a condição de filtro de acordo com o nível de acesso
+  const studentWhere: any = {}
+  
+  if (!isGlobalAdmin && linkedCatechistId) {
+    studentWhere.catechistId = linkedCatechistId
+  }
+
+  // 2. Buscamos dados em paralelo respeitando o escopo
+  const [students, catechists] = await Promise.all([
+    prisma.catechismStudent.findMany({
+      where: studentWhere,
+      orderBy: { name: 'asc' },
+      include: { catechist: { select: { name: true } } },
+    }),
+    prisma.catechist.findMany({ 
+      where: isGlobalAdmin ? { active: true } : { id: linkedCatechistId ?? undefined },
+      orderBy: { name: 'asc' } 
+    })
+  ])
+
+  return (
+    <div className="space-y-4 animate-[fadein_0.3s_ease]">
+      {/* Opcional: Se for admin global, exibe o form de criação. Catequista comum gerencia apenas os seus alunos se permitido */}
+      <CreateStudentForm catechists={catechists} />
+      
+      <div className="space-y-2">
+        {students.map((s) => (
+          <div key={s.id} className="flex items-center justify-between rounded-lg border border-line bg-white p-3 shadow-sm">
+            <div>
+              <p className="font-body text-sm font-semibold">{s.name}</p>
+              <p className="font-body text-xs text-navy/50">
+                {getStageLabel(s.stage)} · catequista {s.catechist.name}
+              </p>
+            </div>
+            <form action={async () => {
+              'use server'
+              await toggleStudentActive(s.id, !s.active)
+            }}>
+              <button
+                type="submit"
+                className={`rounded px-3 py-1 font-body text-xs font-semibold uppercase transition-colors hover:bg-black/5 ${
+                  s.active ? 'text-red-600' : 'text-green-700'
+                }`}
+              >
+                {s.active ? 'Desativar' : 'Reativar'}
+              </button>
+            </form>
+          </div>
+        ))}
+        {students.length === 0 && (
+          <p className="font-body text-sm text-navy/40">Nenhum catequizando encontrado para esta turma.</p>
+        )}
+      </div>
+    </div>
+  )
+}
+
+================
+File: src/app/admin/catequese/components/tabs/WeekTab.tsx
+================
+import { prisma } from '@/lib/prisma'
+import { toggleWeekOpen } from '@/actions/catechism/admin-catechism'
+import { CreateWeekForm } from '../forms/CreateWeekForm'
+import { ExportQrPdfButton } from '../ExportQrPdfButton'
+
+export async function WeekTab({ baseUrl }: { baseUrl: string }) {
+  const openWeek = await prisma.catechismWeek.findFirst({ 
+    where: { isOpen: true }, 
+    orderBy: { startsAt: 'desc' } 
+  })
+  
+  const weeks = await prisma.catechismWeek.findMany({ 
+    orderBy: { startsAt: 'desc' }, 
+    take: 12 
+  })
+
+  // URL real de acesso para a presença
+  const weekLink = openWeek ? `${baseUrl}/catequese?s=${openWeek.token}` : null
+  
+  // Imagem visual para exibir apenas na tela do admin
+  const qrSrc = weekLink
+    ? `https://api.qrserver.com/v1/create-qr-code/?size=220x220&data=${encodeURIComponent(weekLink)}`
+    : null
+
+  return (
+    <div className="space-y-4 animate-[fadein_0.3s_ease]">
+      <div className="rounded-lg border border-line bg-white p-5 text-center shadow-sm">
+        {openWeek && weekLink ? (
+          <>
+            <p className="font-body text-xs font-bold uppercase tracking-wide text-green-700">
+              Semana aberta
+            </p>
+            <p className="mt-1 font-display text-xl font-semibold">{openWeek.title}</p>
+            
+            {/* Visualização na interface (tela) */}
+            {qrSrc && (
+              <img src={qrSrc} alt="QR da semana" className="mx-auto mt-3 h-52 w-52" />
+            )}
+            
+            <p className="mt-3 break-all font-mono text-xs text-navy/60">{weekLink}</p>
+            
+            <div className="flex flex-col items-center justify-center">
+               {/* Componente Client injetado aqui! */}
+              <ExportQrPdfButton title={openWeek.title} link={weekLink} />
+            </div>
+
+            <form action={async () => {
+              'use server';
+              await toggleWeekOpen(openWeek.id, false);
+            }} className="mt-6">
+              <button type="submit" className="font-body text-xs font-semibold text-red-600 hover:underline">
+                Encerrar esta semana
+              </button>
+            </form>
+          </>
+        ) : (
+          <p className="font-body text-sm text-navy/60">
+            Nenhuma semana aberta no momento.
+          </p>
+        )}
+      </div>
+      
+      <CreateWeekForm />
+
+      {weeks.length > 0 && (
+        <div>
+          <p className="font-body text-xs font-bold uppercase tracking-wide text-navy/50">
+            Semanas anteriores
+          </p>
+          <div className="mt-2 space-y-1">
+            {weeks.map((w) => (
+              <p key={w.id} className="font-body text-xs text-navy/50">
+                {w.title} — {w.isOpen ? 'aberta' : 'encerrada'}
+              </p>
+            ))}
+          </div>
+        </div>
+      )}
+    </div>
+  )
+}
+
+================
+File: src/app/admin/catequese/components/ExportButtons.tsx
+================
+// src/app/admin/catequese/components/ExportButtons.tsx
+'use client'
+
+import { STAGE_LABELS } from '@/lib/catechism'
+import type { CatechismStage } from '@prisma/client'
+import jsPDF from 'jspdf'
+import autoTable from 'jspdf-autotable'
+
+type AttendanceData = {
+  id: string;
+  studentName: string;
+  stage: string;
+  catechistName: string;
+  massLabel: string;
+  createdAt: Date;
+  source: string;
+  week: { title: string };
+}
+
+function getStageLabel(stage: string): string {
+  return STAGE_LABELS[stage as CatechismStage] || stage
+}
+
+export function ExportButtons({ data }: { data: AttendanceData[] }) {
+  
+  function exportToCSV() {
+    if (data.length === 0) return
+
+    const headers = ['Data', 'Semana', 'Catequizando', 'Etapa', 'Catequista', 'Missa', 'Origem']
+    const rows = data.map(a => [
+      new Date(a.createdAt).toLocaleDateString('pt-BR'),
+      a.week?.title || '',
+      a.studentName,
+      getStageLabel(a.stage),
+      a.catechistName,
+      a.massLabel,
+      a.source === 'SELF' ? 'Auto-atribuída' : 'Manual'
+    ])
+
+    const csvContent = [
+      headers.join(';'),
+      ...rows.map(row => row.join(';'))
+    ].join('\n')
+
+    const blob = new Blob(['\uFEFF' + csvContent], { type: 'text/csv;charset=utf-8;' })
+    const url = URL.createObjectURL(blob)
+    const link = document.createElement('a')
+    link.href = url
+    link.download = `relatorio_catequese_${Date.now()}.csv`
+    document.body.appendChild(link)
+    link.click()
+    document.body.removeChild(link)
+  }
+
+  function exportToPDF() {
+    if (data.length === 0) return
+
+    const doc = new jsPDF()
+    
+    // Configuração do Cabeçalho do PDF
+    doc.setFontSize(16)
+    doc.text('Relatório de Presenças - Catequese', 14, 15)
+    
+    doc.setFontSize(10)
+    doc.setTextColor(100)
+    doc.text(`Gerado em: ${new Date().toLocaleString('pt-BR')}`, 14, 22)
+
+    // Preparação dos dados para a tabela
+    const tableColumn = ["Data", "Semana", "Catequizando", "Etapa", "Catequista", "Missa"]
+    const tableRows = data.map(a => [
+      new Date(a.createdAt).toLocaleDateString('pt-BR'),
+      a.week?.title || '-',
+      a.studentName,
+      getStageLabel(a.stage),
+      a.catechistName,
+      a.massLabel
+    ])
+
+    // Geração da tabela usando autoTable
+    autoTable(doc, {
+      head: [tableColumn],
+      body: tableRows,
+      startY: 28,
+      theme: 'grid',
+      styles: { fontSize: 8, font: 'helvetica' },
+      headStyles: { fillColor: [15, 23, 42] }, // Cor navy (#0f172a)
+    })
+
+    doc.save(`relatorio_catequese_${Date.now()}.pdf`)
+  }
+
+  return (
+    <div className="flex gap-2">
+      <button
+        onClick={exportToCSV}
+        className="rounded border border-navy px-4 py-1.5 font-body text-xs font-semibold uppercase tracking-wide text-navy hover:bg-navy hover:text-cream transition-colors"
+      >
+        Exportar CSV
+      </button>
+      <button
+        onClick={exportToPDF}
+        className="rounded border border-navy px-4 py-1.5 font-body text-xs font-semibold uppercase tracking-wide text-navy hover:bg-navy hover:text-cream transition-colors"
+      >
+        Exportar PDF
+      </button>
+    </div>
+  )
+}
+
+================
+File: src/app/admin/catequese/components/ReportActions.tsx
+================
+// src/app/admin/catequese/components/ReportActions.tsx
+'use client'
+
+import { STAGE_LABELS } from '@/lib/catechism'
+import type { CatechismStage } from '@prisma/client'
+import jsPDF from 'jspdf'
+import autoTable from 'jspdf-autotable'
+
+type AttendanceData = {
+  id: string;
+  studentName: string;
+  stage: string;
+  catechistName: string;
+  massLabel: string;
+  createdAt: Date;
+  source: string;
+  week: { title: string };
+}
+
+function getStageLabel(stage: string): string {
+  return STAGE_LABELS[stage as CatechismStage] || stage
+}
+
+export function ReportActions({ data }: { data: AttendanceData[] }) {
+  
+  // Função de Exportar CSV
+  function exportToCSV() {
+    if (data.length === 0) return
+
+    const headers = ['Data', 'Semana', 'Catequizando', 'Etapa', 'Catequista', 'Missa', 'Origem']
+    const rows = data.map(a => [
+      new Date(a.createdAt).toLocaleDateString('pt-BR'),
+      a.week?.title || '',
+      a.studentName,
+      getStageLabel(a.stage),
+      a.catechistName,
+      a.massLabel,
+      a.source === 'SELF' ? 'Auto-atribuída' : 'Manual'
+    ])
+
+    const csvContent = [headers.join(';'), ...rows.map(row => row.join(';'))].join('\n')
+    const blob = new Blob(['\uFEFF' + csvContent], { type: 'text/csv;charset=utf-8;' })
+    const url = URL.createObjectURL(blob)
+    const link = document.createElement('a')
+    link.href = url
+    link.download = `relatorio_catequese_${Date.now()}.csv`
+    link.click()
+  }
+
+  // Função de Exportar PDF
+  function exportToPDF() {
+    if (data.length === 0) return
+
+    const doc = new jsPDF()
+    
+    // Título do Documento
+    doc.setFontSize(16)
+    doc.text('Relatório de Presenças - Catequese', 14, 15)
+    doc.setFontSize(10)
+    doc.text(`Gerado em: ${new Date().toLocaleString('pt-BR')}`, 14, 22)
+
+    // Estruturação da Tabela
+    const tableColumn = ["Data", "Semana", "Catequizando", "Etapa", "Catequista", "Missa"]
+    const tableRows = data.map(a => [
+      new Date(a.createdAt).toLocaleDateString('pt-BR'),
+      a.week?.title || '-',
+      a.studentName,
+      getStageLabel(a.stage),
+      a.catechistName,
+      a.massLabel
+    ])
+
+    // Renderização da tabela nativa do jsPDF
+    autoTable(doc, {
+      head: [tableColumn],
+      body: tableRows,
+      startY: 28,
+      theme: 'grid',
+      styles: { fontSize: 8, font: 'helvetica' },
+      headStyles: { fillColor: [15, 23, 42] }, // Cor navy
+    })
+
+    doc.save(`relatorio_catequese_${Date.now()}.pdf`)
+  }
+
+  return (
+    <div className="flex gap-2">
+      <button
+        onClick={exportToCSV}
+        className="rounded border border-navy px-4 py-1.5 font-body text-xs font-semibold uppercase tracking-wide text-navy hover:bg-navy hover:text-cream transition-colors"
+      >
+        Exportar CSV
+      </button>
+      <button
+        onClick={exportToPDF}
+        className="rounded border border-navy px-4 py-1.5 font-body text-xs font-semibold uppercase tracking-wide text-navy hover:bg-navy hover:text-cream transition-colors"
+      >
+        Exportar PDF
+      </button>
+    </div>
+  )
+}
+
+================
+File: src/app/admin/catequese/components/TabsNav.tsx
+================
+// src/app/admin/catequese/components/TabsNav.tsx
+'use client'
+
+import { useRouter } from 'next/navigation'
+
+// 1. Adicionamos a flag `requiresAdmin` para escalar facilmente o controle de acesso
+const TABS = [
+  { id: 'semana', label: 'Semana / QR', requiresAdmin: false },
+  { id: 'catequistas', label: 'Catequistas', requiresAdmin: true }, // Protegido
+  { id: 'alunos', label: 'Catequizandos', requiresAdmin: false },
+  { id: 'relatorio', label: 'Relatório', requiresAdmin: false },
+  { id: 'ajuda', label: 'Manual & Ajuda', requiresAdmin: false },
+] as const
+
+// 2. Atualizamos a tipagem para aceitar a prop isGlobalAdmin
+export function TabsNav({ 
+  currentTab, 
+  isGlobalAdmin 
+}: { 
+  currentTab: string
+  isGlobalAdmin: boolean 
+}) {
+  const router = useRouter()
+
+  // 3. Filtramos dinamicamente: se a aba exige admin e o usuário não é, removemos da tela
+  const visibleTabs = TABS.filter((tab) => !tab.requiresAdmin || isGlobalAdmin)
+
+  return (
+    <div className="mt-6 flex flex-wrap gap-2">
+      {visibleTabs.map(({ id, label }) => (
+        <button
+          key={id}
+          onClick={() => router.push(`?tab=${id}`)}
+          className={`rounded-full border px-3 py-1.5 font-body text-xs font-semibold uppercase tracking-wide transition-colors ${
+            currentTab === id 
+              ? 'border-navy bg-navy text-cream' 
+              : 'border-line text-navy/60 hover:bg-navy/5'
+          }`}
+        >
+          {label}
+        </button>
+      ))}
+    </div>
+  )
+}
+
+================
+File: src/app/admin/configuracoes/AdminSettingsClient.tsx
+================
+// src/app/admin/configuracoes/AdminSettingsClient.tsx
+'use client'
+
+import { useActionState, useState } from 'react'
+import { updateParishSettings } from '@/actions/parishSettings'
+import { ImageUpload } from '@/components/admin/ImageUpload'
+import { ContactCategoryCard } from './components/ContactCategoryCard'
+import { HelpSettingsTab } from './components/tabs/HelpSettingsTab'
+
+type ThemeMode = 'PADRAO' | 'DISCRETO' | 'FULLCOLOR'
+
+type Settings = {
+  name: string
+  patronSaintName: string
+  address: string | null
+  phone: string | null
+  email: string | null
+  pixKey: string | null
+  instagramUrl: string | null
+  facebookUrl: string | null
+  youtubeUrl: string | null
+  heroImageUrl: string | null
+  heroTagline: string | null
+  aboutText: string | null
+  aboutImageUrl: string | null
+  patronStoryText: string | null
+  liturgicalThemeMode: ThemeMode
+} | null
+
+type Contact = { id: string; category: string; label: string; value: string; mapUrl: string | null }
+type ActionState = { success: boolean; error?: string }
+
+const THEME_OPTIONS: { value: ThemeMode; label: string; hint: string }[] = [
+  { value: 'PADRAO', label: 'Padrão', hint: 'só navy e dourado' },
+  { value: 'DISCRETO', label: 'Cores discretas', hint: 'barra fina + detalhes' },
+  { value: 'FULLCOLOR', label: 'Full color litúrgico', hint: 'fundo e botões tingidos' },
+]
+
+const CONTACT_CATEGORIES = [
+  { id: 'INSTAGRAM', title: 'Instagram', placeholder: 'https://instagram.com/...' },
+  { id: 'FACEBOOK', title: 'Facebook', placeholder: 'https://facebook.com/...' },
+  { id: 'WHATSAPP', title: 'WhatsApp', placeholder: 'Ex: 14 99999-9999' },
+  { id: 'PHONE', title: 'Telefone Fixo', placeholder: 'Ex: 14 3882-0000' },
+  { id: 'ADDRESS', title: 'Endereço', placeholder: 'Rua X, nº Y...' },
+  { id: 'OTHER', title: 'Outros Links', placeholder: 'https://...' },
+]
+
+function LiturgicalThemePicker({ defaultValue }: { defaultValue?: ThemeMode }) {
+  const [value, setValue] = useState<ThemeMode>(defaultValue ?? 'DISCRETO')
+  return (
+    <div>
+      <label className="block text-xs font-bold uppercase tracking-wide text-navy/60">Atmosfera litúrgica na home</label>
+      <input type="hidden" name="liturgicalThemeMode" value={value} />
+      <div className="mt-1 grid grid-cols-3 gap-1 rounded border border-line p-1">
+        {THEME_OPTIONS.map((opt) => (
+          <button
+            key={opt.value}
+            type="button"
+            onClick={() => setValue(opt.value)}
+            className={`rounded px-2 py-2 font-body text-xs font-semibold transition-colors ${
+              value === opt.value ? 'bg-navy text-cream' : 'text-navy/60 hover:bg-cream'
+            }`}
+          >
+            {opt.label}
+            <span className="mt-0.5 block font-normal normal-case text-[10px] opacity-70">{opt.hint}</span>
+          </button>
+        ))}
+      </div>
+    </div>
+  )
+}
+
+function Field({ name, label, defaultValue, textarea }: { name: string; label: string; defaultValue?: string | null; textarea?: boolean }) {
+  return (
+    <div>
+      <label className="block text-xs font-bold uppercase tracking-wide text-navy/60">{label}</label>
+      {textarea ? (
+        <textarea name={name} defaultValue={defaultValue ?? ''} rows={4} className="mt-1 w-full rounded border border-line px-3 py-2 font-body text-sm focus:border-gold focus:outline-none" />
+      ) : (
+        <input name={name} defaultValue={defaultValue ?? ''} className="mt-1 w-full rounded border border-line px-3 py-2 font-body text-sm focus:border-gold focus:outline-none" />
+      )}
+    </div>
+  )
+}
+
+export function AdminSettingsClient({ settings, contacts }: { settings: Settings; contacts: Contact[] }) {
+  const [activeTab, setActiveTab] = useState<'geral' | 'rodape' | 'ajuda'>('geral')
+  const [state, formAction, pending] = useActionState<ActionState, FormData>(
+    updateParishSettings,
+    { success: false }
+  )
+
+  return (
+    <main className="min-h-screen bg-cream px-6 py-12 text-navy">
+      <div className="mx-auto max-w-4xl">
+        <h1 className="font-display text-3xl font-bold">Dados Institucionais</h1>
+        <p className="mt-1 font-body text-sm text-navy/60">
+          Gerencie o conteúdo estático e dinâmico da paróquia.
+        </p>
+
+        {/* Navegação das Abas (Padronizada Mobile-First) */}
+        <div className="mt-6 flex flex-wrap gap-2 border-b border-line pb-3">
+          <button
+            onClick={() => setActiveTab('geral')}
+            className={`rounded-full border px-4 py-1.5 font-body text-xs font-semibold uppercase tracking-wide transition-colors ${activeTab === 'geral' ? 'border-navy bg-navy text-cream' : 'border-line text-navy/60 hover:bg-navy/5'}`}
+          >
+            Geral & Tema
+          </button>
+          <button
+            onClick={() => setActiveTab('rodape')}
+            className={`rounded-full border px-4 py-1.5 font-body text-xs font-semibold uppercase tracking-wide transition-colors ${activeTab === 'rodape' ? 'border-navy bg-navy text-cream' : 'border-line text-navy/60 hover:bg-navy/5'}`}
+          >
+            Rodapé & Dinâmicos
+          </button>
+          <button
+            onClick={() => setActiveTab('ajuda')}
+            className={`rounded-full border px-4 py-1.5 font-body text-xs font-semibold uppercase tracking-wide transition-colors ${activeTab === 'ajuda' ? 'border-navy bg-navy text-cream' : 'border-line text-navy/60 hover:bg-navy/5'}`}
+          >
+            Manual & Ajuda
+          </button>
+        </div>
+
+        {/* ABA 1: Geral & Tema */}
+        {activeTab === 'geral' && (
+          <form action={formAction} className="mt-8 space-y-5 rounded-lg border border-line bg-white p-6 max-w-2xl shadow-sm">
+            <Field name="name" label="Nome da paróquia" defaultValue={settings?.name} />
+            <Field name="patronSaintName" label="Nome do padroeiro(a)" defaultValue={settings?.patronSaintName} />
+            <Field name="heroTagline" label="Frase de destaque (hero)" defaultValue={settings?.heroTagline} />
+            <ImageUpload name="heroImageUrl" label="Imagem do hero" defaultValue={settings?.heroImageUrl} />
+            <LiturgicalThemePicker defaultValue={settings?.liturgicalThemeMode} />
+            
+            <Field name="address" label="Endereço" defaultValue={settings?.address} />
+            <Field name="phone" label="Telefone" defaultValue={settings?.phone} />
+            <Field name="email" label="E-mail" defaultValue={settings?.email} />
+            <Field name="pixKey" label="Chave PIX" defaultValue={settings?.pixKey} />
+            <Field name="instagramUrl" label="Instagram (URL)" defaultValue={settings?.instagramUrl} />
+            <Field name="facebookUrl" label="Facebook (URL)" defaultValue={settings?.facebookUrl} />
+            <Field name="youtubeUrl" label="YouTube (URL do canal)" defaultValue={settings?.youtubeUrl} />
+            <Field name="aboutText" label="Texto 'Sobre Nós'" defaultValue={settings?.aboutText} textarea />
+            <ImageUpload name="aboutImageUrl" label="Imagem do 'Sobre Nós'" defaultValue={settings?.aboutImageUrl} />
+            <Field name="patronStoryText" label="História do padroeiro(a)" defaultValue={settings?.patronStoryText} textarea />
+
+            <button type="submit" disabled={pending} className="w-full rounded bg-navy py-3 font-body text-sm font-semibold uppercase tracking-wide text-cream transition-opacity disabled:opacity-60 hover:bg-gold hover:text-navy">
+              {pending ? 'Salvando...' : 'Salvar Alterações'}
+            </button>
+            {state?.error && <p className="font-body text-sm text-red-600">{state.error}</p>}
+            {state?.success && <p className="font-body text-sm text-green-700">Salvo com sucesso!</p>}
+          </form>
+        )}
+
+        {/* ABA 2: Rodapé & Dinâmicos */}
+        {activeTab === 'rodape' && (
+          <div className="mt-8 grid gap-6 md:grid-cols-2 lg:grid-cols-3">
+            {CONTACT_CATEGORIES.map((cat) => (
+              <ContactCategoryCard 
+                key={cat.id} 
+                category={cat.id} 
+                title={cat.title} 
+                placeholder={cat.placeholder} 
+                contacts={contacts.filter(c => c.category === cat.id)} 
+              />
+            ))}
+          </div>
+        )}
+
+        {/* ABA 3: Manual & Ajuda */}
+        {activeTab === 'ajuda' && (
+          <div className="mt-8 max-w-2xl">
+            <HelpSettingsTab />
+          </div>
+        )}
+
+      </div>
+    </main>
+  )
+}
+
+================
+File: src/app/admin/configuracoes/page.tsx
+================
+// src/app/admin/configuracoes/page.tsx
+import { redirect } from 'next/navigation'
+import { auth } from '@/auth'
+import { prisma } from '@/lib/prisma'
+import { AdminSettingsClient } from './AdminSettingsClient'
+
+export const dynamic = 'force-dynamic'
+
+export default async function AdminSettingsPage() {
+  const session = await auth()
+  if (session?.user?.staffRole !== 'SUPER_ADMIN') redirect('/')
+
+  // Buscamos em paralelo as configurações gerais e os contatos dinâmicos do rodapé
+  const [settings, contacts] = await Promise.all([
+    prisma.parishSettings.findUnique({ where: { id: 'singleton' } }),
+    prisma.siteContact.findMany({ orderBy: { createdAt: 'asc' } }),
+  ])
+
+  return <AdminSettingsClient settings={settings} contacts={contacts} />
+}
+
+================
+File: src/app/admin/palavra-do-dia/AdminDailyWordClient.tsx
+================
+// src/app/admin/palavra-do-dia/AdminDailyWordClient.tsx
+'use client'
+
+import { TodayWordCard } from './TodayWordCard'
+import { GenerateDailyWordButton } from './GenerateDailyWordButton'
+import { ManualDailyWordForm } from './ManualDailyWordForm'
+
+type DailyWord = {
+  text: string
+  verseReference: string
+  reflection: string | null
+  instagramReelUrl: string | null
+  showTextWithReel?: boolean
+} | null
+
+export function AdminDailyWordClient({ todayWord }: { todayWord: DailyWord }) {
+  return (
+    <main className="min-h-screen bg-cream px-6 py-12 text-navy">
+      <div className="mx-auto max-w-2xl">
+        <h1 className="font-display text-3xl font-bold">Palavra do Dia</h1>
+        <p className="mt-1 font-body text-sm text-navy/60">
+          Todo dia às 6h o Gemini gera uma automaticamente. Aqui você pode gerar de novo, colar
+          um Reels do Instagram, ou escrever a sua própria — o que for salvo por último fica no ar.
+        </p>
+
+        {todayWord && <TodayWordCard word={todayWord} />}
+
+        <GenerateDailyWordButton />
+
+        <div className="mt-4 flex items-center gap-2">
+          <div className="h-px flex-1 bg-line" />
+          <span className="font-body text-[10px] uppercase tracking-wide text-navy/40">ou</span>
+          <div className="h-px flex-1 bg-line" />
+        </div>
+
+        <ManualDailyWordForm todayWord={todayWord} />
+      </div>
+    </main>
+  )
+}
+
+================
+File: src/app/admin/pedidos/AdminRequestsClient.tsx
+================
+// src/app/admin/pedidos/AdminRequestsClient.tsx
+'use client'
+
+import { useState } from 'react'
+import { updateContactRequestStatus, approveForWall } from '@/actions/contactRequest'
+
+type Request = {
+  id: string
+  type: 'PRAYER_GENERAL' | 'MASS_INTENTION' | 'SACRAMENT' | 'GENERAL_CONTACT'
+  name: string
+  contact: string
+  message: string
+  preferredDate: Date | null
+  sacramentType: string | null
+  wantsPublicWall: boolean
+  approvedForWall: boolean
+  status: 'PENDING' | 'APPROVED' | 'RESOLVED'
+  createdAt: Date
+}
+
+const TYPE_LABELS: Record<Request['type'], string> = {
+  PRAYER_GENERAL: 'Pedido de Oração',
+  MASS_INTENTION: 'Intenção de Missa',
+  SACRAMENT: 'Agendar Sacramento',
+  GENERAL_CONTACT: 'Contato Geral',
+}
+
+const STATUS_LABELS: Record<Request['status'], string> = {
+  PENDING: 'Pendente',
+  APPROVED: 'Contatado',
+  RESOLVED: 'Resolvido',
+}
+
+function fmtDate(date: Date | null) {
+  if (!date) return null
+  return new Date(date).toLocaleDateString('pt-BR')
+}
+
+export function AdminRequestsClient({ requests }: { requests: Request[] }) {
+  const [filter, setFilter] = useState<'ALL' | Request['type']>('ALL')
+
+  const filtered = filter === 'ALL' ? requests : requests.filter((r) => r.type === filter)
+
+  return (
+    <main className="min-h-screen bg-cream px-6 py-12 text-navy">
+      <div className="mx-auto max-w-2xl">
+        <h1 className="font-display text-3xl font-bold">Pedidos Recebidos</h1>
+        <p className="mt-1 font-body text-sm text-navy/60">
+          Tudo que chega pelos formulários de contato da home.
+        </p>
+
+        <div className="mt-4 flex flex-wrap gap-2">
+          {(['ALL', 'PRAYER_GENERAL', 'MASS_INTENTION', 'SACRAMENT', 'GENERAL_CONTACT'] as const).map((t) => (
+            <button
+              key={t}
+              onClick={() => setFilter(t)}
+              className={`rounded-full border px-3 py-1.5 font-body text-xs font-semibold uppercase tracking-wide ${
+                filter === t
+                  ? 'border-navy bg-navy text-cream'
+                  : 'border-line text-navy/60 hover:border-navy/40'
+              }`}
+            >
+              {t === 'ALL' ? 'Todos' : TYPE_LABELS[t]}
+            </button>
+          ))}
+        </div>
+
+        <div className="mt-6 space-y-3">
+          {filtered.length === 0 && (
+            <p className="font-body text-sm text-navy/40">Nenhum pedido por aqui.</p>
+          )}
+
+          {filtered.map((r) => (
+            <div key={r.id} className="rounded-lg border border-line bg-white p-4">
+              <div className="flex items-start justify-between gap-3">
+                <div>
+                  <p className="font-body text-xs font-semibold uppercase tracking-wide text-navy/40">
+                    {TYPE_LABELS[r.type]} · {fmtDate(r.createdAt)}
+                  </p>
+                  <p className="mt-1 font-display font-semibold">{r.name}</p>
+                  <p className="font-body text-xs text-navy/50">{r.contact}</p>
+                  {r.sacramentType && (
+                    <p className="mt-1 font-mono text-xs text-navy/50">{r.sacramentType}</p>
+                  )}
+                  {r.preferredDate && (
+                    <p className="font-mono text-xs text-navy/50">
+                      Data desejada: {fmtDate(r.preferredDate)}
+                    </p>
+                  )}
+                  <p className="mt-2 font-body text-sm text-navy/80">{r.message}</p>
+                  {r.wantsPublicWall && (
+                    <p className="mt-2 font-body text-xs text-navy/50">
+                      {r.approvedForWall
+                        ? '✅ Aprovado no mural público'
+                        : '⏳ Quer aparecer no mural público — aguardando aprovação'}
+                    </p>
+                  )}
+                </div>
+
+                <select
+                  value={r.status}
+                  onChange={(e) =>
+                    updateContactRequestStatus(r.id, e.target.value as Request['status'])
+                  }
+                  className="shrink-0 rounded border border-line bg-white px-2 py-1 font-body text-xs"
+                >
+                  {(['PENDING', 'APPROVED', 'RESOLVED'] as const).map((s) => (
+                    <option key={s} value={s}>
+                      {STATUS_LABELS[s]}
+                    </option>
+                  ))}
+                </select>
+              </div>
+
+              {r.wantsPublicWall && !r.approvedForWall && (
+                <form
+                  action={async () => {
+                    await approveForWall(r.id)
+                  }}
+                  className="mt-3"
+                >
+                  <button
+                    type="submit"
+                    className="rounded bg-navy px-3 py-1.5 font-body text-xs font-semibold uppercase tracking-wide text-cream"
+                  >
+                    Aprovar pro mural público
+                  </button>
+                </form>
+              )}
+            </div>
+          ))}
+        </div>
+      </div>
+    </main>
+  )
+}
+
+================
+File: src/app/admin/pedidosLive/LivePrayersDashboard.tsx
+================
+// src/app/admin/pedidosLive/LivePrayersDashboard.tsx
+'use client'
+
+import { useEffect, useState } from 'react'
+import { useRouter } from 'next/navigation'
+import { togglePrayerWallApproval, archivePrayer } from '@/actions/prayers'
+import type { ContactRequestStatus } from '@prisma/client'
+
+export type Prayer = {
+  id: string
+  name: string
+  message: string
+  contact: string
+  approvedForWall: boolean
+  status: ContactRequestStatus
+  createdAt: string
+}
+
+export function LivePrayersDashboard({ initialPrayers }: { initialPrayers: Prayer[] }) {
+  const router = useRouter()
+  const [loadingId, setLoadingId] = useState<string | null>(null)
+  const [filter, setFilter] = useState<'ALL' | 'WALL' | 'PENDING'>('ALL')
+
+  useEffect(() => {
+    const interval = setInterval(() => {
+      router.refresh()
+    }, 15000)
+    return () => clearInterval(interval)
+  }, [router])
+
+  const handleToggleWall = async (id: string, currentStatus: boolean) => {
+    setLoadingId(id)
+    await togglePrayerWallApproval(id, currentStatus)
+    setLoadingId(null)
+  }
+
+  const handleArchive = async (id: string) => {
+    setLoadingId(id)
+    await archivePrayer(id)
+    setLoadingId(null)
+  }
+
+  const displayedPrayers = initialPrayers.filter((p) => {
+    if (filter === 'WALL') return p.approvedForWall
+    if (filter === 'PENDING') return p.status === 'PENDING' && !p.approvedForWall
+    return p.status !== 'RESOLVED'
+  })
+
+  return (
+    <div className="rounded-2xl border border-line bg-white p-6 shadow-sm font-body text-navy">
+      <div className="mb-6 flex flex-wrap items-center justify-between gap-4 border-b border-line pb-4">
+        <div className="flex items-center gap-2">
+          <span className="relative flex h-3 w-3">
+            <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-red-400 opacity-75"></span>
+            <span className="relative inline-flex rounded-full h-3 w-3 bg-red-600"></span>
+          </span>
+          <h2 className="font-display text-lg font-bold text-navy">
+            Intenções da Transmissão ({initialPrayers.length})
+          </h2>
+        </div>
+
+        <div className="flex gap-2 text-xs">
+          <button
+            onClick={() => setFilter('ALL')}
+            className={`rounded-lg px-3 py-1.5 font-semibold transition-colors ${
+              filter === 'ALL' ? 'bg-navy text-cream' : 'bg-cream text-navy hover:bg-line/50'
+            }`}
+          >
+            Todas ({initialPrayers.filter((p) => p.status !== 'RESOLVED').length})
+          </button>
+          <button
+            onClick={() => setFilter('WALL')}
+            className={`rounded-lg px-3 py-1.5 font-semibold transition-colors ${
+              filter === 'WALL' ? 'bg-navy text-cream' : 'bg-cream text-navy hover:bg-line/50'
+            }`}
+          >
+            No Mural ({initialPrayers.filter((p) => p.approvedForWall).length})
+          </button>
+        </div>
+      </div>
+
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+        {displayedPrayers.map((prayer) => (
+          <div
+            key={prayer.id}
+            className={`flex flex-col justify-between rounded-xl border p-4 transition-all duration-200 ${
+              prayer.approvedForWall
+                ? 'border-gold bg-gold/5 shadow-sm'
+                : 'border-line/60 bg-cream/20'
+            }`}
+          >
+            <div>
+              <div className="flex justify-between items-start mb-2">
+                <span className="font-bold text-navy text-sm">{prayer.name}</span>
+                <span className="text-[10px] font-mono text-navy/40">
+                  {new Date(prayer.createdAt).toLocaleTimeString('pt-BR', {
+                    hour: '2-digit',
+                    minute: '2-digit',
+                  })}
+                </span>
+              </div>
+              <p className="text-xs text-navy/80 leading-relaxed whitespace-pre-wrap">
+                "{prayer.message}"
+              </p>
+            </div>
+
+            <div className="mt-4 flex flex-col gap-2 border-t border-line/40 pt-3">
+              <div className="flex items-center justify-between text-[11px]">
+                <span className="text-navy/50">Status no Mural:</span>
+                <span
+                  className={`font-semibold ${
+                    prayer.approvedForWall ? 'text-green-700' : 'text-navy/40'
+                  }`}
+                >
+                  {prayer.approvedForWall ? '● Visível no Mural' : '○ Oculto'}
+                </span>
+              </div>
+
+              <div className="flex gap-2">
+                <button
+                  disabled={loadingId === prayer.id}
+                  onClick={() => handleToggleWall(prayer.id, prayer.approvedForWall)}
+                  className={`flex-1 rounded py-1.5 text-[11px] font-semibold transition-colors disabled:opacity-50 ${
+                    prayer.approvedForWall
+                      ? 'bg-red-50 text-red-700 hover:bg-red-100 border border-red-200'
+                      : 'bg-navy text-cream hover:bg-gold hover:text-navy'
+                  }`}
+                >
+                  {prayer.approvedForWall ? 'Remover do Mural' : 'Publicar no Mural'}
+                </button>
+
+                <button
+                  disabled={loadingId === prayer.id}
+                  onClick={() => handleArchive(prayer.id)}
+                  className="rounded border border-line bg-white px-3 py-1.5 text-[11px] font-semibold text-navy hover:bg-black/5 disabled:opacity-50"
+                  title="Marcar como lida e arquivar"
+                >
+                  Lido ✓
+                </button>
+              </div>
+            </div>
+          </div>
+        ))}
+
+        {displayedPrayers.length === 0 && (
+          <div className="col-span-full py-12 text-center text-sm text-navy/40">
+            Nenhuma intenção encontrada para este filtro.
+          </div>
+        )}
+      </div>
+    </div>
+  )
+}
+
+================
+File: src/app/admin/usuarios/components/UsersList.tsx
+================
+// src/app/admin/usuarios/components/UsersList.tsx
+'use client'
+
+import { useState } from 'react'
+import type { StaffPermission, StaffRole } from '@prisma/client'
+import { EditUserModal } from './EditUserModal'
+
+type MinistryOption = { id: string; name: string }
+
+export type UserItem = {
+  id: string
+  name: string | null
+  email: string | null
+  staffRole: StaffRole | string | null // Tipagem flexível para evitar conflito com schemas em migração
+  ministryId?: string | null
+  permissions?: StaffPermission[] | string[]
+  createdAt: Date
+}
+
+export function UsersList({ 
+  users, 
+  ministries = [] 
+}: { 
+  users: UserItem[]
+  ministries?: MinistryOption[] 
+}) {
+  const [editingUser, setEditingUser] = useState<UserItem | null>(null)
+
+  return (
+    <div className="space-y-3 font-body">
+      <div className="overflow-x-auto rounded-xl border border-line bg-white shadow-sm">
+        <table className="w-full text-left text-sm text-navy">
+          <thead className="border-b border-line bg-cream/50 font-display text-xs font-bold uppercase tracking-wider text-navy/60">
+            <tr>
+              <th className="p-3.5">Nome</th>
+              <th className="p-3.5">E-mail</th>
+              <th className="p-3.5">Nível / Cargo</th>
+              <th className="p-3.5 text-right">Ações</th>
+            </tr>
+          </thead>
+          <tbody className="divide-y divide-line/60">
+            {users.map((u) => {
+              const role = u.staffRole as string | null
+              const isSuperAdmin = role === 'SUPER_ADMIN'
+              const isStaff = role === 'CATECHIST' || role === 'MINISTRY_LEADER'
+
+              return (
+                <tr key={u.id} className="hover:bg-cream/20 transition-colors">
+                  <td className="p-3.5 font-semibold">{u.name ?? 'Sem nome'}</td>
+                  <td className="p-3.5 text-navy/70">{u.email ?? 'Sem e-mail'}</td>
+                  <td className="p-3.5">
+                    <span className={`inline-block rounded px-2 py-0.5 text-[10px] font-bold uppercase ${
+                      isSuperAdmin 
+                        ? 'bg-gold/20 text-navy border border-gold/40 font-bold' 
+                        : isStaff
+                        ? 'bg-blue-100 text-blue-800'
+                        : 'bg-gray-100 text-gray-700'
+                    }`}>
+                      {role ?? 'Membro'}
+                    </span>
+                  </td>
+                  <td className="p-3.5 text-right">
+                    <button
+                      type="button"
+                      onClick={() => setEditingUser(u)}
+                      className="rounded border border-line px-3 py-1 text-xs font-semibold uppercase text-navy hover:bg-navy hover:text-cream transition-colors"
+                    >
+                      Permissões
+                    </button>
+                  </td>
+                </tr>
+              )
+            })}
+          </tbody>
+        </table>
+      </div>
+
+      {/* Modal Inline conectado à Server Action staffAccess.ts */}
+      {editingUser && (
+        <EditUserModal 
+          user={editingUser as any} 
+          ministries={ministries} 
+          onClose={() => setEditingUser(null)} 
+        />
+      )}
+    </div>
+  )
+}
+
+================
+File: src/app/admin/catequese/components/forms/CreateCatechistForm.tsx
+================
+// src/app/admin/catequese/components/forms/CreateCatechistForm.tsx
+'use client'
+
+import { useActionState } from 'react'
+import { createCatechist } from '@/actions/catechism/admin-catechism'
+import { STAGE_LABELS } from '@/lib/catechism'
+import type { CatechismStage } from '@prisma/client'
+
+export function CreateCatechistForm() {
+  const [state, formAction, pending] = useActionState(createCatechist, { success: false })
+
+  return (
+    <form action={formAction} className="space-y-4 rounded-xl border border-line bg-white p-4 sm:p-6 shadow-sm">
+      <h2 className="font-display text-base sm:text-lg font-bold text-navy">Cadastrar Catequista</h2>
+      
+      <div className="grid gap-3 sm:grid-cols-2">
+        <input 
+          name="name" 
+          required 
+          placeholder="Nome Completo" 
+          className="w-full rounded border border-line px-3 py-2 text-sm focus:border-gold focus:outline-none" 
+        />
+        <input 
+          name="email" 
+          type="email" 
+          placeholder="E-mail (para login opcional)" 
+          className="w-full rounded border border-line px-3 py-2 text-sm focus:border-gold focus:outline-none" 
+        />
+      </div>
+
+      <div>
+        <p className="mb-2 text-xs font-bold uppercase tracking-wider text-navy/60">Etapas permitidas</p>
+        {/* Mobile First: 1 coluna no celular, 2 colunas a partir de sm */}
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+          {(Object.keys(STAGE_LABELS) as CatechismStage[]).map((stage) => (
+            <label key={stage} className="flex items-center gap-2.5 rounded border border-line/60 p-2 text-sm bg-cream/30 hover:bg-cream/60 cursor-pointer transition-colors">
+              <input type="checkbox" name="stages" value={stage} className="h-4 w-4 rounded border-line text-navy focus:ring-gold" />
+              <span className="font-medium text-navy">{STAGE_LABELS[stage]}</span>
+            </label>
+          ))}
+        </div>
+      </div>
+
+      <button 
+        disabled={pending} 
+        className="w-full rounded bg-navy py-2.5 text-xs sm:text-sm font-bold uppercase tracking-wider text-cream hover:bg-gold hover:text-navy transition-colors disabled:opacity-50"
+      >
+        {pending ? 'Salvando...' : 'Criar Catequista'}
+      </button>
+      
+      {state.error && <p className="text-xs text-red-600">{state.error}</p>}
+    </form>
+  )
+}
+
+================
+File: src/app/admin/catequese/components/tabs/CatechistsTab.tsx
+================
+// src/app/admin/catequese/components/tabs/CatechistsTab.tsx
+import { prisma } from '@/lib/prisma'
+import { CreateCatechistForm } from '../forms/CreateCatechistForm'
+import { CatechistsList } from '../CatechistsList'
+
+export async function CatechistsTab() {
+  // Buscamos os catequistas e incluímos o e-mail do usuário atrelado
+  const catechists = await prisma.catechist.findMany({ 
+    orderBy: { name: 'asc' },
+    include: {
+      user: { select: { email: true } }
+    }
+  })
+
+  return (
+    <div className="space-y-6 animate-[fadein_0.3s_ease]">
+      <CreateCatechistForm />
+      
+      <div>
+        <p className="mb-3 font-body text-xs font-bold uppercase tracking-wide text-navy/50">
+          Equipe de Catequistas
+        </p>
+        <CatechistsList catechists={catechists} />
+      </div>
+    </div>
+  )
+}
+
+================
+File: src/app/admin/catequese/components/tabs/ReportTab.tsx
+================
+// src/app/admin/catequese/components/tabs/ReportTab.tsx
+import { prisma } from '@/lib/prisma'
+import { STAGE_LABELS } from '@/lib/catechism'
+import { deleteAttendance } from '@/actions/catechism/admin-catechism'
+import { ReportFilters } from '../ReportFilters'
+import { ExportButtons } from '../ExportButtons'
+import { ManualAttendanceForm } from '../forms/ManualAttendanceForm'
+import type { CatechismStage } from '@prisma/client'
+
+function fmtTime(date: Date) {
+  return new Date(date).toLocaleString('pt-BR', {
+    day: '2-digit',
+    month: '2-digit',
+    hour: '2-digit',
+    minute: '2-digit',
+  })
+}
+
+function getStageLabel(stage?: string | null): string {
+  if (!stage) return 'N/A'
+  return STAGE_LABELS[stage as CatechismStage] || stage
+}
+
+type ReportFiltersProps = {
+  weekId: string
+  catechistName: string
+  stage: string
+}
+
+type ReportTabProps = {
+  filters: ReportFiltersProps
+  isGlobalAdmin: boolean
+  linkedCatechistId: string | null
+}
+
+export async function ReportTab({ filters, isGlobalAdmin, linkedCatechistId }: ReportTabProps) {
+  // 1. Buscamos os dados auxiliares respeitando o escopo de acesso do usuário
+  const [weeks, catechists, openWeek, students] = await Promise.all([
+    prisma.catechismWeek.findMany({ orderBy: { startsAt: 'desc' } }),
+    prisma.catechist.findMany({
+      where: isGlobalAdmin ? undefined : { id: linkedCatechistId ?? undefined },
+      orderBy: { name: 'asc' },
+    }),
+    prisma.catechismWeek.findFirst({ where: { isOpen: true } }),
+    prisma.catechismStudent.findMany({
+      where: isGlobalAdmin ? { active: true } : { active: true, catechistId: linkedCatechistId ?? undefined },
+      orderBy: { name: 'asc' },
+    }),
+  ])
+
+  // 2. Construímos a cláusula WHERE relacional estrita
+  const whereClause: any = {}
+
+  if (filters.weekId !== 'all') {
+    whereClause.weekId = filters.weekId
+  }
+
+  // Filtragem por etapa através da relação do aluno
+  if (filters.stage !== 'all') {
+    whereClause.student = { stage: filters.stage as CatechismStage }
+  }
+
+  // Controle de escopo por Catequista
+  if (isGlobalAdmin) {
+    if (filters.catechistName !== 'all') {
+      whereClause.catechist = { name: filters.catechistName }
+    }
+  } else if (linkedCatechistId) {
+    whereClause.catechistId = linkedCatechistId
+  }
+
+  // 3. Executamos a busca com JOINs relacionais otimizados
+  const attendancesRaw = await prisma.catechismAttendance.findMany({
+    where: whereClause,
+    orderBy: { createdAt: 'desc' },
+    include: {
+      week: { select: { title: true } },
+      student: { select: { name: true, stage: true } },
+      catechist: { select: { name: true } },
+    },
+  })
+
+  // 4. Mapeamento dos dados para garantir compatibilidade total com ExportButtons e Renderização
+  const attendances = attendancesRaw.map((a) => ({
+    ...a,
+    studentName: a.student?.name ?? 'Aluno não identificado',
+    stage: a.student?.stage ?? null,
+    catechistName: a.catechist?.name ?? 'Catequista não identificado',
+  }))
+
+  return (
+    <div className="space-y-4 font-body animate-[fadein_0.3s_ease]">
+      {openWeek && <ManualAttendanceForm weekId={openWeek.id} students={students} />}
+
+      {/* Filtros visíveis apenas para Administrador Global */}
+      {isGlobalAdmin && (
+        <ReportFilters
+          weeks={weeks}
+          catechists={catechists}
+          currentFilters={filters}
+        />
+      )}
+
+      <div className="flex items-center justify-between">
+        <p className="text-xs text-navy/50">
+          {attendances.length} registro(s) encontrado(s).
+        </p>
+        {attendances.length > 0 && (
+          <ExportButtons data={attendances} />
+        )}
+      </div>
+
+      <div className="space-y-2">
+        {attendances.map((a) => (
+          <div key={a.id} className="rounded-lg border border-line bg-white p-3 shadow-sm">
+            <div className="flex items-start justify-between gap-3">
+              <div>
+                <p className="text-sm font-semibold text-navy">{a.studentName}</p>
+                <p className="text-xs text-navy/60">
+                  {getStageLabel(a.stage)} · {a.massLabel} · {a.catechistName}
+                </p>
+                <p className="mt-1 font-mono text-[11px] text-navy/40">
+                  Semana: {a.week.title} · registrado em {fmtTime(a.createdAt)} · {a.source === 'SELF' ? 'auto (fiel)' : 'manual'}
+                </p>
+                {a.note && <p className="mt-1 text-xs text-navy/50 italic">{a.note}</p>}
+              </div>
+
+              <form action={async () => {
+                'use server'
+                await deleteAttendance(a.id)
+              }}>
+                <button
+                  type="submit"
+                  className="shrink-0 text-xs font-semibold text-red-600 hover:underline"
+                >
+                  Remover
+                </button>
+              </form>
+            </div>
+          </div>
+        ))}
+
+        {attendances.length === 0 && (
+          <p className="py-6 text-center text-sm text-navy/40">Nenhum registro de presença encontrado.</p>
+        )}
+      </div>
+    </div>
+  )
+}
+
+================
+File: src/app/admin/pedidos/page.tsx
+================
+// src/app/admin/pedidos/page.tsx
+import { prisma } from '@/lib/prisma'
+import { auth } from '@/auth'
+import { redirect } from 'next/navigation'
+import { AdminRequestsClient } from './AdminRequestsClient'
+
+export default async function AdminRequestsPage() {
+  // 1. Verificação de Sessão
+  const session = await auth()
+  if (!session?.user) redirect('/')
+
+  // 2. Validação de Segurança (RBAC)
+  const hasAccess =
+    session.user.staffRole === 'SUPER_ADMIN' ||
+    session.user.permissions?.includes('VIEW_PRAYER_REQUESTS')
+
+  if (!hasAccess) redirect('/admin')
+
+  // 3. Busca no banco de dados (exclusivo para formulários da Home)
+  const rawRequests = await prisma.contactRequest.findMany({
+    where: {
+      type: {
+        in: ['PRAYER_GENERAL', 'MASS_INTENTION', 'SACRAMENT', 'GENERAL_CONTACT'],
+      },
+    },
+    orderBy: { createdAt: 'desc' },
+  })
+
+  // 4. Mapeamento DTO para bater EXATAMENTE com a tipagem do seu Client Component
+  const requests = rawRequests.map((req) => ({
+    id: req.id,
+    type: req.type as 'PRAYER_GENERAL' | 'MASS_INTENTION' | 'SACRAMENT' | 'GENERAL_CONTACT',
+    name: req.name,
+    contact: req.contact ?? 'Não informado', // Fallback seguro caso seja null no banco
+    message: req.message,
+    preferredDate: req.preferredDate,
+    sacramentType: req.sacramentType,
+    wantsPublicWall: req.wantsPublicWall ?? false,
+    approvedForWall: req.approvedForWall,
+    status: req.status as 'PENDING' | 'APPROVED' | 'RESOLVED',
+    createdAt: req.createdAt,
+  }))
+
+  // 5. Renderiza o Client Component injetando os dados higienizados
+  return <AdminRequestsClient requests={requests} />
+}
+
+================
+File: src/app/admin/pedidosLive/page.tsx
+================
+// src/app/admin/pedidosLive/page.tsx
+import { prisma } from '@/lib/prisma'
+import { auth } from '@/auth'
+import { redirect } from 'next/navigation'
+import { LivePrayersDashboard, type Prayer } from './LivePrayersDashboard'
+
+export default async function AdminPrayersLivePage() {
+  const session = await auth()
+  if (!session?.user) redirect('/')
+
+  const hasAccess = 
+    session.user.staffRole === 'SUPER_ADMIN' || 
+    session.user.permissions?.includes('VIEW_PRAYER_REQUESTS')
+
+  if (!hasAccess) redirect('/admin')
+
+  const yesterday = new Date(Date.now() - 24 * 60 * 60 * 1000)
+
+  const rawPrayers = await prisma.contactRequest.findMany({
+    where: { 
+      type: 'LIVE_PRAYER',
+      createdAt: { gte: yesterday }
+    },
+    orderBy: { createdAt: 'desc' },
+  })
+
+  // DTO sanitizado e compativel com o contrato do LivePrayersDashboard
+  const formattedPrayers: Prayer[] = rawPrayers.map((p) => ({
+    id: p.id,
+    name: p.name,
+    message: p.message,
+    contact: p.contact ?? '',
+    approvedForWall: p.approvedForWall,
+    status: p.status,
+    createdAt: p.createdAt.toISOString(),
+  }))
+
+  return (
+    <main className="min-h-screen bg-cream px-4 py-12 sm:px-6 text-navy font-body">
+      <div className="mx-auto max-w-5xl space-y-6">
+        <div>
+          <h1 className="font-display text-3xl font-bold">Monitor de Intenções (Ao Vivo)</h1>
+          <p className="mt-1 text-sm text-navy/60">
+            Controle de exibição no mural e moderação de pedidos em tempo real durante as transmissões.
+          </p>
+        </div>
+
+        <LivePrayersDashboard initialPrayers={formattedPrayers} />
+      </div>
+    </main>
+  )
+}
+
+================
+File: src/app/admin/usuarios/components/EditUserModal.tsx
+================
+// src/app/admin/usuarios/components/EditUserModal.tsx
+'use client'
+
+import { useState, useActionState } from 'react'
+import { updateStaffAccess } from '@/actions/staffAccess'
+import type { StaffPermission, StaffRole } from '@prisma/client'
+
+type MinistryOption = { id: string; name: string }
+
+export type UserItem = {
+  id: string
+  name: string | null
+  email: string | null
+  staffRole: StaffRole | null
+  ministryId?: string | null
+  permissions?: StaffPermission[] | string[]
+}
+
+type ActionState = { success: boolean; error?: string }
+
+const ALL_PERMISSIONS: { id: StaffPermission; label: string }[] = [
+  { id: 'MANAGE_CATECHISM', label: 'Catequese (Gestão de Alunos e Chamada)' },
+  { id: 'MANAGE_EVENTS', label: 'Gerenciar Eventos' },
+  { id: 'MANAGE_GALLERY', label: 'Gerenciar Galeria' },
+  { id: 'MANAGE_MASS_SCHEDULE', label: 'Gerenciar Horários de Missa' },
+  { id: 'MANAGE_MINISTRIES', label: 'Gerenciar Pastorais / Ministérios' },
+  { id: 'MANAGE_FAQ', label: 'Gerenciar FAQ' },
+  { id: 'MANAGE_LITURGICAL_THEME', label: 'Gerenciar Tema Litúrgico' },
+  { id: 'MANAGE_TESTIMONIALS', label: 'Gerenciar Testemunhos' },
+  { id: 'VIEW_PRAYER_REQUESTS', label: 'Ver Pedidos de Oração' },
+  { id: 'MANAGE_TITHE_RAFFLE', label: 'Gerenciar Sorteio do Dízimo' },
+]
+
+export function EditUserModal({
+  user,
+  ministries = [],
+  onClose,
+}: {
+  user: UserItem
+  ministries?: MinistryOption[]
+  onClose: () => void
+}) {
+  const [selectedRole, setSelectedRole] = useState<string>(user.staffRole ?? '')
+
+  const [state, formAction, pending] = useActionState<ActionState, FormData>(
+    async (prevState, formData) => {
+      const res = await updateStaffAccess(prevState, formData)
+      if (res.success) {
+        onClose()
+      }
+      return res
+    },
+    { success: false }
+  )
+
+  const showPermissions = selectedRole === 'STAFF' || selectedRole === 'MINISTRY_LEADER'
+  const isLeader = selectedRole === 'MINISTRY_LEADER'
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-navy/60 p-4 backdrop-blur-sm animate-[fadein_0.2s_ease]">
+      <div className="w-full max-w-lg rounded-2xl border border-line bg-white p-6 shadow-2xl max-h-[90vh] overflow-y-auto text-navy">
+        <div className="flex items-center justify-between border-b border-line pb-3">
+          <div>
+            <h3 className="font-display text-lg font-bold">Gerenciar Acesso & Permissões</h3>
+            <p className="font-body text-xs text-navy/60">{user.name ?? 'Sem nome'} ({user.email})</p>
+          </div>
+          <button 
+            type="button" 
+            onClick={onClose} 
+            className="text-navy/40 hover:text-navy text-lg font-bold"
+          >
+            ✕
+          </button>
+        </div>
+
+        <form action={formAction} className="mt-4 space-y-4 font-body">
+          <input type="hidden" name="userId" value={user.id} />
+
+          <div>
+            <label className="block text-xs font-bold uppercase tracking-wider text-navy/60">
+              Nível / Perfil
+            </label>
+            <select 
+              name="staffRole" 
+              value={selectedRole} 
+              onChange={(e) => setSelectedRole(e.target.value)}
+              className="mt-1 w-full rounded border border-line bg-white px-3 py-2 text-sm focus:border-gold focus:outline-none"
+            >
+              <option value="">Sem acesso ao painel (Fiel / Membro)</option>
+              <option value="STAFF">Equipe Operacional (Staff / Catequista / Secretário)</option>
+              <option value="MINISTRY_LEADER">Líder de Ministério / Pastoral</option>
+              <option value="SUPER_ADMIN">Administrador Geral (Super Admin)</option>
+            </select>
+          </div>
+
+          {/* Exibe seleção de ministério e checkboxes de permissão para STAFF ou LÍDER */}
+          {showPermissions && (
+            <div className="space-y-4 rounded-xl border border-line bg-cream/30 p-4 animate-[fadein_0.2s_ease]">
+              {isLeader && ministries.length > 0 && (
+                <div>
+                  <label className="block text-xs font-bold uppercase tracking-wider text-navy/60">
+                    Ministério Liderado
+                  </label>
+                  <select 
+                    name="ministryId" 
+                    defaultValue={user.ministryId ?? ''} 
+                    className="mt-1 w-full rounded border border-line bg-white px-3 py-2 text-sm focus:border-gold focus:outline-none"
+                  >
+                    <option value="">Selecione o ministério...</option>
+                    {ministries.map((m) => (
+                      <option key={m.id} value={m.id}>{m.name}</option>
+                    ))}
+                  </select>
+                </div>
+              )}
+
+              <div>
+                <label className="mb-2 block text-xs font-bold uppercase tracking-wider text-navy/60">
+                  Permissões Concedidas ao Usuário
+                </label>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 max-h-48 overflow-y-auto pr-1">
+                  {ALL_PERMISSIONS.map((p) => (
+                    <label key={p.id} className="flex items-center gap-2 rounded border border-line/60 bg-white p-2 text-xs hover:border-gold cursor-pointer">
+                      <input 
+                        type="checkbox" 
+                        name="permissions" 
+                        value={p.id} 
+                        defaultChecked={user.permissions?.includes(p.id)} 
+                        className="h-3.5 w-3.5 rounded border-line text-navy focus:ring-gold"
+                      />
+                      <span className="font-medium text-navy">{p.label}</span>
+                    </label>
+                  ))}
+                </div>
+              </div>
+            </div>
+          )}
+
+          <div className="flex justify-end gap-2 pt-3 border-t border-line">
+            <button 
+              type="button" 
+              onClick={onClose} 
+              className="rounded border border-line px-4 py-2 font-body text-xs font-semibold uppercase text-navy/70 hover:bg-black/5"
+            >
+              Cancelar
+            </button>
+            <button 
+              type="submit" 
+              disabled={pending} 
+              className="rounded bg-navy px-4 py-2 font-body text-xs font-semibold uppercase tracking-wide text-cream hover:bg-gold hover:text-navy transition-colors disabled:opacity-50"
+            >
+              {pending ? 'Salvando...' : 'Salvar Alterações'}
+            </button>
+          </div>
+
+          {state.error && (
+            <p className="rounded bg-red-50 p-2 text-xs font-medium text-red-600 border border-red-200">
+              {state.error}
+            </p>
+          )}
+        </form>
+      </div>
+    </div>
+  )
+}
+
+================
+File: src/app/admin/catequese/page.tsx
+================
+// src/app/admin/catequese/page.tsx
+import { redirect } from 'next/navigation'
+import { headers } from 'next/headers'
+import { auth } from '@/auth'
+import { prisma } from '@/lib/prisma'
+import { TabsNav } from './components/TabsNav'
+import { WeekTab } from './components/tabs/WeekTab'
+import { CatechistsTab } from './components/tabs/CatechistsTab'
+import { StudentsTab } from './components/tabs/StudentsTab'
+import { ReportTab } from './components/tabs/ReportTab'
+import { HelpTab } from './components/tabs/HelpTab'
+
+export const dynamic = 'force-dynamic'
+
+type PageProps = {
+  searchParams: Promise<{ 
+    tab?: string;
+    weekId?: string;
+    catechistName?: string;
+    stage?: string;
+  }>
+}
+
+export default async function AdminCatechismPage({ searchParams }: PageProps) {
+  const session = await auth()
+  if (!session?.user) redirect('/')
+  
+  // 1. Extração de parâmetros
+  const { 
+    tab = 'semana', 
+    weekId = 'all', 
+    catechistName = 'all', 
+    stage = 'all' 
+  } = await searchParams
+
+  // 2. Lógica de Escopo e Permissão Contextual (RBAC Dinâmico)
+  const isSuperAdmin = session.user.staffRole === 'SUPER_ADMIN'
+  const hasGlobalPermission = session.user.permissions?.includes('MANAGE_CATECHISM')
+  
+  // Flag que define se o usuário pode ver TODA a paróquia
+  const isGlobalAdmin = isSuperAdmin || hasGlobalPermission
+
+  let linkedCatechistId: string | null = null
+
+  // Se NÃO for coordenador/admin, verificamos se ele possui uma turma vinculada
+  if (!isGlobalAdmin) {
+    const catechistProfile = await prisma.catechist.findUnique({
+      where: { userId: session.user.id },
+      select: { id: true }
+    })
+
+    // Não é coordenador E não é catequista? Expulso.
+    if (!catechistProfile) {
+      redirect('/')
+    }
+    
+    // Armazenamos o ID da turma dele para injetar nas abas
+    linkedCatechistId = catechistProfile.id
+  }
+
+  // 3. Montagem de URL Base
+  const headersList = await headers()
+  const host = headersList.get('host') || 'localhost:3000'
+  const protocol = host.includes('localhost') ? 'http' : 'https'
+  const dynamicBaseUrl = `${protocol}://${host}`
+  const baseUrl = process.env.NEXT_PUBLIC_SITE_URL || dynamicBaseUrl
+
+  // 4. Trava de Rota de Componente (Um catequista comum não deve ver a aba de cadastrar outros catequistas)
+  const activeTab = (!isGlobalAdmin && tab === 'catequistas') ? 'relatorio' : tab
+
+  return (
+    <main className="min-h-screen bg-cream px-6 py-12 text-navy">
+      <div className="mx-auto max-w-2xl">
+        <h1 className="font-display text-3xl font-bold">Catequese</h1>
+        <p className="mt-1 font-body text-sm text-navy/60">
+          {isGlobalAdmin 
+            ? 'Gestão completa: Semanas, catequistas, alunos e relatórios da paróquia.' 
+            : 'Gestão da sua turma: Lista de alunos e diário de classe.'}
+        </p>
+
+        {/* Enviamos a flag de admin para ocultar a aba "Catequistas" de quem não tem permissão */}
+        <TabsNav currentTab={activeTab} isGlobalAdmin={isGlobalAdmin} />
+
+        <div className="mt-6">
+          {activeTab === 'semana' && <WeekTab baseUrl={baseUrl} />}
+          
+          {/* Somente coordenadores acessam o CRUD de Catequistas */}
+          {activeTab === 'catequistas' && isGlobalAdmin && <CatechistsTab />}
+          
+          {/* Passamos o escopo para as abas para que busquem apenas os dados corretos no banco */}
+          {activeTab === 'alunos' && (
+            <StudentsTab 
+              isGlobalAdmin={isGlobalAdmin} 
+              linkedCatechistId={linkedCatechistId} 
+            />
+          )}
+          
+          {activeTab === 'relatorio' && (
+            <ReportTab 
+              filters={{ weekId, catechistName, stage }} 
+              isGlobalAdmin={isGlobalAdmin}
+              linkedCatechistId={linkedCatechistId}
+            />
+          )}
+          
+          {activeTab === 'ajuda' && <HelpTab />}
+        </div>
+      </div>
+    </main>
+  )
+}
+
+================
+File: src/app/admin/usuarios/page.tsx
+================
+import { prisma } from '@/lib/prisma'
+import { auth } from '@/auth'
+import { redirect } from 'next/navigation'
+import Link from 'next/link'
+import { AdminUsersClient } from './AdminUsersClient'
+
+type PageProps = {
+  searchParams: Promise<{
+    q?: string
+    page?: string
+  }>
+}
+
+export default async function AdminUsersPage({ searchParams }: PageProps) {
+  const session = await auth()
+  if (session?.user?.staffRole !== 'SUPER_ADMIN') redirect('/')
+
+  const { q = '', page = '1' } = await searchParams
+  const pageSize = 10
+  const currentPage = Math.max(1, parseInt(page, 10))
+
+  const whereClause = q
+    ? {
+        OR: [
+          { name: { contains: q, mode: 'insensitive' as const } },
+          { email: { contains: q, mode: 'insensitive' as const } },
+        ],
+      }
+    : {}
+
+  const [users, totalCount, ministries] = await Promise.all([
+    prisma.user.findMany({
+      where: whereClause,
+      orderBy: { createdAt: 'desc' },
+      skip: (currentPage - 1) * pageSize,
+      take: pageSize,
+      select: {
+        id: true,
+        name: true,
+        email: true,
+        image: true,
+        staffRole: true,
+        permissions: true,
+        createdAt: true,
+      },
+    }),
+    prisma.user.count({ where: whereClause }),
+    prisma.ministry.findMany({ select: { id: true, name: true }, orderBy: { name: 'asc' } }),
+  ])
+
+  const totalPages = Math.ceil(totalCount / pageSize)
+
+  return (
+    <main className="min-h-screen bg-cream px-6 py-12 text-navy font-body">
+      <div className="mx-auto max-w-3xl">
+        <h1 className="font-display text-3xl font-bold">Usuários e Permissões</h1>
+        <p className="mt-1 text-sm text-navy/60">
+          Gerenciamento de acessos à plataforma ({totalCount} usuários cadastrados).
+        </p>
+
+        <form method="GET" className="mt-6 flex gap-2">
+          <input
+            name="q"
+            defaultValue={q}
+            placeholder="Buscar por nome ou e-mail..."
+            className="flex-1 rounded-lg border border-line bg-white px-4 py-2 text-sm focus:border-gold focus:outline-none"
+          />
+          <button
+            type="submit"
+            className="rounded-lg bg-navy px-4 py-2 text-xs font-semibold uppercase tracking-wide text-cream hover:bg-gold hover:text-navy transition-colors"
+          >
+            Buscar
+          </button>
+        </form>
+
+        <AdminUsersClient
+          users={users}
+          ministries={ministries}
+          currentUserId={session.user.id}
+        />
+
+        {totalPages > 1 && (
+          <div className="mt-6 flex items-center justify-between border-t border-line pt-4">
+            <span className="text-xs text-navy/60">
+              Página {currentPage} de {totalPages}
+            </span>
+            <div className="flex gap-2">
+              {currentPage > 1 && (
+                <Link
+                  href={`/admin/usuarios?q=${q}&page=${currentPage - 1}`}
+                  className="rounded border border-line px-3 py-1 text-xs font-semibold text-navy hover:bg-navy/5"
+                >
+                  Anterior
+                </Link>
+              )}
+              {currentPage < totalPages && (
+                <Link
+                  href={`/admin/usuarios?q=${q}&page=${currentPage + 1}`}
+                  className="rounded border border-line px-3 py-1 text-xs font-semibold text-navy hover:bg-navy/5"
+                >
+                  Próxima
+                </Link>
+              )}
+            </div>
+          </div>
+        )}
+      </div>
+    </main>
+  )
+}
+
+================
+File: src/app/admin/usuarios/AdminUsersClient.tsx
+================
+// src/app/admin/usuarios/AdminUsersClient.tsx
+'use client'
+
+import { useActionState, useState } from 'react'
+import { updateStaffAccess } from '@/actions/staffAccess'
+import type { StaffPermission, StaffRole } from '@prisma/client'
+
+type User = {
+  id: string
+  name: string | null
+  email: string | null
+  image: string | null
+  staffRole: StaffRole | null
+  permissions: StaffPermission[] | string[]
+  createdAt?: Date
+}
+
+type Ministry = { id: string; name: string }
+
+type ActionState = { success: boolean; error?: string }
+
+const PERMISSION_LABELS: Record<StaffPermission, string> = {
+  MANAGE_CATECHISM: 'Catequese (Gestão de alunos e chamadas)',
+  MANAGE_EVENTS: 'Eventos paroquiais',
+  MANAGE_GALLERY: 'Galeria de fotos',
+  MANAGE_MASS_SCHEDULE: 'Horários de missa',
+  MANAGE_MINISTRIES: 'Pastorais e ministérios',
+  MANAGE_FAQ: 'Perguntas frequentes (FAQ)',
+  MANAGE_LITURGICAL_THEME: 'Cores e tema litúrgico',
+  MANAGE_TESTIMONIALS: 'Moderação de testemunhos',
+  VIEW_PRAYER_REQUESTS: 'Ver pedidos de oração',
+  MANAGE_TITHE_RAFFLE: 'Sorteio do dízimo',
+  MANAGE_LIVE_STREAM: 'Transmissão ao vivo (moderação de pedidos)',
+}
+
+function roleLabel(role: StaffRole | string | null) {
+  if (role === 'SUPER_ADMIN') return 'Super Admin'
+  if (role === 'STAFF') return 'Equipe Operacional / Staff'
+  if (role === 'MINISTRY_LEADER') return 'Líder de Ministério'
+  return 'Sem acesso ao painel'
+}
+
+function UserEditForm({
+  user,
+  isSelf,
+  onDone,
+}: {
+  user: User
+  ministries: Ministry[]
+  isSelf: boolean
+  onDone: () => void
+}) {
+  const [state, formAction, pending] = useActionState<ActionState, FormData>(
+    updateStaffAccess,
+    { success: false }
+  )
+  const [role, setRole] = useState<string>(user.staffRole ?? '')
+
+  const showPermissions = role === 'STAFF' || role === 'MINISTRY_LEADER'
+
+  return (
+    <form
+      action={formAction}
+      className="mt-3 space-y-3 rounded-lg border border-dashed border-line bg-cream/40 p-4 animate-[fadein_0.2s_ease]"
+    >
+      <input type="hidden" name="userId" value={user.id} />
+
+      <div>
+        <label className="block text-xs font-bold uppercase tracking-wide text-navy/60">
+          Cargo / Nível
+        </label>
+        <select
+          name="staffRole"
+          value={role}
+          onChange={(e) => setRole(e.target.value)}
+          disabled={isSelf}
+          className="mt-1 w-full rounded border border-line bg-white px-3 py-2 font-body text-sm focus:border-gold focus:outline-none disabled:opacity-60"
+        >
+          <option value="">Sem acesso ao painel (Fiel / Membro)</option>
+          <option value="STAFF">Equipe Operacional (Staff / Catequista / Secretário)</option>
+          <option value="MINISTRY_LEADER">Líder de Ministério / Pastoral</option>
+          <option value="SUPER_ADMIN">Super Admin</option>
+        </select>
+        {isSelf && (
+          <p className="mt-1 font-body text-xs text-navy/40">
+            Você não pode alterar seu próprio cargo por aqui.
+          </p>
+        )}
+      </div>
+
+      {showPermissions && (
+        <div>
+          <label className="block text-xs font-bold uppercase tracking-wide text-navy/60">
+            Permissões Concedidas
+          </label>
+          <div className="mt-2 grid grid-cols-1 sm:grid-cols-2 gap-2">
+            {(Object.entries(PERMISSION_LABELS) as [StaffPermission, string][]).map(([value, label]) => (
+              <label
+                key={value}
+                className="flex items-center gap-2 rounded border border-line/60 bg-white p-2 font-body text-xs hover:border-gold cursor-pointer"
+              >
+                <input
+                  type="checkbox"
+                  name="permissions"
+                  value={value}
+                  defaultChecked={(user.permissions as string[])?.includes(value)}
+                  className="h-3.5 w-3.5 rounded border-line text-navy focus:ring-gold"
+                />
+                <span className="text-navy">{label}</span>
+              </label>
+            ))}
+          </div>
+        </div>
+      )}
+
+      <div className="flex gap-2 pt-2">
+        <button
+          type="submit"
+          disabled={pending}
+          className="flex-1 rounded bg-navy py-2 font-body text-xs font-semibold uppercase tracking-wide text-cream transition-colors hover:bg-gold hover:text-navy disabled:opacity-60"
+        >
+          {pending ? 'Salvando...' : 'Salvar Alterações'}
+        </button>
+        <button
+          type="button"
+          onClick={onDone}
+          className="flex-1 rounded border border-line py-2 font-body text-xs font-semibold uppercase tracking-wide text-navy/60 hover:bg-black/5"
+        >
+          Cancelar
+        </button>
+      </div>
+
+      {state?.error && <p className="font-body text-xs text-red-600">{state.error}</p>}
+      {state?.success && <p className="font-body text-xs text-green-700">Salvo com sucesso!</p>}
+    </form>
+  )
+}
+
+export function AdminUsersClient({
+  users,
+  ministries,
+  currentUserId,
+}: {
+  users: User[]
+  ministries: Ministry[]
+  currentUserId: string
+}) {
+  const [editingId, setEditingId] = useState<string | null>(null)
+
+  return (
+    <div className="mt-8 space-y-3">
+      {users.map((u) => (
+        <div key={u.id} className="rounded-xl border border-line bg-white p-4 shadow-sm">
+          <div className="flex items-start justify-between gap-3">
+            <div className="flex items-center gap-3">
+              {u.image ? (
+                // eslint-disable-next-line @next/next/no-img-element
+                <img src={u.image} alt="" className="h-10 w-10 rounded-full border border-line" />
+              ) : (
+                <div className="flex h-10 w-10 items-center justify-center rounded-full bg-navy font-bold text-cream">
+                  {u.name?.[0] ?? 'U'}
+                </div>
+              )}
+              <div>
+                <p className="font-display font-semibold text-navy">{u.name ?? 'Sem nome'}</p>
+                <p className="font-body text-xs text-navy/50">{u.email}</p>
+                <p className="mt-1 font-body text-xs font-semibold text-navy/70">
+                  {roleLabel(u.staffRole)}
+                </p>
+              </div>
+            </div>
+            <button
+              onClick={() => setEditingId(editingId === u.id ? null : u.id)}
+              className="shrink-0 rounded border border-line px-3 py-1.5 font-body text-xs font-semibold text-navy transition-colors hover:border-gold hover:bg-navy/5"
+            >
+              {editingId === u.id ? 'Fechar' : 'Editar acesso'}
+            </button>
+          </div>
+
+          {editingId === u.id && (
+            <UserEditForm
+              user={u}
+              ministries={ministries}
+              isSelf={u.id === currentUserId}
+              onDone={() => setEditingId(null)}
+            />
+          )}
+        </div>
+      ))}
+
+      {users.length === 0 && (
+        <p className="py-8 text-center font-body text-sm text-navy/40">Nenhum usuário encontrado.</p>
+      )}
+    </div>
+  )
+}
+
+================
+File: src/app/admin/page.tsx
+================
+// src/app/admin/page.tsx
+import Link from 'next/link'
+import { auth } from '@/auth'
+import { redirect } from 'next/navigation'
+import type { StaffPermission } from '@prisma/client'
+
+// Tipagem atualizada para suportar grupos e múltiplas permissões
+type MenuItem = {
+  group: string
+  label: string
+  href: string
+  permissions?: StaffPermission[]
+  adminOnly?: boolean
+}
+
+// Menu organizado por Domínios (Departamentos da Paróquia)
+const MENU: MenuItem[] = [
+  // --- ATENDIMENTO ---
+  { group: 'Atendimento', label: 'Caixa de Entrada', href: '/admin/pedidos', permissions: ['MANAGE_SECRETARY_REQUESTS', 'MANAGE_MASS_INTENTIONS'] },
+  { group: 'Atendimento', label: 'FAQ', href: '/admin/faq', permissions: ['MANAGE_FAQ'] },
+
+  // --- LITURGIA ---
+  { group: 'Liturgia', label: 'Horários de Missa', href: '/admin/horarios', permissions: ['MANAGE_MASS_SCHEDULE'] },
+  { group: 'Liturgia', label: 'Tempo Litúrgico', href: '/admin/liturgico', permissions: ['MANAGE_LITURGICAL_THEME'] },
+  { group: 'Liturgia', label: 'Palavra do Dia', href: '/admin/palavra-do-dia', permissions: ['MANAGE_LITURGICAL_THEME'] },
+
+  // --- COMUNIDADE ---
+  { group: 'Comunidade', label: 'Catequese', href: '/admin/catequese', permissions: ['MANAGE_CATECHISM'] },
+  { group: 'Comunidade', label: 'Pastorais e Movimentos', href: '/admin/ministerios', permissions: ['MANAGE_MINISTRIES'] },
+  { group: 'Comunidade', label: 'Próximos Eventos', href: '/admin/eventos', permissions: ['MANAGE_EVENTS'] },
+
+  // --- COMUNICAÇÃO ---
+  { group: 'Comunicação', label: 'Canais de Transmissão', href: '/admin/ao-vivo', permissions: ['MANAGE_LIVE_STREAM'] },
+  { group: 'Comunicação', label: 'Monitor Ao Vivo (Mural)', href: '/admin/pedidosLive', permissions: ['MANAGE_LIVE_STREAM'] },
+  { group: 'Comunicação', label: 'Galeria de Fotos', href: '/admin/galeria', permissions: ['MANAGE_GALLERY'] },
+  { group: 'Comunicação', label: 'Depoimentos', href: '/admin/depoimentos', permissions: ['MANAGE_TESTIMONIALS'] },
+
+  // --- SISTEMA ---
+  { group: 'Sistema', label: 'Dados Institucionais', href: '/admin/configuracoes', adminOnly: true },
+  { group: 'Sistema', label: 'Usuários e Equipe', href: '/admin/usuarios', adminOnly: true },
+]
+
+export default async function AdminPage() {
+  const session = await auth()
+  
+  if (!session?.user) redirect('/')
+
+  const isSuperAdmin = session.user.staffRole === 'SUPER_ADMIN'
+  const userPermissions = (session.user.permissions as StaffPermission[]) ?? []
+
+  // 1. Filtra os itens permitidos para o usuário atual
+  const allowedMenu = MENU.filter((item) => {
+    if (isSuperAdmin) return true
+    if (item.adminOnly && !isSuperAdmin) return false
+    
+    // Se o item exige permissões, o usuário deve ter pelo menos uma delas
+    if (item.permissions) {
+      return item.permissions.some(p => userPermissions.includes(p))
+    }
+    
+    return true
+  })
+
+  // Se o usuário não tiver acesso a nada, manda pra home
+  if (allowedMenu.length === 0) redirect('/')
+
+  // 2. Agrupa os itens permitidos pela chave "group"
+  const groupedMenu = allowedMenu.reduce((acc, item) => {
+    if (!acc[item.group]) {
+      acc[item.group] = []
+    }
+    acc[item.group].push(item)
+    return acc
+  }, {} as Record<string, MenuItem[]>)
+
+  return (
+    <main className="min-h-screen bg-cream px-4 py-12 sm:px-6 text-navy">
+      <div className="mx-auto max-w-4xl animate-[fadein_0.3s_ease]">
+        
+        <header className="mb-10 rounded-2xl border border-line bg-white p-6 shadow-sm">
+          <h1 className="font-display text-3xl font-bold">Painel Administrativo</h1>
+          <p className="mt-1 font-body text-sm text-navy/60">
+            Bem-vindo(a), <span className="font-semibold text-navy">{session.user.name}</span>. 
+            Selecione o módulo que deseja gerenciar.
+          </p>
+        </header>
+
+        <div className="space-y-10">
+          {Object.entries(groupedMenu).map(([groupName, items]) => (
+            <section key={groupName}>
+              {/* Título do Departamento */}
+              <h2 className="mb-4 border-b border-line pb-2 font-display text-lg font-bold text-navy/80 uppercase tracking-wide">
+                {groupName}
+              </h2>
+              
+              {/* Grid de Cards */}
+              <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+                {items.map((item) => (
+                  <Link
+                    key={item.href}
+                    href={item.href}
+                    className="group flex flex-col justify-center rounded-xl border border-line bg-white p-5 font-body transition-all hover:border-gold hover:shadow-md hover:-translate-y-0.5"
+                  >
+                    <span className="font-semibold text-navy group-hover:text-gold transition-colors">
+                      {item.label}
+                    </span>
+                    <span className="mt-1 text-xs text-navy/40 opacity-0 transition-opacity group-hover:opacity-100">
+                      Acessar módulo →
+                    </span>
+                  </Link>
+                ))}
+              </div>
+            </section>
+          ))}
+        </div>
+        
+      </div>
+    </main>
+  )
+}
+
+
+
+
+
+================================================================
+End of Codebase
+================================================================
