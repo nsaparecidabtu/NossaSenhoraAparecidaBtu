@@ -31,6 +31,29 @@ const PERMISSION_LABELS: Record<StaffPermission, string> = {
   VIEW_PRAYER_REQUESTS: 'Ver pedidos de oração',
   MANAGE_TITHE_RAFFLE: 'Sorteio do dízimo',
   MANAGE_LIVE_STREAM: 'Transmissão ao vivo (moderação de pedidos)',
+  MANAGE_SETTINGS: 'Configurações do painel',
+  MANAGE_USERS: 'Gestão de usuários',
+  MANAGE_SECRETARY_REQUESTS: 'Solicitações da secretaria',
+  MANAGE_MASS_INTENTIONS: 'Intenções de missa',
+}
+
+// Versão curta pra caber num badge — mesma ordem/chaves de PERMISSION_LABELS
+const PERMISSION_SHORT_LABELS: Record<StaffPermission, string> = {
+  MANAGE_CATECHISM: 'Catequese',
+  MANAGE_EVENTS: 'Eventos',
+  MANAGE_GALLERY: 'Galeria',
+  MANAGE_MASS_SCHEDULE: 'Horários',
+  MANAGE_MINISTRIES: 'Ministérios',
+  MANAGE_FAQ: 'FAQ',
+  MANAGE_LITURGICAL_THEME: 'Litúrgico',
+  MANAGE_TESTIMONIALS: 'Testemunhos',
+  VIEW_PRAYER_REQUESTS: 'Pedidos de Oração',
+  MANAGE_TITHE_RAFFLE: 'Dízimo',
+  MANAGE_LIVE_STREAM: 'Ao Vivo',
+  MANAGE_SETTINGS: 'Config',
+  MANAGE_USERS: 'Usuários',
+  MANAGE_SECRETARY_REQUESTS: 'Secretaria',
+  MANAGE_MASS_INTENTIONS: 'Intenções',
 }
 
 function roleLabel(role: StaffRole | string | null) {
@@ -38,6 +61,41 @@ function roleLabel(role: StaffRole | string | null) {
   if (role === 'STAFF') return 'Equipe Operacional / Staff'
   if (role === 'MINISTRY_LEADER') return 'Líder de Ministério'
   return 'Sem acesso ao painel'
+}
+
+function RoleBadge({ role }: { role: StaffRole | string | null }) {
+  const styles: Record<string, string> = {
+    SUPER_ADMIN: 'bg-gold/20 text-navy border border-gold/50',
+    MINISTRY_LEADER: 'bg-purple-100 text-purple-800 border border-purple-200',
+    STAFF: 'bg-blue-100 text-blue-800 border border-blue-200',
+  }
+  const style = (role && styles[role]) || 'bg-gray-100 text-gray-600 border border-gray-200'
+
+  return (
+    <span
+      className={`inline-block rounded-full px-2.5 py-0.5 font-body text-[10px] font-bold uppercase tracking-wide ${style}`}
+    >
+      {roleLabel(role)}
+    </span>
+  )
+}
+
+function PermissionChips({ permissions }: { permissions: (StaffPermission | string)[] }) {
+  if (!permissions || permissions.length === 0) {
+    return <span className="font-body text-xs italic text-navy/40">Nenhuma permissão concedida ainda</span>
+  }
+  return (
+    <div className="mt-1.5 flex flex-wrap gap-1.5">
+      {permissions.map((p) => (
+        <span
+          key={p}
+          className="rounded bg-navy/5 px-2 py-0.5 font-body text-[10px] font-semibold text-navy/70"
+        >
+          {PERMISSION_SHORT_LABELS[p as StaffPermission] ?? p}
+        </span>
+      ))}
+    </div>
+  )
 }
 
 function UserEditForm({
@@ -136,61 +194,186 @@ function UserEditForm({
   )
 }
 
-export function AdminUsersClient({
+function UserCard({
+  user,
+  ministries,
+  currentUserId,
+  editingId,
+  setEditingId,
+  showPermissionChips,
+}: {
+  user: User
+  ministries: Ministry[]
+  currentUserId: string
+  editingId: string | null
+  setEditingId: (id: string | null) => void
+  showPermissionChips: boolean
+}) {
+  const isEditing = editingId === user.id
+
+  return (
+    <div className="rounded-xl border border-line bg-white p-4 shadow-sm">
+      <div className="flex items-start justify-between gap-3">
+        <div className="flex items-start gap-3">
+          {user.image ? (
+            // eslint-disable-next-line @next/next/no-img-element
+            <img src={user.image} alt="" className="h-10 w-10 rounded-full border border-line" />
+          ) : (
+            <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-navy font-bold text-cream">
+              {user.name?.[0] ?? 'U'}
+            </div>
+          )}
+          <div>
+            <div className="flex flex-wrap items-center gap-2">
+              <p className="font-display font-semibold text-navy">{user.name ?? 'Sem nome'}</p>
+              <RoleBadge role={user.staffRole} />
+            </div>
+            <p className="font-body text-xs text-navy/50">{user.email}</p>
+            {showPermissionChips && <PermissionChips permissions={user.permissions} />}
+          </div>
+        </div>
+        <button
+          onClick={() => setEditingId(isEditing ? null : user.id)}
+          className="shrink-0 rounded border border-line px-3 py-1.5 font-body text-xs font-semibold text-navy transition-colors hover:border-gold hover:bg-navy/5"
+        >
+          {isEditing ? 'Fechar' : 'Editar acesso'}
+        </button>
+      </div>
+
+      {isEditing && (
+        <UserEditForm
+          user={user}
+          ministries={ministries}
+          isSelf={user.id === currentUserId}
+          onDone={() => setEditingId(null)}
+        />
+      )}
+    </div>
+  )
+}
+
+function RoleGroup({
+  title,
+  hint,
   users,
   ministries,
   currentUserId,
+  editingId,
+  setEditingId,
 }: {
+  title: string
+  hint?: string
   users: User[]
+  ministries: Ministry[]
+  currentUserId: string
+  editingId: string | null
+  setEditingId: (id: string | null) => void
+}) {
+  if (users.length === 0) return null
+
+  return (
+    <div>
+      <div className="flex items-baseline justify-between">
+        <h3 className="font-display text-sm font-bold uppercase tracking-wide text-navy/70">
+          {title} <span className="font-body text-xs font-normal text-navy/40">({users.length})</span>
+        </h3>
+      </div>
+      {hint && <p className="mt-0.5 font-body text-xs text-navy/40">{hint}</p>}
+      <div className="mt-3 space-y-3">
+        {users.map((u) => (
+          <UserCard
+            key={u.id}
+            user={u}
+            ministries={ministries}
+            currentUserId={currentUserId}
+            editingId={editingId}
+            setEditingId={setEditingId}
+            showPermissionChips
+          />
+        ))}
+      </div>
+    </div>
+  )
+}
+
+export function AdminUsersClient({
+  staffUsers,
+  members,
+  ministries,
+  currentUserId,
+}: {
+  staffUsers: User[]
+  members: User[]
   ministries: Ministry[]
   currentUserId: string
 }) {
   const [editingId, setEditingId] = useState<string | null>(null)
 
-  return (
-    <div className="mt-8 space-y-3">
-      {users.map((u) => (
-        <div key={u.id} className="rounded-xl border border-line bg-white p-4 shadow-sm">
-          <div className="flex items-start justify-between gap-3">
-            <div className="flex items-center gap-3">
-              {u.image ? (
-                // eslint-disable-next-line @next/next/no-img-element
-                <img src={u.image} alt="" className="h-10 w-10 rounded-full border border-line" />
-              ) : (
-                <div className="flex h-10 w-10 items-center justify-center rounded-full bg-navy font-bold text-cream">
-                  {u.name?.[0] ?? 'U'}
-                </div>
-              )}
-              <div>
-                <p className="font-display font-semibold text-navy">{u.name ?? 'Sem nome'}</p>
-                <p className="font-body text-xs text-navy/50">{u.email}</p>
-                <p className="mt-1 font-body text-xs font-semibold text-navy/70">
-                  {roleLabel(u.staffRole)}
-                </p>
-              </div>
-            </div>
-            <button
-              onClick={() => setEditingId(editingId === u.id ? null : u.id)}
-              className="shrink-0 rounded border border-line px-3 py-1.5 font-body text-xs font-semibold text-navy transition-colors hover:border-gold hover:bg-navy/5"
-            >
-              {editingId === u.id ? 'Fechar' : 'Editar acesso'}
-            </button>
-          </div>
+  const superAdmins = staffUsers.filter((u) => u.staffRole === 'SUPER_ADMIN')
+  const ministryLeaders = staffUsers.filter((u) => u.staffRole === 'MINISTRY_LEADER')
+  const staff = staffUsers.filter((u) => u.staffRole === 'STAFF')
 
-          {editingId === u.id && (
-            <UserEditForm
+  return (
+    <div className="mt-6 space-y-8">
+      {staffUsers.length === 0 && (
+        <p className="font-body text-sm text-navy/40">Nenhum membro da equipe cadastrado ainda.</p>
+      )}
+
+      <RoleGroup
+        title="Super Admin"
+        hint="Acesso total ao painel, sem restrição por permissão."
+        users={superAdmins}
+        ministries={ministries}
+        currentUserId={currentUserId}
+        editingId={editingId}
+        setEditingId={setEditingId}
+      />
+
+      <RoleGroup
+        title="Líderes de Ministério"
+        users={ministryLeaders}
+        ministries={ministries}
+        currentUserId={currentUserId}
+        editingId={editingId}
+        setEditingId={setEditingId}
+      />
+
+      <RoleGroup
+        title="Equipe Operacional / Staff"
+        users={staff}
+        ministries={ministries}
+        currentUserId={currentUserId}
+        editingId={editingId}
+        setEditingId={setEditingId}
+      />
+
+      <div>
+        <h3 className="font-display text-sm font-bold uppercase tracking-wide text-navy/70">
+          Sem acesso ao painel{' '}
+          <span className="font-body text-xs font-normal text-navy/40">(fiéis com login)</span>
+        </h3>
+        <p className="mt-0.5 font-body text-xs text-navy/40">
+          Busque por nome ou e-mail abaixo pra promover alguém a Staff ou Líder de Ministério.
+        </p>
+        <div className="mt-3 space-y-3">
+          {members.map((u) => (
+            <UserCard
+              key={u.id}
               user={u}
               ministries={ministries}
-              isSelf={u.id === currentUserId}
-              onDone={() => setEditingId(null)}
+              currentUserId={currentUserId}
+              editingId={editingId}
+              setEditingId={setEditingId}
+              showPermissionChips={false}
             />
+          ))}
+          {members.length === 0 && (
+            <p className="py-6 text-center font-body text-sm text-navy/40">
+              Nenhum fiel encontrado com esse filtro.
+            </p>
           )}
         </div>
-      ))}
-
-      {users.length === 0 && (
-        <p className="py-8 text-center font-body text-sm text-navy/40">Nenhum usuário encontrado.</p>
-      )}
+      </div>
     </div>
   )
 }

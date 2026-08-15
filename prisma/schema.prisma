@@ -382,6 +382,7 @@ enum StaffPermission {
   MANAGE_FAQ               // Dúvidas frequentes sobre a secretaria e sacramentos
   MANAGE_TESTIMONIALS      // Moderação de Testemunhos e Graças Alcançadas
   MANAGE_TITHE_RAFFLE      // Gestão do Dízimo, Campanhas de Arrecadação e Sorteios paroquiais
+  VIEW_PRAYER_REQUESTS      // Visualização de pedidos de oração e intenções de fiéis (sem moderação)
 }
 
 enum LiveStreamMode {

@@ -4,6 +4,7 @@ import type { Metadata } from 'next'
 import { Cormorant_Garamond, Nunito } from 'next/font/google'
 import { SiteHeader } from '@/components/layout/SiteHeader'
 import './globals.css'
+import { Analytics } from '@vercel/analytics/react'
 
 const cormorant = Cormorant_Garamond({
   subsets: ['latin'],
@@ -87,7 +88,10 @@ export default function RootLayout({
       <body className={`${cormorant.variable} ${nunito.variable} antialiased`}>
         <SiteHeader />
         {children}
+        <Analytics /> {/* Injetado apenas uma vez aqui */}
       </body>
     </html>
   )
 }
+
+  
