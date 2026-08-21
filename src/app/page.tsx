@@ -16,11 +16,23 @@ import { FaqSection } from '@/components/home/FaqSection'
 import { DailyWordSection } from '@/components/home/DailyWordSection'
 import { SiteFooter } from '@/components/home/SiteFooter'
 
-export const dynamic = 'force-dynamic' // conteúdo editado no admin deve refletir na hora
+export const dynamic = 'force-dynamic'
 
 export default async function Home() {
-  const [settings, massSchedules, events, gallery, ministries, faqs, dailyWord, liveStream, season, testimonials] =
-    await Promise.all([
+  // 🚀 ARQUITETURA: Adicionamos os contacts no Promise.all para executar em paralelo com o resto!
+  const [
+    settings, 
+    massSchedules, 
+    events, 
+    gallery, 
+    ministries, 
+    faqs, 
+    dailyWord, 
+    liveStream, 
+    season, 
+    testimonials, 
+    contacts // <-- NOVO AQUI
+  ] = await Promise.all([
       prisma.parishSettings.findUnique({ where: { id: 'singleton' } }),
       prisma.massSchedule.findMany({ orderBy: { order: 'asc' } }),
       prisma.event.findMany({
@@ -40,10 +52,8 @@ export default async function Home() {
         take: 6,
         include: { user: { select: { name: true, image: true } } },
       }),
+      prisma.siteContact.findMany({ orderBy: { createdAt: 'asc' } }) // <-- NOVA QUERY AQUI
     ])
-
-    console.log('DB HOST:', process.env.DATABASE_URL?.split('@')[1])
-    console.log('DAILY WORD:', dailyWord)
 
   const themeMode = settings?.liturgicalThemeMode ?? 'DISCRETO'
   const mapsUrl = settings?.address
@@ -56,51 +66,25 @@ export default async function Home() {
         <div className="h-1.5 w-full" style={{ backgroundColor: season.colorHex }} />
       )}
 
-      <Hero
-        name={settings?.name}
-        heroImageUrl={settings?.heroImageUrl}
-        heroTagline={settings?.heroTagline}
-        themeMode={themeMode}
-        season={season}
-        mapsUrl={mapsUrl}
-      />
-
+      <Hero name={settings?.name} heroImageUrl={settings?.heroImageUrl} heroTagline={settings?.heroTagline} themeMode={themeMode} season={season} mapsUrl={mapsUrl} />
       <LiveStreamSection youtubeVideoId={liveStream?.youtubeVideoId} isLiveNow={liveStream?.isLiveNow} />
-
       <MassScheduleSection massSchedules={massSchedules} themeMode={themeMode} season={season} />
-
-      <AboutSection
-        name={settings?.name}
-        aboutText={settings?.aboutText}
-        aboutImageUrl={settings?.aboutImageUrl}
-        themeMode={themeMode}
-        season={season}
-      />
-
+      <AboutSection name={settings?.name} aboutText={settings?.aboutText} aboutImageUrl={settings?.aboutImageUrl} themeMode={themeMode} season={season} />
       <TestimonialsBlock testimonials={testimonials} />
-
       <EventsSection events={events} />
-
       <GallerySection gallery={gallery} />
-
       <MinistriesSection ministries={ministries} />
-
       <DonationSection pixKey={settings?.pixKey} />
-
       <ContactLinksSection />
-
       <FaqSection faqs={faqs} />
-
       <DailyWordSection dailyWord={dailyWord} />
 
+      {/* 🚀 Passamos os contatos via Props agora */}
       <SiteFooter
         name={settings?.name}
         phone={settings?.phone}
         email={settings?.email}
-        //address={settings?.address}
-        //instagramUrl={settings?.instagramUrl}
-        //facebookUrl={settings?.facebookUrl}
-        //youtubeUrl={settings?.youtubeUrl}
+        contacts={contacts}
       />
     </main>
   )

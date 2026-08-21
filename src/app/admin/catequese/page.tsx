@@ -3,7 +3,7 @@ import { redirect } from 'next/navigation'
 import { headers } from 'next/headers'
 import { auth } from '@/auth'
 import { prisma } from '@/lib/prisma'
-import { TabsNav } from './components/TabsNav'
+import { AdminTabsNav } from '@/components/admin/AdminTabsNav'
 import { WeekTab } from './components/tabs/WeekTab'
 import { CatechistsTab } from './components/tabs/CatechistsTab'
 import { StudentsTab } from './components/tabs/StudentsTab'
@@ -12,8 +12,16 @@ import { HelpTab } from './components/tabs/HelpTab'
 
 export const dynamic = 'force-dynamic'
 
+const TABS = [
+  { id: 'semana', label: 'Semana / QR', requiresAdmin: false },
+  { id: 'catequistas', label: 'Catequistas', requiresAdmin: true }, // Protegido
+  { id: 'alunos', label: 'Catequizandos', requiresAdmin: false },
+  { id: 'relatorio', label: 'Relatório', requiresAdmin: false },
+  { id: 'ajuda', label: 'Manual & Ajuda', requiresAdmin: false },
+]
+
 type PageProps = {
-  searchParams: Promise<{ 
+  searchParams: Promise<{
     tab?: string;
     weekId?: string;
     catechistName?: string;
@@ -24,19 +32,19 @@ type PageProps = {
 export default async function AdminCatechismPage({ searchParams }: PageProps) {
   const session = await auth()
   if (!session?.user) redirect('/')
-  
+
   // 1. Extração de parâmetros
-  const { 
-    tab = 'semana', 
-    weekId = 'all', 
-    catechistName = 'all', 
-    stage = 'all' 
+  const {
+    tab = 'semana',
+    weekId = 'all',
+    catechistName = 'all',
+    stage = 'all'
   } = await searchParams
 
   // 2. Lógica de Escopo e Permissão Contextual (RBAC Dinâmico)
   const isSuperAdmin = session.user.staffRole === 'SUPER_ADMIN'
   const hasGlobalPermission = session.user.permissions?.includes('MANAGE_CATECHISM')
-  
+
   // Flag que define se o usuário pode ver TODA a paróquia
   const isGlobalAdmin = isSuperAdmin || hasGlobalPermission
 
@@ -53,7 +61,7 @@ export default async function AdminCatechismPage({ searchParams }: PageProps) {
     if (!catechistProfile) {
       redirect('/')
     }
-    
+
     // Armazenamos o ID da turma dele para injetar nas abas
     linkedCatechistId = catechistProfile.id
   }
@@ -73,36 +81,36 @@ export default async function AdminCatechismPage({ searchParams }: PageProps) {
       <div className="mx-auto max-w-2xl">
         <h1 className="font-display text-3xl font-bold">Catequese</h1>
         <p className="mt-1 font-body text-sm text-navy/60">
-          {isGlobalAdmin 
-            ? 'Gestão completa: Semanas, catequistas, alunos e relatórios da paróquia.' 
+          {isGlobalAdmin
+            ? 'Gestão completa: Semanas, catequistas, alunos e relatórios da paróquia.'
             : 'Gestão da sua turma: Lista de alunos e diário de classe.'}
         </p>
 
         {/* Enviamos a flag de admin para ocultar a aba "Catequistas" de quem não tem permissão */}
-        <TabsNav currentTab={activeTab} isGlobalAdmin={isGlobalAdmin} />
+        <AdminTabsNav tabs={TABS} currentTab={activeTab} isGlobalAdmin={isGlobalAdmin} />
 
         <div className="mt-6">
           {activeTab === 'semana' && <WeekTab baseUrl={baseUrl} />}
-          
+
           {/* Somente coordenadores acessam o CRUD de Catequistas */}
           {activeTab === 'catequistas' && isGlobalAdmin && <CatechistsTab />}
-          
+
           {/* Passamos o escopo para as abas para que busquem apenas os dados corretos no banco */}
           {activeTab === 'alunos' && (
-            <StudentsTab 
-              isGlobalAdmin={isGlobalAdmin} 
-              linkedCatechistId={linkedCatechistId} 
-            />
-          )}
-          
-          {activeTab === 'relatorio' && (
-            <ReportTab 
-              filters={{ weekId, catechistName, stage }} 
+            <StudentsTab
               isGlobalAdmin={isGlobalAdmin}
               linkedCatechistId={linkedCatechistId}
             />
           )}
-          
+
+          {activeTab === 'relatorio' && (
+            <ReportTab
+              filters={{ weekId, catechistName, stage }}
+              isGlobalAdmin={isGlobalAdmin}
+              linkedCatechistId={linkedCatechistId}
+            />
+          )}
+
           {activeTab === 'ajuda' && <HelpTab />}
         </div>
       </div>

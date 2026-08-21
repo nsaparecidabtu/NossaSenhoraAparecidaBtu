@@ -19,8 +19,8 @@ export default async function AdminMassSchedulePage({ searchParams }: PageProps)
 
   const canManage =
     session?.user?.staffRole === 'SUPER_ADMIN' ||
-    (session?.user?.staffRole === 'MINISTRY_LEADER' &&
-      session.user.permissions.includes('MANAGE_MASS_SCHEDULE'))
+    
+      session?.user?.permissions?.includes('MANAGE_MASS_SCHEDULE')
 
   if (!canManage) redirect('/')
 

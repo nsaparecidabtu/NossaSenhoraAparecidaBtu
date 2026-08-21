@@ -19,8 +19,8 @@ export default async function AdminMinistriesPage({ searchParams }: PageProps) {
 
   const canManage =
     session?.user?.staffRole === 'SUPER_ADMIN' ||
-    (session?.user?.staffRole === 'MINISTRY_LEADER' &&
-      session.user.permissions.includes('MANAGE_MINISTRIES'))
+    
+      session?.user?.permissions?.includes('MANAGE_MINISTRIES')
 
   if (!canManage) redirect('/')
 

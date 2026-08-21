@@ -19,8 +19,8 @@ export default async function AdminGalleryPage({ searchParams }: PageProps) {
 
   const canManage =
     session?.user?.staffRole === 'SUPER_ADMIN' ||
-    (session?.user?.staffRole === 'MINISTRY_LEADER' &&
-      session.user.permissions.includes('MANAGE_GALLERY'))
+    
+      session?.user?.permissions?.includes('MANAGE_GALLERY')
 
   if (!canManage) redirect('/')
 

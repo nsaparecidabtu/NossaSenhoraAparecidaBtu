@@ -44,3 +44,11 @@ next-env.d.ts
 
 .vercel
 .env*
+# repomix dumps (gerados durante sessões de análise com IA — não versionar)
+adm.txt
+ajuda.txt
+repo-full.txt
+*repomix*.txt
+
+# migrations soltas fora de prisma/migrations/ (sobra de prisma migrate dev interrompido)
+/*.sql

@@ -19,8 +19,8 @@ export default async function AdminFaqPage({ searchParams }: PageProps) {
 
   const canManage =
     session?.user?.staffRole === 'SUPER_ADMIN' ||
-    (session?.user?.staffRole === 'MINISTRY_LEADER' &&
-      session.user.permissions.includes('MANAGE_FAQ'))
+    
+      session?.user?.permissions?.includes('MANAGE_FAQ')
 
   if (!canManage) redirect('/')
 

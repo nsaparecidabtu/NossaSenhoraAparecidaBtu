@@ -2,12 +2,17 @@
 import { prisma } from '@/lib/prisma'
 import { auth } from '@/auth'
 import { redirect } from 'next/navigation'
-import { TabsNavAoVivo } from './components/TabsNavAoVivo'
+import { AdminTabsNav } from '@/components/admin/AdminTabsNav'
 import { LiveManagerHelpTab } from './components/LiveManagerHelpTab'
 import { ChannelsManager } from './ChannelsManager' // Verifique o caminho correto de importação
 import { LiveStreamAdminForm } from './LiveStreamAdminForm' // Verifique o caminho correto de importação
 
 export const dynamic = 'force-dynamic'
+
+const TABS = [
+  { id: 'canais', label: 'Canais & Controle' },
+  { id: 'ajuda', label: 'Manual & Ajuda' },
+]
 
 type PageProps = {
   searchParams: Promise<{ tab?: string }>
@@ -18,10 +23,10 @@ export default async function AdminLivePage({ searchParams }: PageProps) {
   const session = await auth()
   if (!session?.user) redirect('/')
 
-  const hasAccess = 
-    session.user.staffRole === 'SUPER_ADMIN' || 
+  const hasAccess =
+    session.user.staffRole === 'SUPER_ADMIN' ||
     session.user.permissions?.includes('MANAGE_LIVE_STREAM')
-    
+
   if (!hasAccess) redirect('/admin')
 
   // 2. Resolução da Aba Atual via URL
@@ -46,7 +51,7 @@ export default async function AdminLivePage({ searchParams }: PageProps) {
   return (
     <main className="min-h-screen bg-cream px-4 py-12 sm:px-6 text-navy font-body">
       <div className="mx-auto max-w-4xl space-y-6">
-        
+
         {/* Cabeçalho da Página */}
         <div>
           <h1 className="font-display text-3xl font-bold">Gerenciamento de Transmissões & Canais</h1>
@@ -56,13 +61,13 @@ export default async function AdminLivePage({ searchParams }: PageProps) {
         </div>
 
         {/* Navegador de Abas */}
-        <TabsNavAoVivo currentTab={activeTab} />
+        <AdminTabsNav tabs={TABS} currentTab={activeTab} />
 
         {/* Renderização Condicional (Server-Side) */}
         <div className="mt-6">
           {activeTab === 'canais' && (
             <div className="space-y-8 animate-[fadein_0.3s_ease]">
-              
+
               <section className="rounded-2xl border border-line bg-white p-6 shadow-sm">
                 <h2 className="mb-4 border-b border-line pb-3 font-display text-xl font-bold text-navy">
                   Canais do YouTube Conectados
@@ -78,7 +83,7 @@ export default async function AdminLivePage({ searchParams }: PageProps) {
                 {/* O TypeScript deduz corretamente que 'settings' está populado aqui */}
                 <LiveStreamAdminForm settings={settings} />
               </section>
-              
+
             </div>
           )}
 

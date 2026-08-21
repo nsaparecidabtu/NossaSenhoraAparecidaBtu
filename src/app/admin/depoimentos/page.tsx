@@ -21,8 +21,8 @@ export default async function AdminTestimonialsPage({ searchParams }: PageProps)
 
   const canManage =
     session?.user?.staffRole === 'SUPER_ADMIN' ||
-    (session?.user?.staffRole === 'MINISTRY_LEADER' &&
-      session.user.permissions.includes('MANAGE_TESTIMONIALS'))
+    
+      session?.user?.permissions?.includes('MANAGE_TESTIMONIALS')
 
   if (!canManage) redirect('/')
 

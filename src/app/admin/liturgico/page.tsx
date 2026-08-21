@@ -19,8 +19,8 @@ export default async function AdminLiturgicoPage({ searchParams }: PageProps) {
 
   const canManage =
     session?.user?.staffRole === 'SUPER_ADMIN' ||
-    (session?.user?.staffRole === 'MINISTRY_LEADER' &&
-      session.user.permissions.includes('MANAGE_LITURGICAL_THEME'))
+    
+      session?.user?.permissions?.includes('MANAGE_LITURGICAL_THEME')
 
   if (!canManage) redirect('/')
 

@@ -19,8 +19,8 @@ export default async function AdminEventsPage({ searchParams }: PageProps) {
 
   const canManage =
     session?.user?.staffRole === 'SUPER_ADMIN' ||
-    (session?.user?.staffRole === 'MINISTRY_LEADER' &&
-      session.user.permissions.includes('MANAGE_EVENTS'))
+    
+      session?.user?.permissions?.includes('MANAGE_EVENTS')
 
   if (!canManage) redirect('/')
 
